@@ -5,4 +5,8 @@ public class Main {
         // TODO: replace <team-name> with your team's actual name
         System.out.println("Hello world from the firm's Sprint 1 project skeleton");
     }
+
+    public static void printTeamName() {
+        System.out.println("Hello from SEAJ-TEAM-4");
+    }
 }
