@@ -7,4 +7,8 @@ public class Main {
 
         System.out.println("Ella's lab 3 PR");
     }
+
+    public static String getTeamName(){
+        return "Team SEAJ";
+    }
 }
