@@ -11,4 +11,8 @@ public class Main {
     public static String getTeamName(){
         return "Team SEAJ";
     }
+
+    public static void printTeamName() {
+        System.out.println("Hello from SEAJ-TEAM-4");
+    }
 }
