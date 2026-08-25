@@ -1,8 +1,5 @@
 pipeline {
     agent any
-    triggers {
-        cron('*/30 9 * * *')
-    }
     tools {
         jdk 'JDK21'
         maven 'maven'
@@ -17,13 +14,13 @@ pipeline {
             steps {
                 dir('starter') {
                     sh 'mvn -B clean package -DskipTests'
-                    sh 'docker build -t team-skeleton:latest .'
+                    sh 'docker build -t team-skeleton:${BUILD_NUMBER} .'
                 }
             }
         }
         stage('Smoke Test') {
             steps {
-                sh 'docker run --rm team-skeleton:latest'
+                sh 'docker run --rm team-skeleton:${BUILD_NUMBER}'
             }
         }
     }
