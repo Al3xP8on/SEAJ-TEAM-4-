@@ -1,8 +1,13 @@
 -- Schema for first draft of the SEAJ db:
 
+CREATE TABLE clients (
+    client_id   SERIAL PRIMARY KEY,
+    name        TEXT NOT NULL,
+);
+
 CREATE TABLE accounts (
     account_id      SERIAL PRIMARY KEY,
-    client_id       INTEGER NOT NULL,
+    client_id       INTEGER NOT NULL REFERENCES clients(client_id),
     account_type    TEXT NOT NULL,
     opened_date     DATE NOT NULL,
     currency        TEXT NOT NULL
@@ -45,7 +50,18 @@ CREATE TABLE account_portfolios (
     PRIMARY KEY (account_id, portfolio_id)
 );
 
--- Draft 1 dummy data for SEAJ db
+ALTER TABLE instruments
+    ADD CONSTRAINT ticker_check UNIQUE (ticker);
+ALTER TABLE orders 
+    ADD CONSTRAINT quantity_check CHECK (quantity > 0),
+    ADD CONSTRAINT price_check CHECK (price > 0);
+
+-- Draft 2 dummy data for SEAJ db
+
+INSERT INTO clients (name) VALUES
+    ('Alice Johnson'),
+    ('Brian Osei'),
+    ('Carla Mendes');
 
 INSERT INTO accounts (client_id, account_type, opened_date, currency) VALUES
     (1, 'ISA', '2023-01-15', 'GBP'),
