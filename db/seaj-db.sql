@@ -52,6 +52,7 @@ CREATE TABLE account_portfolios (
 
 ALTER TABLE instruments
     ADD CONSTRAINT ticker_check UNIQUE (ticker);
+    
 ALTER TABLE orders 
     ADD CONSTRAINT quantity_check CHECK (quantity > 0),
     ADD CONSTRAINT price_check CHECK (price > 0);
