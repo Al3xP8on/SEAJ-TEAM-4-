@@ -1,0 +1,2 @@
+# Secrets - never commit actual env values, only .env.example
+.env
