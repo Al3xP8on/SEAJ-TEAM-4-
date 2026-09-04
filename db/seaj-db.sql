@@ -47,7 +47,7 @@ CREATE TABLE orders (
 CREATE TABLE positions (
     account_id      BIGINT NOT NULL REFERENCES accounts(id),
     symbol          VARCHAR(20) NOT NULL REFERENCES instruments(symbol),
-    quantity        INT NOT NULL DEFAULT 0,
+    quantity        INT NOT NULL DEFAULT 0 CHECK (quantity >= 0),
     average_cost    NUMERIC(18, 2) NOT NULL DEFAULT 0,
     PRIMARY KEY (account_id, symbol)
 );
@@ -61,12 +61,26 @@ CREATE TABLE order_history (
     note            TEXT
 );
 
+-- POSITION_HISTORY: historical structure for point-in-time holdings snapshots
+CREATE TABLE position_history (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    account_id      BIGINT NOT NULL REFERENCES accounts(id),
+    symbol          VARCHAR(20) NOT NULL REFERENCES instruments(symbol),
+    quantity        INT NOT NULL CHECK (quantity >= 0),
+    average_cost    NUMERIC(18, 2) NOT NULL,
+    recorded_on     TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- last_updated is maintained by the application (JPA @UpdateTimestamp) alongside the version
+-- column, not by the DB, since it's tied to optimistic-lock bookkeeping rather than data integrity.
+
 -- Indexes for query performance
 CREATE INDEX idx_orders_account_id ON orders(account_id);
 CREATE INDEX idx_orders_symbol ON orders(symbol);
 CREATE INDEX idx_orders_created_on ON orders(created_on);
 CREATE INDEX idx_positions_account_id ON positions(account_id);
 CREATE INDEX idx_order_history_order_id ON order_history(order_id);
+CREATE INDEX idx_position_history_account_id ON position_history(account_id);
 CREATE INDEX idx_instruments_tradable ON instruments(tradable) WHERE tradable = TRUE;
 
 -- Seed data: representative accounts, instruments, trades
@@ -108,3 +122,6 @@ INSERT INTO positions (account_id, symbol, quantity, average_cost) VALUES
 
 INSERT INTO order_history (order_id, status, note)
     SELECT id, status, 'Initial seed load' FROM orders;
+
+INSERT INTO position_history (account_id, symbol, quantity, average_cost)
+    SELECT account_id, symbol, quantity, average_cost FROM positions;
