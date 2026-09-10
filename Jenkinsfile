@@ -10,7 +10,7 @@ pipeline {
     }
     
     parameters {
-        booleanParameter(
+        booleanParam(
             name: 'UPDATE_DATABASE_SCHEMA',
             defaultValue: false,
             description: 'Enable to manually trigger database schema update (removes old container and spins up new one)'
@@ -49,13 +49,10 @@ pipeline {
                     
                     sh '''
                         echo "[Step 1/5] Stopping and removing old database container..."
-                        if docker-compose ps -q db > /dev/null 2>&1; then
-                            echo "  -> Found running database container, stopping..."
-                            docker-compose down -v
-                            echo "  -> Old container and volumes removed"
-                        else
-                            echo "  -> No running database container found"
-                        fi
+                        docker-compose down -v --remove-orphans 2>/dev/null || true
+                        echo "  -> Cleaning up any orphaned containers..."
+                        docker rm -f seaj_postgres_db 2>/dev/null || true
+                        echo "  -> Old container and volumes removed"
                     '''
                 }
             }
