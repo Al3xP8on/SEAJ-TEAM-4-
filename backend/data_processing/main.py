@@ -1,5 +1,3 @@
-"""Entry point for instrument data processing."""
-
 import sys
 
 from dotenv import load_dotenv
