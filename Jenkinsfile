@@ -10,7 +10,7 @@ pipeline {
     }
     
     parameters {
-        booleanParameter(
+        booleanParam(
             name: 'UPDATE_DATABASE_SCHEMA',
             defaultValue: false,
             description: 'Enable to manually trigger database schema update (removes old container and spins up new one)'
