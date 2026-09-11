@@ -42,29 +42,18 @@ pipeline {
             }
             steps {
                 script {
-                    withEnv([
-                        'POSTGRES_DB=SEAJ_db_DEMO',
-                        'POSTGRES_USER=postgres',
-                        'POSTGRES_PASSWORD=n3u3d4!',
-                        'DB_PORT=5432',
-                        'APP_PORT=8081',
-                        'SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO',
-                        'SPRING_DATASOURCE_USERNAME=postgres',
-                        'SPRING_DATASOURCE_PASSWORD=n3u3d4!'
-                    ]) {
-                        echo "=========================================="
-                        echo "MANUAL TRIGGER: Database Schema Update"
-                        echo "Environment: ${params.DB_ENVIRONMENT}"
-                        echo "=========================================="
-                        
-                        sh '''
-                            echo "[Step 1/5] Stopping and removing old database container..."
-                            docker-compose down -v --remove-orphans 2>/dev/null || true
-                            echo "  -> Cleaning up any orphaned containers..."
-                            docker rm -f seaj_postgres_db 2>/dev/null || true
-                            echo "  -> Old container and volumes removed"
-                        '''
-                    }
+                    echo "=========================================="
+                    echo "MANUAL TRIGGER: Database Schema Update"
+                    echo "Environment: ${params.DB_ENVIRONMENT}"
+                    echo "=========================================="
+                    
+                    sh '''
+                        echo "[Step 1/5] Stopping and removing old database container..."
+                        docker-compose down -v --remove-orphans 2>/dev/null || true
+                        echo "  -> Cleaning up any orphaned containers..."
+                        docker rm -f seaj_postgres_db 2>/dev/null || true
+                        echo "  -> Old container and volumes removed"
+                    '''
                 }
             }
         }
@@ -77,22 +66,11 @@ pipeline {
             }
             steps {
                 script {
-                    withEnv([
-                        'POSTGRES_DB=SEAJ_db_DEMO',
-                        'POSTGRES_USER=postgres',
-                        'POSTGRES_PASSWORD=n3u3d4!',
-                        'DB_PORT=5432',
-                        'APP_PORT=8081',
-                        'SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO',
-                        'SPRING_DATASOURCE_USERNAME=postgres',
-                        'SPRING_DATASOURCE_PASSWORD=n3u3d4!'
-                    ]) {
-                        sh '''
-                            echo "[Step 2/5] Rebuilding database image with updated schema..."
-                            docker-compose build --no-cache db
-                            echo "  -> Database image rebuilt successfully"
-                        '''
-                    }
+                    sh '''
+                        echo "[Step 2/5] Rebuilding database image with updated schema..."
+                        docker-compose build --no-cache db
+                        echo "  -> Database image rebuilt successfully"
+                    '''
                 }
             }
         }
@@ -105,39 +83,28 @@ pipeline {
             }
             steps {
                 script {
-                    withEnv([
-                        'POSTGRES_DB=SEAJ_db_DEMO',
-                        'POSTGRES_USER=postgres',
-                        'POSTGRES_PASSWORD=n3u3d4!',
-                        'DB_PORT=5432',
-                        'APP_PORT=8081',
-                        'SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO',
-                        'SPRING_DATASOURCE_USERNAME=postgres',
-                        'SPRING_DATASOURCE_PASSWORD=n3u3d4!'
-                    ]) {
-                        sh '''
-                            echo "[Step 3/5] Starting updated database container..."
-                            docker-compose up -d db
-                            
-                            echo "[Step 4/5] Waiting for database to be ready..."
-                            MAX_ATTEMPTS=30
-                            ATTEMPT=0
-                            while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-                                if docker-compose exec -T db pg_isready -U postgres > /dev/null 2>&1; then
-                                    echo "  -> Database is ready!"
-                                    break
-                                fi
-                                ATTEMPT=$((ATTEMPT + 1))
-                                echo "  -> Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting..."
-                                sleep 2
-                            done
-                            
-                            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-                                echo "ERROR: Database failed to start within timeout period"
-                                exit 1
+                    sh '''
+                        echo "[Step 3/5] Starting updated database container..."
+                        docker-compose up -d db
+                        
+                        echo "[Step 4/5] Waiting for database to be ready..."
+                        MAX_ATTEMPTS=30
+                        ATTEMPT=0
+                        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+                            if docker-compose exec -T db pg_isready -U postgres > /dev/null 2>&1; then
+                                echo "  -> Database is ready!"
+                                break
                             fi
-                        '''
-                    }
+                            ATTEMPT=$((ATTEMPT + 1))
+                            echo "  -> Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting..."
+                            sleep 2
+                        done
+                        
+                        if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                            echo "ERROR: Database failed to start within timeout period"
+                            exit 1
+                        fi
+                    '''
                 }
             }
         }
@@ -150,23 +117,12 @@ pipeline {
             }
             steps {
                 script {
-                    withEnv([
-                        'POSTGRES_DB=SEAJ_db_DEMO',
-                        'POSTGRES_USER=postgres',
-                        'POSTGRES_PASSWORD=n3u3d4!',
-                        'DB_PORT=5432',
-                        'APP_PORT=8081',
-                        'SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO',
-                        'SPRING_DATASOURCE_USERNAME=postgres',
-                        'SPRING_DATASOURCE_PASSWORD=n3u3d4!'
-                    ]) {
-                        sh '''
-                            echo "[Step 5/5] Verifying database schema update..."
-                            echo "  -> Listing databases:"
-                            docker-compose exec -T db psql -U postgres -c "\\l"
-                            echo "  -> Schema verification complete"
-                        '''
-                    }
+                    sh '''
+                        echo "[Step 5/5] Verifying database schema update..."
+                        echo "  -> Listing databases:"
+                        docker-compose exec -T db psql -U postgres -c "\\l"
+                        echo "  -> Schema verification complete"
+                    '''
                 }
             }
         }
