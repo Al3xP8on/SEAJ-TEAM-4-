@@ -63,11 +63,15 @@ pipeline {
                             
                             sh """
                                 echo "[Step 1/5] Stopping and removing old database container..."
-                                docker-compose down -v --remove-orphans 2>/dev/null || true
-                                echo "  -> Cleaning up any orphaned containers..."
+                                docker-compose down --remove-orphans 2>/dev/null || true
+                                echo "  -> Killing any running containers..."
+                                docker kill seaj_postgres_db 2>/dev/null || true
+                                echo "  -> Force removing container..."
                                 docker rm -f seaj_postgres_db 2>/dev/null || true
-                                echo "  -> Removing PostgreSQL data volume..."
-                                docker volume rm ipe_feature_container-automation_pgdata_volume 2>/dev/null || true
+                                echo "  -> Removing PostgreSQL data volume with force flag..."
+                                docker volume rm -f ipe_feature_container-automation_pgdata_volume 2>/dev/null || true
+                                echo "  -> Pruning unused Docker resources..."
+                                docker system prune -af --volumes 2>/dev/null || true
                                 echo "  -> Old container and volumes removed"
                             """
                         }
