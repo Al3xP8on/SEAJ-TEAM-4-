@@ -129,7 +129,7 @@ pipeline {
                             "SPRING_DATASOURCE_USERNAME=${DB_USERNAME}",
                             "SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}"
                         ]) {
-                            sh sh """
+                            sh """
                                 echo "[Step 3/5] Starting updated database container..."
                                 docker-compose up -d db
                                 
