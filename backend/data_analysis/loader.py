@@ -171,7 +171,7 @@ class marketDataLoader:
 
 if __name__ == "__main__":
     load_dotenv()
-    loader = MarketDataLoader()
+    loader = marketDataLoader()
     df = loader.download_all(['AAPL', 'MSFT', 'GOOGL'])
     
     print("\nFirst 5 rows: ")
