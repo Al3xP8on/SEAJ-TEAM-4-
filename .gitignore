@@ -1,2 +1,4 @@
 # Secrets - never commit actual env values, only .env.example
 .env
+backend/data_processing/__pycache__/
+
