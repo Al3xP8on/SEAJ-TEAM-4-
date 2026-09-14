@@ -2,3 +2,5 @@
 .env
 backend/data_processing/__pycache__/
 
+__pycache__/
+*.py[cod]
