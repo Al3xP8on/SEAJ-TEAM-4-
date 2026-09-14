@@ -8,8 +8,8 @@ RUN echo "host all all 10.9.0.0/16 scram-sha-256" >> /usr/share/postgresql/15/pg
 RUN printf '#!/bin/bash\necho "host all all 10.9.0.0/16 scram-sha-256" >> "$PGDATA/pg_hba.conf"\n' > /docker-entrypoint-initdb.d/01-restrict-ip.sh \
     && chmod +x /docker-entrypoint-initdb.d/01-restrict-ip.sh
 
-ARG SCHEMA_PATH_DEMO=db/SEAJ_db_DEMO.sql
-ARG SCHEMA_PATH_DEV=db/SEAJ_db_DEV.sql
+ARG SCHEMA_PATH_DEMO=db/seaj-db-diagnostics.sql
+ARG SCHEMA_PATH_DEV=db/seaj-db-perf.sql
 
 COPY ${SCHEMA_PATH_DEMO} /docker-entrypoint-initdb.d/02-demo-schema.sql
 COPY ${SCHEMA_PATH_DEV} /opt/seaj/dev-schema.sql
