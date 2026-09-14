@@ -20,7 +20,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: starter/Dockerfile
     container_name: seaj_app
     ports:
       - "${APP_PORT}:8080"
