@@ -1,5 +1,7 @@
 import pandas as pd
 import yfinance as yf
+import psycopg2
+
 from typing import Optional
 
 from backend.data_analysis.constants import (
@@ -10,6 +12,9 @@ from backend.data_analysis.constants import (
 )
 
 from backend.data_processing.logger import logger
+from backend.data_processing.db_config import DBConfig
+from dotenv import load_dotenv
+
 
 
 class marketDataLoader:
@@ -98,17 +103,97 @@ class marketDataLoader:
             return pd.DataFrame()
         
         return pd.concat(frames, ignore_index=True)
+    
+    @staticmethod
+    def load_instrument_metadata() -> pd.DataFrame:
+        """Load instrument metadata from the database."""
         
+        config = DBConfig.from_env()
+        conn = None
+        
+        try:
+            conn = psycopg2.connect(
+                database=config.database,
+                user=config.user,
+                password=config.password,
+                host=config.host,
+                port=config.port
+            )
+            query = """
+                SELECT 
+                    symbol,
+                    name,
+                    asset_class,
+                    currency,
+                    tradeable
+                FROM instruments
+                ORDER BY symbol
+            """
+            cursor = conn.cursor()
+            cursor.execute(query)
+            
+            rows = cursor.fetchall()
+            
+            columns = ["symbol", "name", "asset_class", "currency", "tradeable"]
+            
+            metadata = pd.DataFrame(rows, columns=columns)
+            cursor.close()
+            
+            logger.info(
+                f"Loaded metadata for "
+                f"{len(metadata)} instruments"
+            )
+            
+            return metadata
+            
+        except psycopg2.Error as e:
+            logger.error(f"Failed to load instrument metadata: {e}")
+            raise
+        
+        finally:
+            if conn is not None:
+                conn.close()
+    
+    @staticmethod
+    def attach_instrument_metadata(
+        market_data: pd.DataFrame,
+        marketdata: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Attach instrument metadata to market data."""
+        
+        enriched_data = market_data.merge(
+            marketdata,
+            how="left",
+            on="symbol"
+        )
+        return enriched_data
+
 
 if __name__ == "__main__":
-    loader = marketDataLoader()
+    load_dotenv()
+    loader = MarketDataLoader()
     df = loader.download_all(['AAPL', 'MSFT', 'GOOGL'])
     
     print("\nFirst 5 rows: ")
     print(df.head())
     
-    print("\nDataset shape: ")
-    print(df.shape)
+    metadata = loader.load_instrument_metadata()
+    print("\nInstrument metadata: ")
+    print(metadata.head())
+    
+    df = loader.attach_instrument_metadata(df, metadata)
+    print("\nEnriched dataset: ")
+    print(df.head())
+    
+    missing_metadata = df[
+        df["asset_class"].isna()
+    ]["symbol"].unique()
+    
+    print("\nSymbols with missing metadata: ")
+    print(missing_metadata)
+    
+    print("\nColumns: ")
+    print(df.columns.tolist())
     
     print("\nSymbols: ")
     print(df['symbol'].unique())
