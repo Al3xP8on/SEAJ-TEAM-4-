@@ -47,14 +47,14 @@ pipeline {
                         string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
                     ]) {
                         withEnv([
-                            'POSTGRES_DB=SEAJ_db_DEMO',
-                            'POSTGRES_PASSWORD=${DB_PASSWORD}',
-                            'DB_USERNAME=${DB_USERNAME}',
-                            'DB_PORT=5432',
-                            'APP_PORT=8081',
-                            'SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO',
-                            'SPRING_DATASOURCE_USERNAME=${DB_USERNAME}',
-                            'SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}'
+                            "POSTGRES_DB=SEAJ_db_DEMO",
+                            "POSTGRES_PASSWORD=${DB_PASSWORD}",
+                            "DB_USERNAME=${DB_USERNAME}",
+                            "DB_PORT=5432",
+                            "APP_PORT=8081",
+                            "SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO",
+                            "SPRING_DATASOURCE_USERNAME=${DB_USERNAME}",
+                            "SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}"
                         ]) {
                             echo "=========================================="
                             echo "MANUAL TRIGGER: Database Schema Update"
@@ -87,14 +87,14 @@ pipeline {
                         string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
                     ]) {
                         withEnv([
-                            'POSTGRES_DB=SEAJ_db_DEMO',
-                            'POSTGRES_PASSWORD=${DB_PASSWORD}',
-                            'DB_USERNAME=${DB_USERNAME}',
-                            'DB_PORT=5432',
-                            'APP_PORT=8081',
-                            'SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO',
-                            'SPRING_DATASOURCE_USERNAME=${DB_USERNAME}',
-                            'SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}'
+                            "POSTGRES_DB=SEAJ_db_DEMO",
+                            "POSTGRES_PASSWORD=${DB_PASSWORD}",
+                            "DB_USERNAME=${DB_USERNAME}",
+                            "DB_PORT=5432",
+                            "APP_PORT=8081",
+                            "SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO",
+                            "SPRING_DATASOURCE_USERNAME=${DB_USERNAME}",
+                            "SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}"
                         ]) {
                             sh """
                                 echo "[Step 2/5] Rebuilding database image with updated schema..."
@@ -120,14 +120,14 @@ pipeline {
                         string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
                     ]) {
                         withEnv([
-                            'POSTGRES_DB=SEAJ_db_DEMO',
-                            'POSTGRES_PASSWORD=${DB_PASSWORD}',
-                            'DB_USERNAME=${DB_USERNAME}',
-                            'DB_PORT=5432',
-                            'APP_PORT=8081',
-                            'SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO',
-                            'SPRING_DATASOURCE_USERNAME=${DB_USERNAME}',
-                            'SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}'
+                            "POSTGRES_DB=SEAJ_db_DEMO",
+                            "POSTGRES_PASSWORD=${DB_PASSWORD}",
+                            "DB_USERNAME=${DB_USERNAME}",
+                            "DB_PORT=5432",
+                            "APP_PORT=8081",
+                            "SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO",
+                            "SPRING_DATASOURCE_USERNAME=${DB_USERNAME}",
+                            "SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}"
                         ]) {
                             sh """
                                 echo "[Step 3/5] Starting updated database container..."
@@ -137,7 +137,7 @@ pipeline {
                                 MAX_ATTEMPTS=30
                                 ATTEMPT=0
                                 while [ \$ATTEMPT -lt \$MAX_ATTEMPTS ]; do
-                                    if docker-compose exec -T db pg_isready -U \${DB_USERNAME} > /dev/null 2>&1; then
+                                    if docker-compose exec -T db pg_isready -U \$DB_USERNAME > /dev/null 2>&1; then
                                         echo "  -> Database is ready!"
                                         break
                                     fi
@@ -170,19 +170,19 @@ pipeline {
                         string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
                     ]) {
                         withEnv([
-                            'POSTGRES_DB=SEAJ_db_DEMO',
-                            'POSTGRES_PASSWORD=${DB_PASSWORD}',
-                            'DB_USERNAME=${DB_USERNAME}',
-                            'DB_PORT=5432',
-                            'APP_PORT=8081',
-                            'SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO',
-                            'SPRING_DATASOURCE_USERNAME=${DB_USERNAME}',
-                            'SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}'
+                            "POSTGRES_DB=SEAJ_db_DEMO",
+                            "POSTGRES_PASSWORD=${DB_PASSWORD}",
+                            "DB_USERNAME=${DB_USERNAME}",
+                            "DB_PORT=5432",
+                            "APP_PORT=8081",
+                            "SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SEAJ_db_DEMO",
+                            "SPRING_DATASOURCE_USERNAME=${DB_USERNAME}",
+                            "SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}"
                         ]) {
                             sh """
                                 echo "[Step 5/5] Verifying database schema update..."
                                 echo "  -> Listing databases:"
-                                docker-compose exec -T db psql -U \${DB_USERNAME} -c "\\l"
+                                docker-compose exec -T db psql -U \$DB_USERNAME -c "\\l"
                                 echo "  -> Schema verification complete"
                             """
                         }
