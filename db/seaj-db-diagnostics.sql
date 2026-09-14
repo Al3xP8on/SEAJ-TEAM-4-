@@ -52,6 +52,25 @@ CREATE TABLE positions (
     PRIMARY KEY (account_id, symbol)
 );
 
+-- PRICE_HISTORY: historical price data from yfinance (OHLCV)
+CREATE TABLE price_history (
+    symbol          VARCHAR(20) NOT NULL REFERENCES instruments(symbol),
+    price_date      DATE NOT NULL,
+    open            NUMERIC(18,2) NOT NULL,
+    high            NUMERIC(18,2) NOT NULL,
+    low             NUMERIC(18,2) NOT NULL,
+    close           NUMERIC(18,2) NOT NULL,
+    volume          BIGINT NOT NULL,
+    PRIMARY KEY (symbol, price_date)
+);
+
+-- CURRENT_PRICES: latest price snapshot for fast portfolio valuation queries
+CREATE TABLE current_prices (
+    symbol          VARCHAR(20) PRIMARY KEY REFERENCES instruments(symbol),
+    price           NUMERIC(18,2) NOT NULL,
+    last_updated    TIMESTAMP NOT NULL
+);
+
 -- ORDER_HISTORY: historical structure recording every status transition of an order
 CREATE TABLE order_history (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -70,6 +89,10 @@ CREATE INDEX idx_orders_created_on ON orders(created_on);
 CREATE INDEX idx_positions_account_id ON positions(account_id);
 CREATE INDEX idx_order_history_order_id ON order_history(order_id);
 CREATE INDEX idx_instruments_tradable ON instruments(tradable) WHERE tradable = TRUE;
+CREATE INDEX idx_price_history_symbol ON price_history(symbol);
+CREATE INDEX idx_price_history_date ON price_history(price_date);
+CREATE INDEX idx_price_history_symbol_date ON price_history(symbol, price_date DESC);
+CREATE INDEX idx_current_prices_updated ON current_prices(last_updated);
 
 -- Seed data: representative accounts, instruments, trades
 
