@@ -129,11 +129,19 @@ pipeline {
                             "SPRING_DATASOURCE_USERNAME=${DB_USERNAME}",
                             "SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}"
                         ]) {
-                            sh """
+                            sh sh """
                                 echo "[Step 3/5] Starting updated database container..."
                                 docker-compose up -d db
                                 
                                 echo "[Step 4/5] Waiting for database to be ready..."
+                                sleep 10
+                                
+                                echo "  -> Checking container logs..."
+                                docker-compose logs db
+                                
+                                echo "  -> Testing database connection..."
+                                docker-compose exec -T db psql -U \$DB_USERNAME -d \$POSTGRES_DB -c "SELECT 1" || echo "Connection failed"
+                                
                                 MAX_ATTEMPTS=30
                                 ATTEMPT=0
                                 while [ \$ATTEMPT -lt \$MAX_ATTEMPTS ]; do
@@ -142,12 +150,13 @@ pipeline {
                                         break
                                     fi
                                     ATTEMPT=\$((ATTEMPT + 1))
-                                    echo "  -> Attempt \$ATTEMPT/\$MAX_ATTEMPTS - waiting..."
+                                    echo "  -> Attempt \$ATTEMPT/$MAX_ATTEMPTS - waiting..."
                                     sleep 2
                                 done
                                 
                                 if [ \$ATTEMPT -eq \$MAX_ATTEMPTS ]; then
-                                    echo "ERROR: Database failed to start within timeout period"
+                                    echo "ERROR: Database failed to start"
+                                    docker-compose logs db
                                     exit 1
                                 fi
                             """
