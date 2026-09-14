@@ -150,7 +150,7 @@ pipeline {
                                         break
                                     fi
                                     ATTEMPT=\$((ATTEMPT + 1))
-                                    echo "  -> Attempt \$ATTEMPT/$MAX_ATTEMPTS - waiting..."
+                                    echo "  -> Attempt \$ATTEMPT/\$MAX_ATTEMPTS - waiting..."
                                     sleep 2
                                 done
                                 
