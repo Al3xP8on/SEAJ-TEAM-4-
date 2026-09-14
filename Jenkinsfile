@@ -66,6 +66,8 @@ pipeline {
                                 docker-compose down -v --remove-orphans 2>/dev/null || true
                                 echo "  -> Cleaning up any orphaned containers..."
                                 docker rm -f seaj_postgres_db 2>/dev/null || true
+                                echo "  -> Removing PostgreSQL data volume..."
+                                docker volume rm ipe_feature_container-automation_pgdata_volume 2>/dev/null || true
                                 echo "  -> Old container and volumes removed"
                             """
                         }
