@@ -136,17 +136,17 @@ pipeline {
                                 echo "[Step 4/5] Waiting for database to be ready..."
                                 MAX_ATTEMPTS=30
                                 ATTEMPT=0
-                                while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-                                    if docker-compose exec -T db pg_isready -U ${DB_USERNAME} > /dev/null 2>&1; then
+                                while [ \$ATTEMPT -lt \$MAX_ATTEMPTS ]; do
+                                    if docker-compose exec -T db pg_isready -U \${DB_USERNAME} > /dev/null 2>&1; then
                                         echo "  -> Database is ready!"
                                         break
                                     fi
-                                    ATTEMPT=$((ATTEMPT + 1))
-                                    echo "  -> Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting..."
+                                    ATTEMPT=\$((ATTEMPT + 1))
+                                    echo "  -> Attempt \$ATTEMPT/\$MAX_ATTEMPTS - waiting..."
                                     sleep 2
                                 done
                                 
-                                if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                                if [ \$ATTEMPT -eq \$MAX_ATTEMPTS ]; then
                                     echo "ERROR: Database failed to start within timeout period"
                                     exit 1
                                 fi
@@ -182,7 +182,7 @@ pipeline {
                             sh """
                                 echo "[Step 5/5] Verifying database schema update..."
                                 echo "  -> Listing databases:"
-                                docker-compose exec -T db psql -U ${DB_USERNAME} -c "\\l"
+                                docker-compose exec -T db psql -U \${DB_USERNAME} -c "\\l"
                                 echo "  -> Schema verification complete"
                             """
                         }
