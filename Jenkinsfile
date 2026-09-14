@@ -61,13 +61,13 @@ pipeline {
                             echo "Environment: ${params.DB_ENVIRONMENT}"
                             echo "=========================================="
                             
-                            sh '''
+                            sh """
                                 echo "[Step 1/5] Stopping and removing old database container..."
                                 docker-compose down -v --remove-orphans 2>/dev/null || true
                                 echo "  -> Cleaning up any orphaned containers..."
                                 docker rm -f seaj_postgres_db 2>/dev/null || true
                                 echo "  -> Old container and volumes removed"
-                            '''
+                            """
                         }
                     }
                 }
@@ -96,11 +96,11 @@ pipeline {
                             'SPRING_DATASOURCE_USERNAME=${DB_USERNAME}',
                             'SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}'
                         ]) {
-                            sh '''
+                            sh """
                                 echo "[Step 2/5] Rebuilding database image with updated schema..."
                                 docker-compose build --no-cache db
                                 echo "  -> Database image rebuilt successfully"
-                            '''
+                            """
                         }
                     }
                 }
@@ -129,7 +129,7 @@ pipeline {
                             'SPRING_DATASOURCE_USERNAME=${DB_USERNAME}',
                             'SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}'
                         ]) {
-                            sh '''
+                            sh """
                                 echo "[Step 3/5] Starting updated database container..."
                                 docker-compose up -d db
                                 
@@ -150,7 +150,7 @@ pipeline {
                                     echo "ERROR: Database failed to start within timeout period"
                                     exit 1
                                 fi
-                            '''
+                            """
                         }
                     }
                 }
@@ -179,12 +179,12 @@ pipeline {
                             'SPRING_DATASOURCE_USERNAME=${DB_USERNAME}',
                             'SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}'
                         ]) {
-                            sh '''
+                            sh """
                                 echo "[Step 5/5] Verifying database schema update..."
                                 echo "  -> Listing databases:"
                                 docker-compose exec -T db psql -U ${DB_USERNAME} -c "\\l"
                                 echo "  -> Schema verification complete"
-                            '''
+                            """
                         }
                     }
                 }
