@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: db/Dockerfile
       args:
-        SCHEMA_PATH_DEMO: db/seaj-db-diagnostics.sql
-        SCHEMA_PATH_DEV: db/seaj-db-perf.sql
+        SCHEMA_PATH_DEMO: db/SEAJ_db_DEMO.sql
+        SCHEMA_PATH_DEV: db/SEAJ_db_DEV.sql
     container_name: seaj_postgres_db
     environment:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
