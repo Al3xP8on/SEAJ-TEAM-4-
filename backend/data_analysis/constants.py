@@ -4,10 +4,11 @@ from backend.data_processing.constants import(
 )
 
 START_DATE = "2016-01-01"
-END_DATE = "2026-12-31"
+END_DATE = None
 INTERVAL = "1d"
 
 TRADING_DAYS = 252
+ROLLING_WINDOW = 30
 
 PRICE_COLUMNS = [
     "open",
@@ -16,7 +17,7 @@ PRICE_COLUMNS = [
     "close"
 ]
 
-ANALYSIS_COLUMNS = [
+MARKET_COLUMNS = [
     "symbol",
     "date",
     "open",
@@ -24,4 +25,39 @@ ANALYSIS_COLUMNS = [
     "low",
     "close",
     "volume"
+]
+
+METADATA_COLUMNS = [
+    "symbol",
+    "name",
+    "asset_class",
+    "currency",
+    "tradable"
+]
+
+FEATURE_COLUMNS = [
+    "daily_return",
+    "cumulative_return",
+    "normalised_price",
+    "rolling_volatility",
+    "drawdown"
+]
+
+ANALYSIS_COLUMNS = [
+    "symbol",
+    "name",
+    "asset_class",
+    "currency",
+    "tradable",
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "daily_return",
+    "cumulative_return",
+    "normalised_price",
+    "rolling_volatility",
+    "drawdown"
 ]
