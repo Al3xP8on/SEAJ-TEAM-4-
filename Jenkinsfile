@@ -70,6 +70,10 @@ pipeline {
                                 docker rm -f seaj_postgres_db 2>/dev/null || true
                                 echo "  -> Removing PostgreSQL data volume with force flag..."
                                 docker volume rm -f ipe_feature_container-automation_pgdata_volume 2>/dev/null || true
+                                
+                                echo "  -> Cleaning volume directory from inside container..."
+                                docker run --rm -v ipe_feature_container-automation_pgdata_volume:/pgdata alpine:latest sh -c 'rm -rf /pgdata/* /pgdata/.*' 2>/dev/null || true
+                                
                                 echo "  -> Pruning unused Docker resources..."
                                 docker system prune -af --volumes 2>/dev/null || true
                                 echo "  -> Old container and volumes removed"
