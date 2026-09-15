@@ -4,7 +4,7 @@ import psycopg2
 
 from typing import Optional
 
-from backend.python.data_analysis.constants import (
+from data_analysis.constants import (
     START_DATE,
     END_DATE,
     INTERVAL,
