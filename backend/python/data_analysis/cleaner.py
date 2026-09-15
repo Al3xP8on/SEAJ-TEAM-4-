@@ -1,5 +1,5 @@
 import pandas as pd
-from backend.python.data_processing.logger import logger
+from logger.logger import logger
 
 
 class MarketDataCleaner:

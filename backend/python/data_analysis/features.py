@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from backend.python.data_processing.logger import logger
+from logger.logger import logger
 
 
 class MarketFeatureEngineer:
