@@ -1,12 +1,14 @@
-import java.time.LocalDateTime;
+package com.neueda.leap;
 
+import java.time.LocalDateTime;
+import com.neueda.enums.AccountStatus;
 public class Account {
     // Fields
     private Long id;
     private String accountId;
     private String holderName;
     private float cashBalance;
-    private String status;
+    private AccountStatus status;
     private int version;
     private LocalDateTime lastUpdated;
 
@@ -15,7 +17,7 @@ public class Account {
     }
 
     public Account(String accountId, String holderName, float cashBalance, 
-                   String status) {
+                   AccountStatus status) {
         this.accountId = accountId;
         this.holderName = holderName;
         this.cashBalance = cashBalance;
@@ -48,7 +50,7 @@ public class Account {
 
     // Account Status Checks --> need to change for ENUM
     public boolean isActive() {
-        
+        return this.status == AccountStatus.ACTIVE;
     }
 
     public boolean isValidForTrading() {
@@ -108,14 +110,14 @@ public class Account {
     public String getAccountId() { return accountId; }
     public String getHolderName() { return holderName; }
     public float getCashBalance() { return cashBalance; }
-    public String getStatus() { return status; }
+    public AccountStatus getStatus() { return status; }
     public int getVersion() { return version; }
     public LocalDateTime getLastUpdated() { return lastUpdated; }
 
     // Setters - Limited to Non-Core Fields
     public void setAccountId(String accountId) { this.accountId = accountId; }
     public void setHolderName(String holderName) { this.holderName = holderName; }
-    public void setStatus(String status) { 
+    public void setStatus(AccountStatus status) { 
        //Add status validation here
     }
 
