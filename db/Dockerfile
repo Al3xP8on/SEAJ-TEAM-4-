@@ -11,7 +11,7 @@ ARG SCHEMA_PATH_DEMO=db/SEAJ_db_DEMO.sql
 ARG SCHEMA_PATH_DEV=db/SEAJ_db_DEV.sql
 
 COPY ${SCHEMA_PATH_DEMO} /docker-entrypoint-initdb.d/02-demo-schema.sql
-COPY ${SCHEMA_PATH_DEV} /opt/seaj/dev-schema.sql
+COPY ${SCHEMA_PATH_DEV} /opt/seaj/DEV-schema.sql
 
 RUN printf '#!/bin/bash\nset -e\npsql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL\n    CREATE DATABASE "SEAJ_db_DEV";\nEOSQL\npsql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "SEAJ_db_DEV" -f /opt/seaj/DEV-schema.sql\n' > /docker-entrypoint-initdb.d/03-create-dev-db.sh \
     && chmod +x /docker-entrypoint-initdb.d/03-create-dev-db.sh
