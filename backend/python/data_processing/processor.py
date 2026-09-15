@@ -4,9 +4,9 @@ from typing import List, Dict, Tuple, Optional
 from psycopg2.extras import execute_batch
 from psycopg2.extensions import connection
 
-from backend.data_processing.db_config import DBConfig
-from backend.data_processing.logger import logger
-from backend.data_processing.constants import (
+from backend.python.data_processing.db_config import DBConfig
+from backend.python.data_processing.logger import logger
+from backend.python.data_processing.constants import (
     SELECT_EXISTING_SYMBOLS,
     INSERT_INSTRUMENTS_SQL,
     ASSET_CLASS_MAP,
