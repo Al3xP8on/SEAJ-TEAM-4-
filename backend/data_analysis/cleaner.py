@@ -219,7 +219,7 @@ class MarketDataCleaner:
             "missing_values_summary": cls.detect_missing_values(df).to_dict()
         }
         
-        logger.info("=== Data Quality Report ===")
+        logger.info("Data Quality Report")
         logger.info(f"Total records: {report['total_records']}")
         logger.info(f"Unique symbols: {report['total_symbols']}")
         logger.info(f"Issues found: {sum([report['duplicates'], report['missing_symbols'], report['missing_dates'], report['invalid_prices'], report['invalid_volumes'], report['invalid_ohlc']])}")

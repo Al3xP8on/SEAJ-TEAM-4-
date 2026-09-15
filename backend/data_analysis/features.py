@@ -125,7 +125,9 @@ class MarketFeatureEngineer:
         result = df.copy()
         result = result.sort_values(["symbol", "date"])
         
-        result["log_return"] = result.groupby("symbol")["close"].apply(lambda x: np.log(x / x.shift(1)))
+        result["log_return"] = result.groupby("symbol")["close"].transform(
+            lambda prices: np.log(prices / prices.shift(1))
+        )
         
         logger.info("Calculated log_return for all symbols")
         return result
