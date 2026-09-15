@@ -1,13 +1,11 @@
-version: '3.8'
-
 services:
   db:
     build:
       context: .
       dockerfile: db/Dockerfile
       args:
-        SCHEMA_PATH_DEMO: db/seaj-db-diagnostics.sql
-        SCHEMA_PATH_DEV: db/seaj-db-perf.sql
+        SCHEMA_PATH_DEMO: db/SEAJ_db_DEMO.sql
+        SCHEMA_PATH_DEV: db/SEAJ_db_DEV.sql
     container_name: seaj_postgres_db
     environment:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
@@ -20,7 +18,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: starter/Dockerfile
     container_name: seaj_app
     ports:
       - "${APP_PORT}:8080"
