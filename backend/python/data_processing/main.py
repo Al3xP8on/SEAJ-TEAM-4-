@@ -2,9 +2,9 @@ import sys
 
 from dotenv import load_dotenv
 
-from backend.data_processing.processor import InstrumentDataProcessor
-from backend.data_processing.db_config import DBConfig
-from backend.data_processing.logger import logger
+from backend.python.data_processing.processor import InstrumentDataProcessor
+from backend.python.data_processing.db_config import DBConfig
+from backend.python.data_processing.logger import logger
 
 
 def main() -> None:
