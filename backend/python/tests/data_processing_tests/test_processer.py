@@ -1,6 +1,6 @@
 import pytest
-from backend.data_processing.processor import InstrumentDataProcessor
-from backend.data_processing.db_config import DBConfig
+from data_processing.processor import InstrumentDataProcessor
+from data_processing.db_config import DBConfig
 
 @pytest.fixture(autouse=True)
 def db_config():
