@@ -1,5 +1,6 @@
 
 package com.neueda.leap;
+import java.util.Objects;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -9,15 +10,15 @@ public class Instrument {
     private final String name;
     private final String assetClass;
     private final String currency;
-    private final boolean tradeable;
+    private final boolean tradable;
 
-    public Instrument(String symbol, String name, String assetClass, String currency, boolean tradeable) {
+    public Instrument(String symbol, String name, String assetClass, String currency, boolean tradable) {
 
         this.symbol = validateSymbol(symbol);
         this.name = validateName(name);
         this.assetClass = validateAssetClass(assetClass);
         this.currency = validateCurrency(currency);
-        this.tradeable = tradeable;
+        this.tradable = tradable;
     }
 
     public String getSymbol() {
@@ -36,8 +37,8 @@ public class Instrument {
         return currency;
     }
 
-    public boolean isTradeable(){
-        return tradeable;
+    public boolean isTradable(){
+        return tradable;
     }
 
     private static String validateSymbol(String symbol){
@@ -119,7 +120,7 @@ public class Instrument {
                 ", name='" + name + '\'' +
                 ", assetClass='" + assetClass + '\'' +
                 ", currency='" + currency + '\'' +
-                ", tradeable=" + tradeable +
+                ", tradable=" + tradable +
                 '}';
     }
 
