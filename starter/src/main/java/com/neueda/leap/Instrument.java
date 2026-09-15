@@ -1,6 +1,8 @@
 
 package com.neueda.leap;
 
+import java.util.Objects;
+import java.util.Optional;
 public class Instrument {
 
     private final String symbol;
@@ -9,7 +11,7 @@ public class Instrument {
     private final String currency;
     private final boolean tradeable;
 
-    public Instrument(String symbol, String name, String assetClass, String currency, oolean tradeable) {
+    public Instrument(String symbol, String name, String assetClass, String currency, boolean tradeable) {
 
         this.symbol = validateSymbol(symbol);
         this.name = validateName(name);
@@ -76,6 +78,20 @@ public class Instrument {
             throw new IllegalArgumentException("Currency must be exactly 3 characters");
         }
         return trimmedCurrency.toUpperCase();
+    }
+
+    private static String validateName(String name){
+        Objects.requireNonNull(name, "Name cannot be null");
+        String trimmedName = name.trim();
+
+        if(trimmedName.isEmpty()){
+            throw new IllegalArgumentException("Name cannot be empty");
+        }
+        if(trimmedName.length() > 1000){
+            throw new IllegalArgumentException("Name cannot be longer than 1000 characters");
+        }
+        return trimmedName;
+
     }
 
     @Override
