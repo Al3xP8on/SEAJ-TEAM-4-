@@ -1,4 +1,4 @@
-from backend.data_processing.constants import(
+from backend.python.data_processing.constants import(
     DEFAULT_TICKERS,
     BATCH_PAGE_SIZE
 )

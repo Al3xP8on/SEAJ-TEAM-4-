@@ -4,7 +4,7 @@ import psycopg2
 
 from typing import Optional
 
-from backend.data_analysis.constants import (
+from backend.python.data_analysis.constants import (
     START_DATE,
     END_DATE,
     INTERVAL,
@@ -13,8 +13,8 @@ from backend.data_analysis.constants import (
     METADATA_COLUMNS,
 )
 
-from backend.data_processing.logger import logger
-from backend.data_processing.db_config import DBConfig
+from backend.python.data_processing.logger import logger
+from backend.python.data_processing.db_config import DBConfig
 from dotenv import load_dotenv
 
 class MarketDataLoader:
