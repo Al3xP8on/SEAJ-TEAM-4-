@@ -3,10 +3,11 @@ package com.neueda.leap;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-
-/*Account domain model following SOLID principles.*/
+/**
+ * Account domain model following SOLID principles.
+ * Manages account state with validated transactions through specialized processors.
+ */
 public class Account implements Tradeable, Closable {
-    // Fields
     private Long id;
     private String accountId;
     private String holderName;
@@ -15,7 +16,6 @@ public class Account implements Tradeable, Closable {
     private int version;
     private LocalDateTime lastUpdated;
 
-    // Constructors
     public Account(String accountId, String holderName, BigDecimal cashBalance, 
                    AccountStatus status) {
         AccountValidator.validateAccountId(accountId);
@@ -30,7 +30,6 @@ public class Account implements Tradeable, Closable {
         this.lastUpdated = LocalDateTime.now();
     }
 
-    // Trading Operations (Tradeable Interface)
     @Override
     public void debit(BigDecimal amount) {
         this.cashBalance = TransactionProcessor.processDebit(this.cashBalance, amount);
@@ -56,23 +55,26 @@ public class Account implements Tradeable, Closable {
         return isActive() && this.cashBalance.compareTo(BigDecimal.ZERO) >= 0;
     }
 
-    // Account Status Checks
     public boolean isActive() {
         return this.status == AccountStatus.ACTIVE;
     }
 
-    // User-Friendly Trading Operations
+    /**
+     * Convenience method that delegates to credit()
+     */
     public void deposit(BigDecimal amount) {
         AccountValidator.validatePositiveAmount(amount, "Deposit");
         credit(amount);
     }
 
+    /**
+     * Convenience method that delegates to debit()
+     */
     public void withdraw(BigDecimal amount) {
         AccountValidator.validatePositiveAmount(amount, "Withdrawal");
         debit(amount);
     }
 
-    // Closable Interface
     @Override
     public void suspendAccount() {
         this.status = AccountStatus.SUSPENDED;
@@ -86,7 +88,6 @@ public class Account implements Tradeable, Closable {
         updateTimestamp();
     }
 
-    // Utility Methods
     private void updateTimestamp() {
         this.lastUpdated = TransactionProcessor.getUpdatedTimestamp();
         this.version = TransactionProcessor.incrementVersion(this.version);
@@ -100,7 +101,6 @@ public class Account implements Tradeable, Closable {
         );
     }
 
-    // Getters (Public Read Access)
     public Long getId() { return id; }
     public String getAccountId() { return accountId; }
     public String getHolderName() { return holderName; }
@@ -109,7 +109,6 @@ public class Account implements Tradeable, Closable {
     public int getVersion() { return version; }
     public LocalDateTime getLastUpdated() { return lastUpdated; }
 
-    // Setters - Limited to Non-Core Fields
     public void setAccountId(String accountId) {
         AccountValidator.validateAccountId(accountId);
         this.accountId = accountId;
