@@ -126,4 +126,4 @@ public class Account {
     private void setVersion(int version) { this.version = version; }
     private void setLastUpdated(LocalDateTime lastUpdated) { this.lastUpdated = lastUpdated; }
     private void setCashBalance(float cashBalance) { this.cashBalance = cashBalance; }
-}S
+}
