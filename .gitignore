@@ -5,5 +5,14 @@
 **/.pytest_cache
 *.py[cod]
 .venv/
-
 target/
+
+# Build artifacts - Maven generates these
+*.lst
+target/maven-status/
+
+# IDE and OS files
+.DS_Store
+.idea/
+*.swp
+*.swo
