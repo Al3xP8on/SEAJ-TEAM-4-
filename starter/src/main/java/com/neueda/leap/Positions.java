@@ -2,45 +2,63 @@ package com.neueda.leap;
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.math.RoundingMode;
+import com.neueda.leap.exceptions.InsufficientHoldingsException;
 
 
 public class Positions {
+
+    private static final int SCALE = 2;
+    private static final RoundingMode ROUNDING_MODE = RoundingMode.HALF_UP;
 
     private final long accountId;
     private final String symbol;
     private int quantity;
     private BigDecimal averageCost;
+    private final PositionsValidator validator;
 
     public Positions(long accountId, String symbol, int quantity, BigDecimal averageCost) {
+        this(accountId, symbol, quantity, averageCost, new PositionsValidator());
+    }
+
+    public Positions(long accountId, String symbol, int quantity, BigDecimal averageCost, PositionsValidator validator) {
+        this.validator = validator;
+
+        validator.validateAccountId(accountId);
+        validator.validateSymbol(symbol);
+        validator.validateQuantity(quantity);
+        validator.validateAverageCost(averageCost);
+
         this.accountId = accountId;
         this.symbol = symbol;
         this.quantity = quantity;
-        this.averageCost = averageCost;
+        this.averageCost = averageCost.setScale(SCALE, ROUNDING_MODE);
     }
 
-    public void apply(int quantity, BigDecimal price) {
-        int newQuantity = this.quantity + quantity;
+    public void apply(int quantityChange, BigDecimal price) throws InsufficientHoldingsException {
+        validator.validateQuantityChange(quantityChange);
+        validator.validatePrice(price);
+
+        int newQuantity = this.quantity + quantityChange;
+
+        validator.validateSufficientHoldings(newQuantity, symbol);
 
         if(quantityChange > 0){
             BigDecimal currentValue = averageCost.multiply(BigDecimal.valueOf(this.quantity));
-            BigDecimal  additionalValue = price.multiply(BigDecimal.valueOf(quantity));
+            BigDecimal additionalValue = price.multiply(BigDecimal.valueOf(quantityChange));
             BigDecimal totalCost = currentValue.add(additionalValue);
-            averageCost = totalCost.divide(BigDecimal.valueOf(newQuantity), 2, RoundingMode.HALF_UP);
+            averageCost = totalCost.divide(BigDecimal.valueOf(newQuantity), SCALE, ROUNDING_MODE);
         }
 
-        quantity = newQuantity;
+        this.quantity = newQuantity;
 
-        if(quantity == 0){
-            averageCost = BigDecimal.ZERO.setScale(2);
+        if(this.quantity == 0){
+            averageCost = BigDecimal.ZERO;
         }
-
     }
 
     public BigDecimal marketValue(BigDecimal currentPrice){
-        if(currentPrice == null){
-            return BigDecimal.ZERO.setScale(2);
-        }
-        return currentPrice.multiply(BigDecimal.valueOf(quantity)).setScale(2, RoundingMode.HALF_UP);    
+        validator.validateCurrentPrice(currentPrice);
+        return currentPrice.multiply(BigDecimal.valueOf(quantity)).setScale(SCALE, ROUNDING_MODE);    
     }
 
     public long getAccountId() {
@@ -64,9 +82,10 @@ public class Positions {
         if(this == o ){
             return true;
         }
-        if(!(o instanceof Position)){
+        if(!(o instanceof Positions)){
             return false;
         }
+        Positions position = (Positions) o;
         return accountId == position.accountId && symbol.equals(position.symbol);
     }
 
@@ -77,7 +96,7 @@ public class Positions {
 
     @Override
     public String toString(){
-        return "Position{" +
+        return "Positions{" +
                 "accountId=" + accountId +
                 ", symbol='" + symbol + '\'' +
                 ", quantity=" + quantity +
