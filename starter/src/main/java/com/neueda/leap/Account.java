@@ -3,10 +3,7 @@ package com.neueda.leap;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Account domain model following SOLID principles.
- * Manages account state with validated transactions through specialized processors.
- */
+
 public class Account implements Tradeable, Closable {
     private Long id;
     private String accountId;
@@ -59,17 +56,12 @@ public class Account implements Tradeable, Closable {
         return this.status == AccountStatus.ACTIVE;
     }
 
-    /**
-     * Convenience method that delegates to credit()
-     */
     public void deposit(BigDecimal amount) {
         AccountValidator.validatePositiveAmount(amount, "Deposit");
         credit(amount);
     }
 
-    /**
-     * Convenience method that delegates to debit()
-     */
+   
     public void withdraw(BigDecimal amount) {
         AccountValidator.validatePositiveAmount(amount, "Withdrawal");
         debit(amount);
