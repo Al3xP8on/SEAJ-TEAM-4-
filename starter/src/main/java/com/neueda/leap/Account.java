@@ -2,7 +2,7 @@ package com.neueda.leap;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
+import com.neueda.leap.interfaces.Closable;
 /**
  * Account domain model following SOLID principles.
  * Manages account state with validated transactions through specialized processors.
