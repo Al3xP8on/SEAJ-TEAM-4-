@@ -1,23 +1,27 @@
 package com.neueda.leap;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import com.neueda.enums.AccountStatus;
-public class Account {
-    // Fields
+
+/**
+ * Account domain model following SOLID principles.
+ * Manages account state with validated transactions through specialized processors.
+ */
+public class Account implements Tradeable, Closable {
     private Long id;
     private String accountId;
     private String holderName;
-    private float cashBalance;
+    private BigDecimal cashBalance;
     private AccountStatus status;
     private int version;
     private LocalDateTime lastUpdated;
 
-    // Constructors
-    public Account() {
-    }
-
-    public Account(String accountId, String holderName, float cashBalance, 
+    public Account(String accountId, String holderName, BigDecimal cashBalance, 
                    AccountStatus status) {
+        AccountValidator.validateAccountId(accountId);
+        AccountValidator.validateHolderName(holderName);
+        AccountValidator.validatePositiveAmount(cashBalance, "Initial balance");
+        
         this.accountId = accountId;
         this.holderName = holderName;
         this.cashBalance = cashBalance;
@@ -26,104 +30,100 @@ public class Account {
         this.lastUpdated = LocalDateTime.now();
     }
 
-    // Methods
-    public void debit(float amount) {
-        if (amount <= 0) {
-            throw new IllegalArgumentException("Debit amount must be positive");
-        }
-        if (cashBalance < amount) {
-            throw new IllegalStateException("Insufficient funds");
-        }
-        this.cashBalance = cashBalance - amount;
-        this.lastUpdated = LocalDateTime.now();
-        this.version++;
+    @Override
+    public void debit(BigDecimal amount) {
+        this.cashBalance = TransactionProcessor.processDebit(this.cashBalance, amount);
+        updateTimestamp();
     }
 
-    public void credit(float amount) {
-        if (amount <= 0) {
-            throw new IllegalArgumentException("Credit amount must be positive");
-        }
-        this.cashBalance = cashBalance + amount;
-        this.lastUpdated = LocalDateTime.now();
-        this.version++;
+    @Override
+    public void credit(BigDecimal amount) {
+        this.cashBalance = TransactionProcessor.processCredit(this.cashBalance, amount);
+        updateTimestamp();
     }
 
-    // Account Status Checks --> need to change for ENUM
+    @Override
+    public boolean canAfford(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return false;
+        }
+        return this.cashBalance.compareTo(amount) >= 0;
+    }
+
+    @Override
+    public boolean isValidForTrading() {
+        return isActive() && this.cashBalance.compareTo(BigDecimal.ZERO) >= 0;
+    }
+
     public boolean isActive() {
         return this.status == AccountStatus.ACTIVE;
     }
 
-    public boolean isValidForTrading() {
-        return isActive() && cashBalance >= 0;
-    }
-
-    // Trading Operations
-    public boolean canAfford(float amount) {
-        if (amount <= 0) {
-            return false;
-        }
-        return cashBalance >= amount;
-    }
-
-    public void deposit(float amount) {
-        if (amount <= 0) {
-            throw new IllegalArgumentException("Deposit amount must be positive");
-        }
+    /**
+     * Convenience method that delegates to credit()
+     */
+    public void deposit(BigDecimal amount) {
+        AccountValidator.validatePositiveAmount(amount, "Deposit");
         credit(amount);
     }
 
-    public void withdraw(float amount) {
-        if (amount <= 0) {
-            throw new IllegalArgumentException("Withdrawal amount must be positive");
-        }
+    /**
+     * Convenience method that delegates to debit()
+     */
+    public void withdraw(BigDecimal amount) {
+        AccountValidator.validatePositiveAmount(amount, "Withdrawal");
         debit(amount);
     }
 
+    @Override
     public void suspendAccount() {
-      
+        this.status = AccountStatus.SUSPENDED;
+        updateTimestamp();
     }
 
+    @Override
     public void closeAccount() {
-        if (cashBalance > 0) {
-            throw new IllegalStateException("Cannot close account with remaining cash balance");
-        }
+        AccountValidator.validateCanClose(this.cashBalance);
         this.status = AccountStatus.CLOSED;
         updateTimestamp();
     }
 
-    // Utility Methods
     private void updateTimestamp() {
-        this.lastUpdated = LocalDateTime.now();
-        this.version++;
+        this.lastUpdated = TransactionProcessor.getUpdatedTimestamp();
+        this.version = TransactionProcessor.incrementVersion(this.version);
     }
 
     @Override
     public String toString() {
         return String.format(
-            "Account{id=%d, accountId='%s', holder='%s', balance=%.2f, status=%s, version=%d}",
+            "Account{id=%d, accountId='%s', holder='%s', balance=%s, status=%s, version=%d}",
             id, accountId, holderName, cashBalance, status, version
         );
     }
 
-    // Getters (Public Read Access)
     public Long getId() { return id; }
     public String getAccountId() { return accountId; }
     public String getHolderName() { return holderName; }
-    public float getCashBalance() { return cashBalance; }
+    public BigDecimal getCashBalance() { return cashBalance; }
     public AccountStatus getStatus() { return status; }
     public int getVersion() { return version; }
     public LocalDateTime getLastUpdated() { return lastUpdated; }
 
-    // Setters - Limited to Non-Core Fields
-    public void setAccountId(String accountId) { this.accountId = accountId; }
-    public void setHolderName(String holderName) { this.holderName = holderName; }
-    public void setStatus(AccountStatus status) { 
-       //Add status validation here
+    public void setAccountId(String accountId) {
+        AccountValidator.validateAccountId(accountId);
+        this.accountId = accountId;
     }
-
-    // Private Setters - Internal State Only
-    private void setId(Long id) { this.id = id; }
-    private void setVersion(int version) { this.version = version; }
-    private void setLastUpdated(LocalDateTime lastUpdated) { this.lastUpdated = lastUpdated; }
-    private void setCashBalance(float cashBalance) { this.cashBalance = cashBalance; }
+    
+    public void setHolderName(String holderName) {
+        AccountValidator.validateHolderName(holderName);
+        this.holderName = holderName;
+    }
+    
+    public void setStatus(AccountStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("Status cannot be null");
+        }
+        this.status = status;
+        updateTimestamp();
+    }
 }
