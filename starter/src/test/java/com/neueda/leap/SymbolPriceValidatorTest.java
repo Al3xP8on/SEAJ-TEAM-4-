@@ -2,13 +2,6 @@ package com.neueda.leap;
 
 import java.math.BigDecimal;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.params.provider.ValueSource;
-import static org.junit.jupiter.api.Assertions.*;
-
 import com.neueda.leap.validators.SymbolPriceValidator;
 
 import com.neueda.leap.exceptions.InvalidSymbolPriceException;
@@ -16,6 +9,14 @@ import com.neueda.leap.exceptions.InvalidPriceException;
 
 import com.neueda.leap.models.SymbolPrice;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SymbolPriceValidatorTest {
     private SymbolPriceValidator symbolPriceValidator;
