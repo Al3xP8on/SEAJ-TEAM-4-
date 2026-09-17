@@ -30,13 +30,16 @@ public class Account implements Closable {
 
     @Override
     public void debit(BigDecimal amount) {
-        this.cashBalance = TransactionProcessor.processDebit(this.cashBalance, amount);
+        if (this.cashBalance.compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient funds");
+        }
+        this.cashBalance = this.cashBalance.subtract(amount);
         updateTimestamp();
     }
 
     @Override
     public void credit(BigDecimal amount) {
-        this.cashBalance = TransactionProcessor.processCredit(this.cashBalance, amount);
+        this.cashBalance = this.cashBalance.add(amount);
         updateTimestamp();
     }
 
@@ -82,8 +85,8 @@ public class Account implements Closable {
     }
 
     private void updateTimestamp() {
-        this.lastUpdated = TransactionProcessor.getUpdatedTimestamp();
-        this.version = TransactionProcessor.incrementVersion(this.version);
+        this.lastUpdated = LocalDateTime.now();
+        this.version++;
     }
 
     @Override
