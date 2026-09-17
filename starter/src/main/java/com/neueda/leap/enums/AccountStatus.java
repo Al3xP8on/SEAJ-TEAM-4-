@@ -1,4 +1,4 @@
-package com.neueda.enums;
+package com.neueda.leap.enums;
 
 public enum AccountStatus {
     ACTIVE,

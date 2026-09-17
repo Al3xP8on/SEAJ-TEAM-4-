@@ -147,7 +147,7 @@ public class Order {
         // Check account has sufficient funds for BUY orders
         if (side.isBuy()) {
             BigDecimal totalValue = calculateTotalValue();
-            return account.canAfford(totalValue.floatValue());
+            return account.canAfford(totalValue);
         }
 
         // SELL orders always valid if account is active
@@ -170,9 +170,9 @@ public class Order {
 
             // Process account debit/credit
             if (side.isBuy()) {
-                account.debit(totalValue.floatValue());
+                account.debit(totalValue);
             } else {
-                account.credit(totalValue.floatValue());
+                account.credit(totalValue);
             }
 
             // Transition to executed state

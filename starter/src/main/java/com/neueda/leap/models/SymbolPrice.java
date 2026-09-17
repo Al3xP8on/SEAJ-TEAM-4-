@@ -1,4 +1,4 @@
-package com.neueda.leap;
+package com.neueda.leap.models;
 
 import java.time.ZonedDateTime;
 import java.math.BigDecimal;

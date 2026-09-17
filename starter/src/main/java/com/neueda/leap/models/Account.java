@@ -1,9 +1,10 @@
-package com.neueda.leap;
+package com.neueda.leap.models;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import com.neueda.leap.interfaces.Closable;
-
+import com.neueda.leap.validators.AccountValidator;
+import com.neueda.leap.enums.AccountStatus;;
 
 public class Account implements Closable {
     private Long id;

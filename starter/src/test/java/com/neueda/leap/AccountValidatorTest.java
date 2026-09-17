@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
+import com.neueda.leap.validators.AccountValidator;
 
 public class AccountValidatorTest {
 

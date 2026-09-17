@@ -3,7 +3,7 @@ package com.neueda.leap;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
-
+import com.neueda.leap.validators.PriceHistoryValidator;
 public class PriceHistory {
     
     private final String symbol;

@@ -3,7 +3,7 @@ import java.math.BigDecimal;
 import java.util.Objects;
 import java.math.RoundingMode;
 import com.neueda.leap.exceptions.InsufficientHoldingsException;
-
+import com.neueda.leap.validators.PositionsValidator;
 
 public class Positions {
 
