@@ -24,23 +24,14 @@ public enum OrderSide {
         return description;
     }
 
-    /**
-     * Check if this is a buy order.
-     */
     public boolean isBuy() {
         return this == BUY;
     }
 
-    /**
-     * Check if this is a sell order.
-     */
     public boolean isSell() {
         return this == SELL;
     }
 
-    /**
-     * Get the opposite side of this order.
-     */
     public OrderSide opposite() {
         return this == BUY ? SELL : BUY;
     }
