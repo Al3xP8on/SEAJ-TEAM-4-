@@ -1,5 +1,7 @@
 package com.neueda.leap.interfaces;
 
+import java.math.BigDecimal;
+
 public interface Closable {
     
     /**
@@ -7,7 +9,9 @@ public interface Closable {
      */
  
     void closeAccount();
-
- 
     void suspendAccount();
+    void debit(BigDecimal amount);
+    void credit(BigDecimal amount);
+    boolean canAfford(BigDecimal amount);
+    boolean isValidForTrading();
 }
