@@ -14,11 +14,10 @@ import java.util.UUID;
 //Order entity representing a trading order.
 public class Order {
     
-    // Business Constants
     private static final BigDecimal MINIMUM_PRICE = BigDecimal.ZERO;
     private static final long MINIMUM_QUANTITY = 1L;
 
-    // Immutable Fields (Set at creation and never changed)
+    // Immutable Fields
     private final String id;
     private final Account account;
     private final Instrument instrument;
@@ -31,9 +30,7 @@ public class Order {
     // Mutable State Fields
     private OrderStatus status;
 
-    /**
-     * No-arg constructor for ORM/serialization frameworks.
-     */
+    // No-arg constructor for ORM/serialization frameworks.
     public Order() {
         this.id = null;
         this.account = null;
@@ -46,17 +43,7 @@ public class Order {
         this.createdAt = null;
     }
 
-    /**
-     * Primary constructor for creating new orders.
-     * 
-     * @param account Non-null account placing the order
-     * @param instrument Non-null instrument to trade
-     * @param quantity Positive quantity to trade
-     * @param price Positive price per unit
-     * @param side Buy or Sell side
-     * @param idempotencyKey Unique key for idempotent operations
-     * @throws OrderException If validation fails
-     */
+    // Primary constructor for creating new orders
     public Order(Account account, Instrument instrument, long quantity, BigDecimal price, 
                  OrderSide side, String idempotencyKey) {
         this.id = UUID.randomUUID().toString();
@@ -70,10 +57,8 @@ public class Order {
         this.createdAt = LocalDateTime.now();
     }
 
-    /**
-     * Constructor for loading existing orders from database.
-     * Used by ORM/persistence layer.
-     */
+    // Constructor for loading existing orders from database
+    // Used by ORM/persistence layer
     public Order(String id, Account account, Instrument instrument, long quantity, BigDecimal price,
                  OrderSide side, String idempotencyKey, OrderStatus status, LocalDateTime createdAt) {
         this.id = Objects.requireNonNull(id, "Order ID cannot be null");
@@ -88,8 +73,6 @@ public class Order {
     }
 
     //  VALIDATION METHODS 
-    // (Single Responsibility: Focused validation logic)
-
     private static Account validateAccount(Account account) {
         Objects.requireNonNull(account, "Account cannot be null");
         if (!account.isActive()) {
@@ -149,22 +132,14 @@ public class Order {
         return trimmed;
     }
 
-    //  BUSINESS LOGIC METHODS 
-    // (Single Responsibility: Order execution lifecycle)
-
-    /**
-     * Validate if order can transition to PENDING state.
-     * Performs pre-execution checks.
-     * 
-     * @return true if order meets execution criteria, false otherwise
-     */
+    //  business logic methods
+    // Validate if order can transition to PENDING state.
     public boolean isValidForExecution() {
         // Check state transition validity
         if (!status.canTransitionToExecuted()) {
             return false;
         }
 
-        // Check instrument is still tradable
         if (!instrument.isTradable()) {
             return false;
         }
@@ -179,12 +154,7 @@ public class Order {
         return true;
     }
 
-    /**
-     * Validate order state and execute it.
-     * Updates account balance and transitions order to EXECUTED.
-     * 
-     * @throws OrderException If order cannot be executed
-     */
+    // Validate order state and execute it.
     public void execute() {
         if (!isValidForExecution()) {
             transitionToRejected("Failed execution validation");
@@ -218,12 +188,7 @@ public class Order {
         }
     }
 
-    /**
-     * Cancel a pending order.
-     * Only orders in NEW or PENDING state can be cancelled.
-     * 
-     * @throws OrderException If order cannot be cancelled
-     */
+    // Cancel a pending order.
     public void cancel() {
         if (!status.canBeCancelled()) {
             throw new OrderException(
@@ -235,18 +200,12 @@ public class Order {
         transitionToCancelled();
     }
 
-    /**
-     * Calculate total order value (price × quantity).
-     * 
-     * @return Total value as BigDecimal
-     */
+    // Calculate total order value (price × quantity)
     public BigDecimal calculateTotalValue() {
         return price.multiply(new BigDecimal(quantity));
     }
 
-    //  STATE TRANSITION METHODS 
-    // (Single Responsibility: State machine transitions)
-
+    //  state transition methods
     private void transitionToExecuted() {
         if (!status.canTransitionToExecuted()) {
             throw new OrderException(
@@ -273,7 +232,7 @@ public class Order {
         this.status = OrderStatus.REJECTED;
     }
 
-    //  OBJECT CONTRACT METHODS 
+    //  object contract methods 
 
     @Override
     public String toString() {
@@ -290,9 +249,7 @@ public class Order {
         );
     }
 
-    /**
-     * Orders are equal if they have the same ID (database identity).
-     */
+    // Orders are equal if they have the same ID (database identity)
     @Override
     public boolean equals(Object object) {
         if (this == object) return true;
@@ -302,17 +259,13 @@ public class Order {
         return Objects.equals(this.id, order.id);
     }
 
-    /**
-     * Hash code based on order ID (consistent with equals contract).
-     */
+    // Hash code based on order ID (consistent with equals contract)
     @Override
     public int hashCode() {
         return Objects.hash(id);
     }
 
-    //  ACCESSOR METHODS 
-    // (Interface Segregation: Expose only necessary getters)
-
+    //  accessor methods 
     public String getId() { 
         return id; 
     }
@@ -349,20 +302,13 @@ public class Order {
         return createdAt; 
     }
 
-    //  MUTATION METHODS 
-    // (Limited mutation - only status can be changed externally via specific methods)
-
-    /**
-     * Update order status (used by persistence layer only).
-     * Internal state transitions use dedicated transition methods.
-     */
+    //  mutation methods 
+    // Internal state transitions use dedicated transition methods
     public void setStatus(OrderStatus status) { 
         this.status = Objects.requireNonNull(status, "Status cannot be null");
     }
 
-    //  PRIVATE SETTER METHODS 
-    // (Encapsulation: Private setters for internal state)
-
+    //  private setter methods 
     private void setId(String id) { 
         // ID is set via constructor, this is for ORM only
     }
