@@ -8,10 +8,10 @@ public class SymbolPrice {
     private BigDecimal price;
     private ZonedDateTime timestamp;
 
-    public SymbolPrice(String symbol, BigDecimal price, ZonedDateTime timestamp){
+    public SymbolPrice(String symbol, BigDecimal price){
         this.symbol = symbol;
         this.price = price;
-        this.timestamp = timestamp;
+        this.timestamp = ZonedDateTime.now();
     }
 
     public String getSymbol(){
