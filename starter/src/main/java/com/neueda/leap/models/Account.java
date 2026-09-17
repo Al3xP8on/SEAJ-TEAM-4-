@@ -2,6 +2,7 @@ package com.neueda.leap;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.neueda.leap.interfaces.Closable;
 
 
 public class Account implements Closable {

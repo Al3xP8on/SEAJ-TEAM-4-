@@ -1,4 +1,5 @@
 package com.neueda.leap;
+import com.neueda.leap.exceptions.InsufficientHoldingsException;
 
 import java.math.BigDecimal;
 
