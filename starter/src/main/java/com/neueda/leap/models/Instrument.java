@@ -1,5 +1,5 @@
 
-package com.neueda.leap;
+package com.neueda.leap.models;
 import java.util.Objects;
 
 import java.util.Objects;
