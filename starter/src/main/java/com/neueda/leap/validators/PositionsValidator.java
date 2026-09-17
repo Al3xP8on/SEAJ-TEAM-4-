@@ -1,4 +1,4 @@
-package com.neueda.leap;
+package com.neueda.leap.validators;
 import com.neueda.leap.exceptions.InsufficientHoldingsException;
 
 import java.math.BigDecimal;
