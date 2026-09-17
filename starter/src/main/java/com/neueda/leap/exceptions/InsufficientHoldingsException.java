@@ -1,4 +1,4 @@
-package com.neueda.exceptions;
+package com.neueda.leap.exceptions;
 
 public class InsufficientHoldingsException extends Exception {
     public InsufficientHoldingsException(String message){
