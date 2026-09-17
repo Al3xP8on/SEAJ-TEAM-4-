@@ -1,4 +1,4 @@
-package com.neueda.leap;
+package com.neueda.leap.validators;
 
 import java.math.BigDecimal;
 import java.util.Objects;
