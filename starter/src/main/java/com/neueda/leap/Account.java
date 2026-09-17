@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 
-public class Account implements Tradeable, Closable {
+public class Account implements Closable {
     private Long id;
     private String accountId;
     private String holderName;
