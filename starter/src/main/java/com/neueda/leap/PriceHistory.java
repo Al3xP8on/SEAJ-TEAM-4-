@@ -13,18 +13,26 @@ public class PriceHistory {
     private final BigDecimal low;
     private final BigDecimal close;
     private final long volume;
+    private final PriceHistoryValidator validator;
+
+    public PriceHistory(String symbol, LocalDate priceDate, BigDecimal open, 
+                       BigDecimal high, BigDecimal low, BigDecimal close, long volume,
+                       PriceHistoryValidator validator) {
+        this.validator = Objects.requireNonNull(validator, "Validator cannot be null");
+        this.symbol = this.validator.validateSymbol(symbol);
+        this.priceDate = this.validator.validateDate(priceDate);
+        this.open = this.validator.validatePrice(open, "Open");
+        this.high = this.validator.validatePrice(high, "High");
+        this.low = this.validator.validatePrice(low, "Low");
+        this.close = this.validator.validatePrice(close, "Close");
+        this.volume = this.validator.validateVolume(volume);
+        
+        this.validator.validateOHLCRelationships(this.open, this.high, this.low, this.close);
+    }
 
     public PriceHistory(String symbol, LocalDate priceDate, BigDecimal open, 
                        BigDecimal high, BigDecimal low, BigDecimal close, long volume) {
-        this.symbol = validateSymbol(symbol);
-        this.priceDate = validateDate(priceDate);
-        this.open = validatePrice(open, "Open");
-        this.high = validatePrice(high, "High");
-        this.low = validatePrice(low, "Low");
-        this.close = validatePrice(close, "Close");
-        this.volume = validateVolume(volume);
-        
-        validateOHLCRelationships(this.open, this.high, this.low, this.close);
+        this(symbol, priceDate, open, high, low, close, volume, new PriceHistoryValidator());
     }
 
     public String getSymbol() {
@@ -84,52 +92,8 @@ public class PriceHistory {
         return close.compareTo(open) == 0;
     }
 
-    private static String validateSymbol(String symbol) {
-        Objects.requireNonNull(symbol, "Symbol cannot be null");
-        String trimmed = symbol.trim();
-        if (trimmed.isEmpty()) {
-            throw new IllegalArgumentException("Symbol cannot be empty");
-        }
-        if (trimmed.length() > 20) {
-            throw new IllegalArgumentException("Symbol cannot exceed 20 characters");
-        }
-        return trimmed.toUpperCase();
-    }
-
-    private static LocalDate validateDate(LocalDate priceDate) {
-        Objects.requireNonNull(priceDate, "Price date cannot be null");
-        if (priceDate.isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("Price date cannot be in the future");
-        }
-        return priceDate;
-    }
-
-    private static BigDecimal validatePrice(BigDecimal price, String priceName) {
-        Objects.requireNonNull(price, priceName + " price cannot be null");
-        if (price.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException(priceName + " price cannot be negative");
-        }
-        return price;
-    }
-
-    private static long validateVolume(long volume) {
-        if (volume < 0) {
-            throw new IllegalArgumentException("Volume cannot be negative");
-        }
-        return volume;
-    }
-
-    private static void validateOHLCRelationships(BigDecimal open, BigDecimal high, 
-                                                   BigDecimal low, BigDecimal close) {
-        if (high.compareTo(low) < 0) {
-            throw new IllegalArgumentException("High price must be >= Low price");
-        }
-        if (high.compareTo(open) < 0 || high.compareTo(close) < 0) {
-            throw new IllegalArgumentException("High price must be >= Open and Close prices");
-        }
-        if (low.compareTo(open) > 0 || low.compareTo(close) > 0) {
-            throw new IllegalArgumentException("Low price must be <= Open and Close prices");
-        }
+    public PriceHistoryValidator getValidator() {
+        return validator;
     }
 
     @Override
