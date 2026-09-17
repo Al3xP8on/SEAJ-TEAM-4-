@@ -2,6 +2,8 @@ package com.neueda.leap.validators;
 
 import java.math.BigDecimal;
 
+import com.neueda.leap.models.SymbolPrice;
+
 import com.neueda.leap.exceptions.InvalidPriceException;
 import com.neueda.leap.exceptions.InvalidSymbolPriceException;
 

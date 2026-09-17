@@ -5,7 +5,6 @@ import java.math.RoundingMode;
 import com.neueda.leap.exceptions.InsufficientHoldingsException;
 import com.neueda.leap.validators.PositionsValidator;
 
-
 public class Positions {
 
     private static final int SCALE = 2;

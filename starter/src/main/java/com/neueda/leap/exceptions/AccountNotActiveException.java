@@ -1,4 +1,4 @@
-package com.neueda.exceptions;
+package com.neueda.leap.exceptions;
 
 public class AccountNotActiveException extends Exception {
     public AccountNotActiveException(String message){

@@ -4,7 +4,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
 import com.neueda.leap.validators.PriceHistoryValidator;
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 public class PriceHistory {
     
     private final String symbol;

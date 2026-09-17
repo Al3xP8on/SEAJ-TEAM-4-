@@ -1,4 +1,4 @@
-package com.neueda.exceptions;
+package com.neueda.leap.exceptions;
 
 public class AccountNotFoundException extends Exception { 
     public AccountNotFoundException(String message){

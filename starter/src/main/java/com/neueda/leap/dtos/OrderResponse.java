@@ -1,5 +1,7 @@
 package com.neueda.leap.dtos;
 
+import com.neueda.leap.enums.OrderStatus;
+
 public class OrderResponse {
     private String orderId;
     private OrderStatus status;
