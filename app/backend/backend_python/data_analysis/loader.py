@@ -51,6 +51,7 @@ class MarketDataLoader:
             logger.error(f"Failed to download historical data: {e}")
             return pd.DataFrame()
   
+        assert data is not None
         if data.empty:
             logger.warning(f"No historical data downloaded for tickers: {tickers}")
             return pd.DataFrame()
