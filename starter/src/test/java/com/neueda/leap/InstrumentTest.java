@@ -57,7 +57,7 @@ class InstrumentTest {
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
                 new Instrument(invalidSymbol, "Apple Inc.", "Equity", "USD", true);
             });
-            assertEquals("Symbol cannot be empty", exception.getMessage());
+            assertEquals("Symbol can't be empty", exception.getMessage());
 
         }
         @Test
@@ -66,7 +66,7 @@ class InstrumentTest {
             NullPointerException exception = assertThrows(NullPointerException.class, () -> {
                 new Instrument(null, "Apple Inc.", "Equity", "USD", true);
             });
-            assertEquals("Symbol cannot be null", exception.getMessage());
+            assertEquals("Symbol can't be null", exception.getMessage());
         }
 
         @Test 
@@ -76,7 +76,7 @@ class InstrumentTest {
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
                 new Instrument(longSymbol, "Apple Inc.", "Equity", "USD", true);
             });
-            assertEquals("Symbol cannot be longer than 20 characters", exception.getMessage());
+            assertEquals("Symbol can't be longer than 20 characters", exception.getMessage());
         }
 
         @Test
@@ -105,7 +105,7 @@ class InstrumentTest {
             NullPointerException exception = assertThrows(NullPointerException.class, () -> {
                 new Instrument("AAPL", null, "Equity", "USD", true);
             });
-            assertEquals("Name cannot be null", exception.getMessage());
+            assertEquals("Name can't be null", exception.getMessage());
         }
 
         @ParameterizedTest
@@ -115,23 +115,23 @@ class InstrumentTest {
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
                 new Instrument("AAPL", invalidName, "Equity", "USD", true);
             });
-            assertEquals("Name cannot be empty", exception.getMessage());
+            assertEquals("Name can't be empty", exception.getMessage());
         }
 
         @Test
-        @DisplayName("Reject names > 1000 characters")
+        @DisplayName("Reject names > 255 characters")
         void rejectLongNames() {
-            String longName = "A".repeat(1001);
+            String longName = "A".repeat(256);
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
                 new Instrument("AAPL", longName, "Equity", "USD", true);
             });
-            assertEquals("Name cannot be longer than 1000 characters", exception.getMessage());
+            assertEquals("Name can't be longer than 255 characters", exception.getMessage());
         }
 
         @Test
         @DisplayName("Allow valid names")
         void allowValidNames() {
-            String validName = "A".repeat(1000);
+            String validName = "A".repeat(255);
             Instrument result = new Instrument("AAPL", validName, "Equity", "USD", true);
             assertEquals(validName, result.getName());
         }
@@ -154,7 +154,7 @@ class InstrumentTest {
             NullPointerException exception = assertThrows(NullPointerException.class, () -> {
                 new Instrument("AAPL", "Apple Inc.", null, "USD", true);
             });
-            assertEquals("Asset class cannot be null", exception.getMessage());
+            assertEquals("Asset class can't be null", exception.getMessage());
         }
 
         @ParameterizedTest
@@ -164,23 +164,23 @@ class InstrumentTest {
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
                 new Instrument("AAPL", "Apple Inc.", invalidAssetClass, "USD", true);
             });
-            assertEquals("Asset class cannot be empty", exception.getMessage());
+            assertEquals("Asset class can't be empty", exception.getMessage());
         }
 
         @Test
-        @DisplayName("Reject asset classes > 20 characters")
+        @DisplayName("Reject asset classes > 50 characters")
         void rejectLongAssetClasses() {
-            String longAssetClass = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            String longAssetClass = "A".repeat(51);
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
                 new Instrument("AAPL", "Apple Inc.", longAssetClass, "USD", true);
             });
-            assertEquals("Asset class cannot be longer than 50 characters", exception.getMessage());
+            assertEquals("Asset class can't be longer than 50 characters", exception.getMessage());
         }
 
         @Test
         @DisplayName("Allow valid asset classes")
         void allowValidAssetClasses() {
-            String validAssetClass = "A".repeat(20);
+            String validAssetClass = "A".repeat(50);
             Instrument result = new Instrument("AAPL", "Apple Inc.", validAssetClass, "USD", true);
             assertEquals(validAssetClass, result.getAssetClass());
         }
@@ -203,7 +203,7 @@ class InstrumentTest {
             NullPointerException exception = assertThrows(NullPointerException.class, () -> {
                 new Instrument("AAPL", "Apple Inc.", "Equity", null, true);
             });
-            assertEquals("Currency cannot be null", exception.getMessage());
+            assertEquals("Currency can't be null", exception.getMessage());
         }
 
         @ParameterizedTest
