@@ -1,9 +1,7 @@
 
 package com.neueda.leap.models;
-import java.util.Objects;
+import com.neueda.leap.validators.InstrumentsValidator;
 
-import java.util.Objects;
-import java.util.Optional;
 public class Instrument {
 
     private final String symbol;
@@ -13,11 +11,14 @@ public class Instrument {
     private final boolean tradable;
 
     public Instrument(String symbol, String name, String assetClass, String currency, boolean tradable) {
+        this(symbol, name, assetClass, currency, tradable, new InstrumentsValidator());
+    }
 
-        this.symbol = validateSymbol(symbol);
-        this.name = validateName(name);
-        this.assetClass = validateAssetClass(assetClass);
-        this.currency = validateCurrency(currency);
+    public Instrument(String symbol, String name, String assetClass, String currency, boolean tradable, InstrumentsValidator validator) {
+        this.symbol = validator.validateSymbol(symbol);
+        this.name = validator.validateName(name);
+        this.assetClass = validator.validateAssetClass(assetClass);
+        this.currency = validator.validateCurrency(currency);
         this.tradable = tradable;
     }
 
@@ -39,60 +40,6 @@ public class Instrument {
 
     public boolean isTradable(){
         return tradable;
-    }
-
-    private static String validateSymbol(String symbol){
-        Objects.requireNonNull(symbol, "Symbol cannot be null");
-
-        String trimmedSymbol = symbol.trim();
-        if(trimmedSymbol.isEmpty()){
-            throw new IllegalArgumentException("Symbol cannot be empty");
-        }
-
-        if(trimmedSymbol.length() > 20){
-            throw new IllegalArgumentException("Symbol cannot be longer than 20 characters");
-        }
-
-        return trimmedSymbol;
-    }
-
-    private static String validateAssetClass(String assetClass){
-        Objects.requireNonNull(assetClass, "Asset class cannot be null");
-
-        String trimmedAssetClass = assetClass.trim();
-        if(trimmedAssetClass.isEmpty()){
-            throw new IllegalArgumentException("Asset class cannot be empty");
-        }
-
-        if(trimmedAssetClass.length() > 20){
-            throw new IllegalArgumentException("Asset class cannot be longer than 50 characters");
-        }
-
-        return trimmedAssetClass;
-    }
-
-    private static String validateCurrency(String currency){
-        Objects.requireNonNull(currency, "Currency cannot be null");
-
-        String trimmedCurrency = currency.trim();
-        if(trimmedCurrency.length() != 3){
-            throw new IllegalArgumentException("Currency must be exactly 3 characters");
-        }
-        return trimmedCurrency.toUpperCase();
-    }
-
-    private static String validateName(String name){
-        Objects.requireNonNull(name, "Name cannot be null");
-        String trimmedName = name.trim();
-
-        if(trimmedName.isEmpty()){
-            throw new IllegalArgumentException("Name cannot be empty");
-        }
-        if(trimmedName.length() > 1000){
-            throw new IllegalArgumentException("Name cannot be longer than 1000 characters");
-        }
-        return trimmedName;
-
     }
 
     @Override
