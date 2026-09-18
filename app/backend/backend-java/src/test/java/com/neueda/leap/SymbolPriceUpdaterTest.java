@@ -4,9 +4,9 @@ import java.math.BigDecimal;
 
 import com.neueda.leap.models.SymbolPrice;
 import com.neueda.leap.services.SymbolPriceUpdater;
-
 import com.neueda.leap.exceptions.InvalidSymbolPriceException;
 import com.neueda.leap.exceptions.InvalidPriceException;
+import com.neueda.leap.validators.SymbolPriceValidator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,10 +20,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 public class SymbolPriceUpdaterTest {
     private SymbolPriceUpdater symbolPriceUpdater;
+    private SymbolPriceValidator symbolPriceValidator;
 
     @BeforeEach
     void setUp(){
-        symbolPriceUpdater = new SymbolPriceUpdater();
+        symbolPriceValidator = new SymbolPriceValidator();
+        symbolPriceUpdater = new SymbolPriceUpdater(symbolPriceValidator);
     }
 
     @Nested 
