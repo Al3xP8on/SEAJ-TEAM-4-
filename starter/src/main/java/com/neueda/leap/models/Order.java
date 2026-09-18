@@ -30,7 +30,7 @@ public class Order {
     // Mutable State Fields
     private OrderStatus status;
 
-    // No-arg constructor for ORM/serialization frameworks.
+    //When loading an Order from the database, the ORM framework needs a way to create an empty Order object.  it calls this no-arg constructor
     public Order() {
         this.id = null;
         this.account = null;
@@ -44,8 +44,7 @@ public class Order {
     }
 
     // Primary constructor for creating new orders
-    public Order(Account account, Instrument instrument, long quantity, BigDecimal price, 
-                 OrderSide side, String idempotencyKey) {
+    public Order(Account account, Instrument instrument, long quantity, BigDecimal price, OrderSide side, String idempotencyKey) {
         this.id = UUID.randomUUID().toString();
         this.account = validateAccount(account);
         this.instrument = validateInstrument(instrument);
@@ -58,7 +57,6 @@ public class Order {
     }
 
     // Constructor for loading existing orders from database
-    // Used by ORM/persistence layer
     public Order(String id, Account account, Instrument instrument, long quantity, BigDecimal price,
                  OrderSide side, String idempotencyKey, OrderStatus status, LocalDateTime createdAt) {
         this.id = Objects.requireNonNull(id, "Order ID cannot be null");
