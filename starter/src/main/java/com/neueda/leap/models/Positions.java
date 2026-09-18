@@ -1,4 +1,4 @@
-package com.neueda.leap;
+package com.neueda.leap.models;
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.math.RoundingMode;
