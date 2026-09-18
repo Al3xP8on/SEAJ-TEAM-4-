@@ -15,9 +15,9 @@ public class SymbolPriceUpdater {
         this.validator = new SymbolPriceValidator();
     }
 
-    public SymbolPrice updateSymbol(SymbolPrice symbolPrice, BigDecimal newPrice) throws InvalidPriceException, InvalidSymbolPriceException{
+    public SymbolPrice updateSymbolPrice(SymbolPrice symbolPrice, BigDecimal newPrice) throws InvalidPriceException, InvalidSymbolPriceException{
         validator.validateNewPrice(newPrice);
         validator.validateSymbolPrice(symbolPrice);    
-        return new SymbolPrice(symbolPrice.getSymbol(), newPrice, ZonedDateTime.now());
+        return new SymbolPrice(symbolPrice.getSymbol(), newPrice);
     }
 }
