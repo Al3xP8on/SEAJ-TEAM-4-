@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from data_analysis.constants import TRADING_DAYS, START_DATE, END_DATE
-from logger.logger import logger
+from app.backend.backend_python.data_analysis.constants import TRADING_DAYS, START_DATE, END_DATE
+from app.backend.backend_python.logger.logger import logger
 
 
 def instrument_summary(df: pd.DataFrame) -> pd.DataFrame:
@@ -114,7 +114,7 @@ def return_distribution_analysis(df: pd.DataFrame) -> pd.DataFrame:
             ("max", "max"),
             ("skewness", lambda x: x.skew()),
             ("kurtosis", lambda x: x.kurtosis())
-        ])
+        ]) # type: ignore
         .reset_index()
     )
     
@@ -137,7 +137,7 @@ def drawdown_summary(df: pd.DataFrame) -> pd.DataFrame:
             ("avg_drawdown", "mean"),
             ("median_drawdown", "median"),
             ("recovery_periods", lambda x: (x > -0.01).sum())  # Approximate recovery events
-        ])
+        ]) # type: ignore
         .reset_index()
     )
     

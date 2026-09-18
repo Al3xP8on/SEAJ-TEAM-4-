@@ -1,6 +1,6 @@
 import pytest
-from data_processing.processor import InstrumentDataProcessor
-from data_processing.db_config import DBConfig
+from app.backend.backend_python.data_processing.processor import InstrumentDataProcessor
+from app.backend.backend_python.data_processing.db_config import DBConfig
 
 @pytest.fixture(autouse=True)
 def db_config():
@@ -33,7 +33,7 @@ class TestInstrumentDataProcessor:
     def test_instrument_data_processor_transform_instrument_data(self):
         processor = InstrumentDataProcessor(db_config=db_config)
         raw_data = processor._extract_raw_info("AAPL") 
-        transformed_data = processor._transform_instrument("AAPL", raw_data)
+        transformed_data = processor._transform_instrument("AAPL", raw_data) # type: ignore
         
         assert transformed_data is not None
         assert transformed_data["symbol"] == "AAPL"
@@ -43,8 +43,8 @@ class TestInstrumentDataProcessor:
     def test_instrument_data_processor_build_insert_rows(self):
         processor = InstrumentDataProcessor(db_config=db_config)
         raw_data = processor._extract_raw_info("AAPL")
-        transformed_data = processor._transform_instrument("AAPL", raw_data)
-        insert_rows = processor._build_insert_rows([transformed_data], set([]))
+        transformed_data = processor._transform_instrument("AAPL", raw_data) # type: ignore
+        insert_rows = processor._build_insert_rows([transformed_data], set([])) # type: ignore
         
         assert insert_rows is not None
         assert len(insert_rows) > 0 

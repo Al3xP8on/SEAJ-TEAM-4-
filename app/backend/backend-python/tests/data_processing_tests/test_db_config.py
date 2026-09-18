@@ -1,4 +1,4 @@
-from data_processing.db_config import DBConfig
+from app.backend.backend_python.data_processing.db_config import DBConfig
 
 class TestDBConfig:
     def test_db_config_exists(self):
