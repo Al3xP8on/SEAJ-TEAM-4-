@@ -1,0 +1,26 @@
+classDiagram
+    class SymbolPriceUpdater {
+        -SymbolPriceValidator validator
+        +updateSymbolPrice(symbolPrice: SymbolPrice, newPrice: BigDecimal) SymbolPrice
+    }
+
+    class SymbolPriceValidator{
+        +validateNewPrice(newPrice: BigDecimal) void
+        +validateSymbolPrice(symbolPrice: SymbolPrice) void
+    }
+
+    class SymbolPrice {
+        -String symbol
+        -BigDecimal price
+        -ZonedDateTime timestamp
+
+        +getSymbol() String
+        +getPrice() BigDecimal
+        +getTimestamp() ZonedDateTime
+    }
+
+    SymbolPriceUpdater --> SymbolPriceValidator : uses
+    SymbolPriceUpdater --> SymbolPrice : creates
+    SymbolPriceValidator --> SymbolPrice : validates
+
+   
