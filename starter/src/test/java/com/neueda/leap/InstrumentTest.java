@@ -1,5 +1,6 @@
 package com.neueda.leap;
 
+import com.neueda.leap.models.Instrument;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -7,10 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
-
-import java.beans.Transient;
-
-import main.java.com.neueda.leap.Instrument;
 
 @DisplayName("Instrument Tests")
 class InstrumentTest {
@@ -32,7 +29,7 @@ class InstrumentTest {
             assertAll(
                 () -> assertEquals("AAPL", instrument.getSymbol()),
                 () -> assertEquals("Apple Inc.", instrument.getName()),
-                () -> assertEquals("Equity", instrument.getType()),
+                () -> assertEquals("Equity", instrument.getAssetClass()),
                 () -> assertEquals("USD", instrument.getCurrency()),
                 () -> assertTrue(instrument.isTradable())
             );
@@ -63,9 +60,182 @@ class InstrumentTest {
             assertEquals("Symbol cannot be empty", exception.getMessage());
 
         }
+        @Test
+        @DisplayName("Reject null symbol")
+        void rejectNullSymbol() {
+            NullPointerException exception = assertThrows(NullPointerException.class, () -> {
+                new Instrument(null, "Apple Inc.", "Equity", "USD", true);
+            });
+            assertEquals("Symbol cannot be null", exception.getMessage());
+        }
+
+        @Test 
+        @DisplayName ("Reject symbols > 20 characters")
+        void rejectLongSymbols() {
+            String longSymbol = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                new Instrument(longSymbol, "Apple Inc.", "Equity", "USD", true);
+            });
+            assertEquals("Symbol cannot be longer than 20 characters", exception.getMessage());
+        }
+
+        @Test
+        @DisplayName("Allow valid symbols")
+        void allowValidSymbols() {
+            String validSymbol = "A".repeat(20);
+            Instrument result = new Instrument(validSymbol, "Apple Inc.", "Equity", "USD", true);
+            assertEquals(validSymbol, result.getSymbol());
+        }
+
+        @Test
+        @DisplayName("Trim whitespace from symbols")
+        void trimWhitespaceFromSymbols() {
+            Instrument result = new Instrument("  AAPL  ", "Apple Inc.", "Equity", "USD", true);
+            assertEquals("AAPL", result.getSymbol());
+        }
     }
 
+    @Nested 
+    @DisplayName("Name Validation")
+    class nameValidationTests{
+        
+        @Test
+        @DisplayName("Reject null name")
+        void rejectNullName() {
+            NullPointerException exception = assertThrows(NullPointerException.class, () -> {
+                new Instrument("AAPL", null, "Equity", "USD", true);
+            });
+            assertEquals("Name cannot be null", exception.getMessage());
+        }
 
+        @ParameterizedTest
+        @ValueSource(strings = {"", " ", "  ", "\t"})
+        @DisplayName("Reject empty names")
+        void rejectEmptyNames(String invalidName) {
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                new Instrument("AAPL", invalidName, "Equity", "USD", true);
+            });
+            assertEquals("Name cannot be empty", exception.getMessage());
+        }
 
+        @Test
+        @DisplayName("Reject names > 1000 characters")
+        void rejectLongNames() {
+            String longName = "A".repeat(1001);
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                new Instrument("AAPL", longName, "Equity", "USD", true);
+            });
+            assertEquals("Name cannot be longer than 1000 characters", exception.getMessage());
+        }
+
+        @Test
+        @DisplayName("Allow valid names")
+        void allowValidNames() {
+            String validName = "A".repeat(1000);
+            Instrument result = new Instrument("AAPL", validName, "Equity", "USD", true);
+            assertEquals(validName, result.getName());
+        }
+
+        @Test
+        @DisplayName("Trim whitespace from names")
+        void trimWhitespaceFromNames() {
+            Instrument result = new Instrument("AAPL", "  Apple Inc.  ", "Equity", "USD", true);
+            assertEquals("Apple Inc.", result.getName());
+        }
+    }
+
+    @Nested 
+    @DisplayName("Asset Class Validation")
+    class assetClassValidationTests{
+
+        @Test
+        @DisplayName("Reject null asset class")
+        void rejectNullAssetClass() {
+            NullPointerException exception = assertThrows(NullPointerException.class, () -> {
+                new Instrument("AAPL", "Apple Inc.", null, "USD", true);
+            });
+            assertEquals("Asset class cannot be null", exception.getMessage());
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"", " ", "  ", "\t"})
+        @DisplayName("Reject empty asset classes")
+        void rejectEmptyAssetClasses(String invalidAssetClass) {
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                new Instrument("AAPL", "Apple Inc.", invalidAssetClass, "USD", true);
+            });
+            assertEquals("Asset class cannot be empty", exception.getMessage());
+        }
+
+        @Test
+        @DisplayName("Reject asset classes > 20 characters")
+        void rejectLongAssetClasses() {
+            String longAssetClass = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                new Instrument("AAPL", "Apple Inc.", longAssetClass, "USD", true);
+            });
+            assertEquals("Asset class cannot be longer than 50 characters", exception.getMessage());
+        }
+
+        @Test
+        @DisplayName("Allow valid asset classes")
+        void allowValidAssetClasses() {
+            String validAssetClass = "A".repeat(20);
+            Instrument result = new Instrument("AAPL", "Apple Inc.", validAssetClass, "USD", true);
+            assertEquals(validAssetClass, result.getAssetClass());
+        }
+
+        @Test
+        @DisplayName("Trim whitespace from asset classes")
+        void trimWhitespaceFromAssetClasses() {
+            Instrument result = new Instrument("AAPL", "Apple Inc.", "  Equity  ", "USD", true);
+            assertEquals("Equity", result.getAssetClass());
+        }
+    }
+
+    @Nested
+    @DisplayName("Currency Validation")
+    class currencyValidationTests{
+
+        @Test
+        @DisplayName("Reject null currency")
+        void rejectNullCurrency() {
+            NullPointerException exception = assertThrows(NullPointerException.class, () -> {
+                new Instrument("AAPL", "Apple Inc.", "Equity", null, true);
+            });
+            assertEquals("Currency cannot be null", exception.getMessage());
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"", " ", "U", "US", "USDA", "  ", "\t"})
+        @DisplayName("Reject currency not exactly 3 characters")
+        void rejectInvalidLengthCurrency(String invalidCurrency) {
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                new Instrument("AAPL", "Apple Inc.", "Equity", invalidCurrency, true);
+            });
+            assertEquals("Currency must be exactly 3 characters", exception.getMessage());
+        }
+
+        @Test
+        @DisplayName("Allow valid 3-letter currency codes")
+        void allowValidCurrency() {
+            Instrument result = new Instrument("AAPL", "Apple Inc.", "Equity", "usd", true);
+            assertEquals("USD", result.getCurrency());
+        }
+
+        @Test
+        @DisplayName("Convert currency to uppercase")
+        void convertCurrencyToUppercase() {
+            Instrument result = new Instrument("AAPL", "Apple Inc.", "Equity", "eur", true);
+            assertEquals("EUR", result.getCurrency());
+        }
+
+        @Test
+        @DisplayName("Trim whitespace from currency")
+        void trimWhitespaceFromCurrency() {
+            Instrument result = new Instrument("AAPL", "Apple Inc.", "Equity", "  GBP  ", true);
+            assertEquals("GBP", result.getCurrency());
+        }
+    }
 }
  
