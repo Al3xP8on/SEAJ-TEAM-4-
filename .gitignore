@@ -16,3 +16,6 @@ target/maven-status/
 .idea/
 *.swp
 *.swo
+
+.github
+.vscode/

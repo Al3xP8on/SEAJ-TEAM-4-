@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant SymbolPriceUpdater
+    participant SymbolPriceValidator
+    participant SymbolPrice
+
+    Note over SymbolPriceUpdater: Sequence starts with updateSymbolPrice method call
+    
+    SymbolPriceUpdater->>+SymbolPriceValidator: validateNewPrice(newPrice)
+    
+    alt New price is invalid
+        SymbolPriceValidator-->>SymbolPriceUpdater: throw InvalidPriceException
+    else New price is valid
+        SymbolPriceValidator-->>SymbolPriceUpdater: validation successful
+    end
+    SymbolPriceValidator-->>-SymbolPriceUpdater: 
+    
+    SymbolPriceUpdater->>+SymbolPriceValidator: validateSymbolPrice(symbolPrice)
+    alt Symbol price is invalid
+        SymbolPriceValidator-->>SymbolPriceUpdater: throw InvalidSymbolPriceException
+    else Symbol price is valid
+        SymbolPriceValidator-->>SymbolPriceUpdater: validation successful
+    end
+    SymbolPriceValidator-->>-SymbolPriceUpdater:
+
+    SymbolPriceUpdater->>SymbolPrice: return new SymbolPrice(symbolPrice.getSymbol(), newPrice)
+
+
+    
