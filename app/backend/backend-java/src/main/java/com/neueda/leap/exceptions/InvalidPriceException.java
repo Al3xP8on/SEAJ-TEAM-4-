@@ -1,6 +1,6 @@
 package com.neueda.leap.exceptions;
 
-public class InvalidPriceException extends Exception {
+public class InvalidPriceException extends RuntimeException {
     public InvalidPriceException(String message){
         super(message);
     }

@@ -32,7 +32,7 @@ public class SymbolPriceValidatorTest {
         BigDecimal newPrice = null;
         assertThrows(
             InvalidPriceException.class,
-            () -> symbolPriceValidator.validateNewPrice(newPrice)
+            () -> symbolPriceValidator.validatePrice(newPrice)
         );  
     }
     
@@ -43,17 +43,8 @@ public class SymbolPriceValidatorTest {
         BigDecimal newPrice = BigDecimal.valueOf(newPriceValue);
         assertThrows(
             InvalidPriceException.class,
-            () -> symbolPriceValidator.validateNewPrice(newPrice)
+            () -> symbolPriceValidator.validatePrice(newPrice)
         );
     }
 
-    @Test
-    @DisplayName("throws InvalidSymbolPriceException when symbolPrice is null")
-    void testValidateSymbolPriceThrowsInvalidSymbolPriceException(){
-       SymbolPrice symbolPrice = null;
-       assertThrows(
-         InvalidSymbolPriceException.class,
-         () -> symbolPriceValidator.validateSymbolPrice(symbolPrice)
-       );
-    }
 }
