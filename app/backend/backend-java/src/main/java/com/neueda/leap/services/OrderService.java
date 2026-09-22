@@ -6,6 +6,7 @@ import com.neueda.leap.models.Order;
 import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.enums.OrderSide;
 import com.neueda.leap.enums.OrderStatus;
+import com.neueda.leap.enums.OrderErrorCode;
 import com.neueda.leap.exceptions.OrderException;
 import com.neueda.leap.exceptions.DuplicateOrderException;
 import com.neueda.leap.repositories.OrderRepository;
@@ -17,7 +18,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-// OrderService demonstrates order operations with database, API, and authentication concerns.
 @Service
 @Transactional
 public class OrderService {
@@ -49,7 +49,6 @@ public class OrderService {
         return savedOrder;
     }
 
-    // Executes a pending order.
     // Validates the order state, processes account debits/credits, and tracks status change.
     public Order executeOrder(String orderId) {
         Order order = findOrderOrThrow(orderId);
@@ -84,19 +83,16 @@ public class OrderService {
         return rejectedOrder;
     }
 
-    // Retrieves an order by its ID.
     // Returns an Optional that will be empty if the order does not exist.
     public Optional<Order> getOrderById(String orderId) {
         return orderRepository.findById(orderId);
     }
 
-    // Retrieves all orders for a specific account.
     // Returns an empty list if the account has no orders.
     public List<Order> getOrdersByAccount(String accountId) {
         return orderRepository.findByAccountId(accountId);
     }
 
-    // Retrieves all orders with a specific status.
     public List<Order> getOrdersByStatus(OrderStatus status) {
         return orderRepository.findByStatus(status);
     }
@@ -105,7 +101,6 @@ public class OrderService {
         return orderRepository.findByAccountIdAndStatus(accountId, OrderStatus.NEW);
     }
 
-    // Retrieves the order history for a specific order.
     // Shows all status transitions for a specific order.
     public List<OrderHistory> getOrderHistory(String orderId) {
         return orderHistoryRepository.findByOrderId(orderId);
@@ -113,14 +108,14 @@ public class OrderService {
 
     public boolean isOrderValidForExecution(String orderId) {
         return orderRepository.findById(orderId)
-            .map(Order::isValidForExecution)
+            .map(order -> com.neueda.leap.validators.OrderValidator.isValidForExecution(order))
             .orElse(false);
     }
 
     public BigDecimal getOrderTotalValue(String orderId) {
         return orderRepository.findById(orderId)
-            .map(Order::calculateTotalValue)
-            .orElseThrow(() -> new OrderException("Order not found", orderId, "ORDER_NOT_FOUND"));
+            .map(order -> com.neueda.leap.utils.Utils.calculateTotalValue(order.getPrice(), order.getQuantity()))
+            .orElseThrow(() -> new OrderException("Order not found", OrderErrorCode.EXECUTION_FAILED, orderId));
     }
 
     public List<Order> getExecutedOrdersByAccount(String accountId) {
@@ -138,6 +133,6 @@ public class OrderService {
 
     private Order findOrderOrThrow(String orderId) {
         return orderRepository.findById(orderId)
-            .orElseThrow(() -> new OrderException("Order not found", orderId, "ORDER_NOT_FOUND"));
+            .orElseThrow(() -> new OrderException("Order not found", OrderErrorCode.EXECUTION_FAILED, orderId));
     }
 }
