@@ -28,8 +28,6 @@ tags:
     description: Account cash balance operations
   - name: Positions
     description: Account holdings and positions
-  - name: Orders
-    description: Order history and order-related data
 
 paths:
   /accounts/{accountId}:
@@ -200,50 +198,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '501':
           description: Feature not yet implemented - requires database integration
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /accounts/{accountId}/orders:
-    get:
-      operationId: getOrders
-      tags:
-        - Orders
-      summary: Get account order history
-      description: |
-        Retrieves the complete order history for the specified account, including
-        all placed, filled, rejected, and cancelled orders with timestamps.
-      parameters:
-        - name: accountId
-          in: path
-          required: true
-          description: The unique identifier of the account
-          schema:
-            type: integer
-            format: int64
-            example: 1
-      responses:
-        '200':
-          description: Order history retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OrderHistory'
-        '401':
-          description: Unauthorized - invalid or missing authentication
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Account not found
           content:
             application/json:
               schema:
@@ -446,95 +400,6 @@ components:
           type: number
           format: decimal
           description: Total unrealized profit/loss
-
-    Order:
-      type: object
-      required:
-        - id
-        - accountId
-        - symbol
-        - side
-        - quantity
-        - price
-        - status
-        - createdOn
-      properties:
-        id:
-          type: string
-          format: uuid
-          example: "550e8400-e29b-41d4-a716-446655440000"
-          description: Order ID (UUID)
-        accountId:
-          type: integer
-          format: int64
-          example: 1
-          description: Account ID that placed the order
-        symbol:
-          type: string
-          example: "AAPL"
-          description: Trading symbol
-        side:
-          type: string
-          enum:
-            - BUY
-            - SELL
-          example: BUY
-          description: Order direction
-        quantity:
-          type: integer
-          example: 100
-          description: Number of units
-        price:
-          type: number
-          format: decimal
-          example: 150.50
-          description: Order price per unit
-        status:
-          type: string
-          enum:
-            - NEW
-            - FILLED
-            - REJECTED
-            - CANCELLED
-          example: FILLED
-          description: Current order status
-        idempotencyKey:
-          type: string
-          example: "IDEMP-0001"
-          description: Idempotency key for duplicate prevention
-        createdOn:
-          type: string
-          format: date-time
-          example: "2026-09-22T10:15:00Z"
-          description: Order creation timestamp
-
-    OrderHistory:
-      type: object
-      required:
-        - accountId
-        - orders
-      properties:
-        accountId:
-          type: integer
-          format: int64
-          example: 1
-          description: Account ID
-        orders:
-          type: array
-          items:
-            $ref: '#/components/schemas/Order'
-        totalOrders:
-          type: integer
-          example: 5
-          description: Total number of orders
-        filledOrders:
-          type: integer
-          example: 3
-          description: Number of filled orders
-        cancelledOrders:
-          type: integer
-          example: 1
-          description: Number of cancelled orders
 
     ErrorResponse:
       type: object
