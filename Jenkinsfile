@@ -217,7 +217,7 @@ pipeline {
                 }
             }
             steps {
-                dir('starter') {
+                dir('app/backend/backend-java') {
                     echo "Building application..."
                     sh 'mvn -B clean package -DskipTests'
                     sh 'docker build -t team-skeleton:${BUILD_NUMBER} .'
