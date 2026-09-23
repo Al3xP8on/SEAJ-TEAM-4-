@@ -25,15 +25,15 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+        String[] origins = Arrays.stream(allowedOrigins.split(","))
             .map(String::trim)
             .toArray(String[]::new);
         
-        List<String> methods = Arrays.stream(allowedMethods.split(","))
+        String[] methods = Arrays.stream(allowedMethods.split(","))
             .map(String::trim)
             .toArray(String[]::new);
         
-        List<String> headers = Arrays.stream(allowedHeaders.split(","))
+        String[] headers = Arrays.stream(allowedHeaders.split(","))
             .map(String::trim)
             .toArray(String[]::new);
 
