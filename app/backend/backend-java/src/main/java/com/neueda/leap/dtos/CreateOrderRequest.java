@@ -28,7 +28,7 @@ public record CreateOrderRequest(
     @NotNull(message="Order side must not be null")
     OrderSide side,
     
-    @Schema(description="Unique key for idempotency - prevents duplicate orders if same request is retried")
+    @Schema(description="Unique key for idempotency")
     @NotBlank(message="Idempotency key must not be blank")
     String idempotencyKey
 ){

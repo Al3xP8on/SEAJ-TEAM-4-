@@ -1,6 +1,7 @@
 package com.neueda.leap.dtos;
 
 import java.util.List;
+import java.util.Optional;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -21,22 +22,22 @@ public record OrderList(
 
     @Schema(description="Number of NEW orders")
     @PositiveOrZero(message="New count must be zero or positive")
-    int newCount,
+    Optional<Integer> newCount,
 
     @Schema(description="Number of EXECUTED orders")
     @PositiveOrZero(message="Executed count must be zero or positive")
-    int executedCount,
+    Optional<Integer> executedCount,
 
     @Schema(description="Number of REJECTED orders")
     @PositiveOrZero(message="Rejected count must be zero or positive")
-    int rejectedCount,
+    Optional<Integer> rejectedCount,
 
     @Schema(description="Number of CANCELLED orders")
     @PositiveOrZero(message="Cancelled count must be zero or positive")
-    int cancelledCount
+    Optional<Integer> cancelledCount
 ) {
 
-    public OrderList(String accountId, List<Order> orders, int totalCount, int newCount, int executedCount, int rejectedCount, int cancelledCount){
+    public OrderList(String accountId, List<Order> orders, int totalCount, Optional<Integer> newCount, Optional<Integer> executedCount, Optional<Integer> rejectedCount, Optional<Integer> cancelledCount){
         this.accountId = accountId;
         this.orders = orders;
         this.totalCount = totalCount;

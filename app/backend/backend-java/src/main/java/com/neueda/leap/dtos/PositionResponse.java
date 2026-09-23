@@ -11,7 +11,7 @@ public record PositionResponse(
     @NotBlank(message="Account ID must not be blank")
     String accountId,
 
-    @Schema(description="Trading symbol (e.g., AAPL, MSFT)", example="AAPL")
+    @Schema(description="Trading symbol", example="AAPL")
     @NotBlank(message="Symbol must not be blank")
     String symbol,
 

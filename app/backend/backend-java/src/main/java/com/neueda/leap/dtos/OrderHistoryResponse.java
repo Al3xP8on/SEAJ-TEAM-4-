@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
+import java.util.Optional;
 
 public record OrderHistoryResponse(
     @Schema(description="Order ID", example="550e8400-e29b-41d4-a716-446655440000")
@@ -13,15 +14,15 @@ public record OrderHistoryResponse(
 
     @Schema(description="List (chronological) of status changes")
     @NotNull(message="Order history must be provided")
-    List<OrderHistoryEntry> orderHistory,
+    List<OrderHistoryEntry> history,
 
     @Schema(description="Total number of status transitions")
     @PositiveOrZero(message="Total status changes must be zero or positive")
-    int totalStatusChanges
+    Optional<Integer> totalStatusChanges
 ){
-    public OrderHistoryResponse(String orderId, List<OrderHistoryEntry> orderHistory, int totalStatusChanges){
+    public OrderHistoryResponse(String orderId, List<OrderHistoryEntry> history, Optional<Integer> totalStatusChanges){
         this.orderId = orderId;
-        this.orderHistory = orderHistory;
+        this.history = history;
         this.totalStatusChanges = totalStatusChanges;
     }
 }

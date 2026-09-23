@@ -33,17 +33,14 @@ public record Position (
     @NotNull(message="Current price must not be null.")
     BigDecimal currentPrice,
 
-    @Schema(description="Unrealized profit/loss ((currentPrice - entryPrice) * quantity)", example="550.00")
-    @NotNull(message="Unrealized PnL must not be null.")
-    BigDecimal unrealizedPnL,
+    @Schema(description="Unrealized profit/loss", example="550.00")
+    Optional<BigDecimal> unrealizedPnL,
 
     @Schema(description="Unrealized P&L as percentage", example="3.67")
-    @NotNull(message="Unrealized PnL percent value must not be null.")
-    BigDecimal unrealizedPnLPercent,
+    Optional<BigDecimal> unrealizedPnLPercent,
 
-    @Schema(description="Current market value of position (currentPrice * quantity)", example="15550.00")
-    @NotNull(message="Position value must not be null.")
-    BigDecimal positionValue,
+    @Schema(description="Current market value of position", example="15550.00")
+    Optional<BigDecimal> positionValue,
 
     @Schema(description="Current status of the position")
     @NotNull(message="Status must not be null.")
@@ -62,7 +59,7 @@ public record Position (
 
     public Position(
         long positionId, long accountId, String symbol, int quantity, BigDecimal entryPrice, 
-        BigDecimal currentPrice, BigDecimal unrealizedPnL, BigDecimal unrealizedPnLPercent, BigDecimal positionValue, 
+        BigDecimal currentPrice, Optional<BigDecimal> unrealizedPnL, Optional<BigDecimal> unrealizedPnLPercent, Optional<BigDecimal> positionValue, 
         PositionStatus status, LocalDateTime openedAt, Optional<LocalDateTime> closedAt, Optional<BigDecimal> realizedPnL
     ){
         this.positionId = positionId;

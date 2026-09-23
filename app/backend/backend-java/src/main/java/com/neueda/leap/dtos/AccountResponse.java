@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.NotBlank;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
-
+import java.util.Optional;
 import com.neueda.leap.enums.AccountStatus;
 import java.math.BigDecimal;
 
@@ -31,11 +31,10 @@ public record AccountResponse(
     AccountStatus status,
 
     @Schema(description="Timestamp of last account modification", example="2026-09-22T10:30:00Z")
-    @NotNull(message="Last updated timestamp is required.")
-    LocalDateTime lastUpdated
+    Optional<LocalDateTime> lastUpdated
 ) {
 
-    public AccountResponse(long id, String accountId, String holderName, BigDecimal cashBalance, AccountStatus status, LocalDateTime lastUpdated){
+    public AccountResponse(long id, String accountId, String holderName, BigDecimal cashBalance, AccountStatus status, Optional<LocalDateTime> lastUpdated){
         this.id = id;
         this.accountId = accountId;
         this.holderName = holderName;
