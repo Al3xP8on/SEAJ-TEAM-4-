@@ -49,7 +49,9 @@ public record Order(
     @NotNull(message="Creation time must not be null")
     LocalDateTime createdAt
 ){
-    public Order(String id, String accountId, String instrumentId, OrderSide side, int quantity, BigDecimal price, OrderStatus status, String idempotencyKey, LocalDateTime createdAt){
+    public Order(String id, String accountId, String instrumentId, 
+        OrderSide side, int quantity,  BigDecimal price, 
+        OrderStatus status, String idempotencyKey, LocalDateTime createdAt){
         this.id = id;
         this.accountId = accountId;
         this.instrumentId = instrumentId;
