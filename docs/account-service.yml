@@ -26,8 +26,8 @@ tags:
     description: Account management and retrieval
   - name: Balances
     description: Account cash balance operations
-  - name: Positions
-    description: Account holdings and positions
+  - name: Orders
+    description: Order history and order-related data
 
 paths:
   /accounts/{accountId}:
@@ -159,15 +159,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /accounts/{accountId}/positions:
+  /accounts/{accountId}/orders:
     get:
-      operationId: getPositions
+      operationId: getOrders
       tags:
-        - Positions
-      summary: Get account positions
+        - Orders
+      summary: Get account order history
       description: |
-        Retrieves all current positions (holdings) for the specified account.
-        **NOTE: This endpoint is not yet implemented and will return an error.**
+        Retrieves the complete order history for the specified account, including
+        all placed, filled, rejected, and cancelled orders with timestamps.
       parameters:
         - name: accountId
           in: path
@@ -179,11 +179,11 @@ paths:
             example: 1
       responses:
         '200':
-          description: Positions retrieved successfully
+          description: Order history retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Positions'
+                $ref: '#/components/schemas/OrderHistory'
         '401':
           description: Unauthorized - invalid or missing authentication
           content:
@@ -192,12 +192,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Account not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '501':
-          description: Feature not yet implemented - requires database integration
           content:
             application/json:
               schema:
@@ -332,95 +326,94 @@ components:
           example: 5000.00
           description: Initial cash balance (optional, defaults to 0)
 
-    Position:
+    Order:
       type: object
       required:
+        - id
+        - accountId
         - symbol
+        - side
         - quantity
-        - averageCost
+        - price
+        - status
+        - createdOn
       properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+          description: Order ID (UUID)
+        accountId:
+          type: integer
+          format: int64
+          example: 1
+          description: Account ID that placed the order
         symbol:
           type: string
           example: "AAPL"
-          description: Trading symbol of the instrument
+          description: Trading symbol
+        side:
+          type: string
+          enum:
+            - BUY
+            - SELL
+          example: BUY
+          description: Order direction
         quantity:
           type: integer
           example: 100
-          description: Number of units held
-        averageCost:
+          description: Number of units
+        price:
           type: number
           format: decimal
-          example: 150.25
-          description: Average cost per unit
-        costBasis:
-          type: number
-          format: decimal
-          example: 15025.00
-          description: Total cost basis (quantity × averageCost)
-        currentPrice:
-          type: number
-          format: decimal
-          example: 155.00
-          description: Current market price
-        marketValue:
-          type: number
-          format: decimal
-          example: 15500.00
-          description: Current market value (quantity × currentPrice)
-        unrealizedPnL:
-          type: number
-          format: decimal
-          example: 475.00
-          description: Unrealized profit/loss
+          example: 150.50
+          description: Order price per unit
+        status:
+          type: string
+          enum:
+            - NEW
+            - FILLED
+            - REJECTED
+            - CANCELLED
+          example: FILLED
+          description: Current order status
+        idempotencyKey:
+          type: string
+          example: "IDEMP-0001"
+          description: Idempotency key for duplicate prevention
+        createdOn:
+          type: string
+          format: date-time
+          example: "2026-09-22T10:15:00Z"
+          description: Order creation timestamp
 
-    Positions:
+    OrderHistory:
       type: object
       required:
         - accountId
-        - positions
+        - orders
       properties:
         accountId:
           type: integer
           format: int64
           example: 1
           description: Account ID
-        positions:
+        orders:
           type: array
           items:
-            $ref: '#/components/schemas/Position'
-        totalCostBasis:
-          type: number
-          format: decimal
-          description: Sum of all cost bases
-        totalMarketValue:
-          type: number
-          format: decimal
-          description: Sum of all market values
-        totalUnrealizedPnL:
-          type: number
-          format: decimal
-          description: Total unrealized profit/loss
+            $ref: '#/components/schemas/Order'
+        totalOrders:
+          type: integer
+          example: 5
+          description: Total number of orders
+        filledOrders:
+          type: integer
+          example: 3
+          description: Number of filled orders
+        cancelledOrders:
+          type: integer
+          example: 1
+          description: Number of cancelled orders
 
     ErrorResponse:
-      type: object
-      required:
-        - error
-        - message
-      properties:
-        error:
-          type: string
-          example: "NOT_FOUND"
-          description: Error code
-        message:
-          type: string
-          example: "Account with ID 999 not found"
-          description: Detailed error message
-        timestamp:
-          type: string
-          format: date-time
-          example: "2026-09-22T10:30:00Z"
-          description: Timestamp when error occurred
-        status:
-          type: integer
-          example: 404
-          description: HTTP status code
+      $ref: './shared-schemas.yml#/components/schemas/ErrorResponse'
