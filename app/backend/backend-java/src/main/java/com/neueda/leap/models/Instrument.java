@@ -1,14 +1,36 @@
 
 package com.neueda.leap.models;
+
+import jakarta.persistence.*;
 import com.neueda.leap.validators.InstrumentsValidator;
 
+@Entity
+@Table(name = "instruments")
 public class Instrument {
 
-    private final String symbol;
-    private final String name;
-    private final String assetClass;
-    private final String currency;
-    private final boolean tradable;
+    @Id
+    @Column(nullable = false)
+    private String symbol;
+    
+    @Column(nullable = false)
+    private String name;
+    
+    @Column(nullable = false)
+    private String assetClass;
+    
+    @Column(nullable = false)
+    private String currency;
+    
+    @Column(nullable = false)
+    private boolean tradable;
+
+    protected Instrument() {
+        this.symbol = null;
+        this.name = null;
+        this.assetClass = null;
+        this.currency = null;
+        this.tradable = false;
+    }
 
     public Instrument(String symbol, String name, String assetClass, String currency, boolean tradable) {
         this(symbol, name, assetClass, currency, tradable, new InstrumentsValidator());
