@@ -471,20 +471,23 @@ components:
           example: "IDEMP-20260922-001"
           description: Unique key for idempotency - prevents duplicate orders if same request is retried
 
-    Order:
+    OrderResponse:
       type: object
       required:
-        - id
+        - orderId
         - accountId
-        - instrumentId
-        - side
+        - accountHolderName
+        - ticker
+        - instrumentName
         - quantity
         - price
+        - totalValue
+        - side
         - status
         - idempotencyKey
         - createdAt
       properties:
-        id:
+        orderId:
           type: string
           format: uuid
           example: "550e8400-e29b-41d4-a716-446655440000"
@@ -493,17 +496,18 @@ components:
           type: string
           example: "ACC-001"
           description: Account ID that placed the order
-        instrumentId:
+        accountHolderName:
+          type: string
+          example: "Alice Johnson"
+          description: Name of the account holder
+        ticker:
           type: string
           example: "AAPL"
           description: Trading symbol/instrument identifier
-        side:
+        instrumentName:
           type: string
-          enum:
-            - BUY
-            - SELL
-          example: BUY
-          description: Order direction
+          example: "Apple Inc."
+          description: Name of the trading instrument
         quantity:
           type: integer
           example: 100
@@ -513,6 +517,18 @@ components:
           format: decimal
           example: 150.50
           description: Order price per unit
+        totalValue:
+          type: number
+          format: decimal
+          example: 15050.00
+          description: Total value of the order (quantity * price)
+        side:
+          type: string
+          enum:
+            - BUY
+            - SELL
+          example: BUY
+          description: Order direction
         status:
           type: string
           enum:
@@ -546,7 +562,7 @@ components:
         orders:
           type: array
           items:
-            $ref: '#/components/schemas/Order'
+            $ref: '#/components/schemas/OrderResponse'
           description: List of orders
         totalCount:
           type: integer
