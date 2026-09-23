@@ -1,33 +1,25 @@
 package com.neueda.leap.dtos;
 
 import java.math.BigDecimal;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-public class PositionResponse{
-    private final String accountId;
-    private final String symbol;
-    private final int quantity;
-    private final BigDecimal averageCost;
+public record PositionResponse(
+    @Schema(description="Account ID")
+    @NotBlank(message="Account ID must not be blank")
+    String accountId,
 
-    public PositionResponse(String accountId, String symbol, int quantity, BigDecimal averageCost){
-        this.accountId = accountId;
-        this.symbol = symbol;
-        this.quantity = quantity;
-        this.averageCost = averageCost;
-    }
+    @Schema(description="Trading symbol (e.g., AAPL, MSFT)", example="AAPL")
+    @NotBlank(message="Symbol must not be blank")
+    String symbol,
 
-    public String getAccountId(){
-        return this.accountId;
-    }
+    @Schema(description="Number of shares in position", example="100")
+    @Positive(message="Quantity must be positive")
+    int quantity,
 
-    public String getSymbol(){
-        return this.symbol;
-    }
-
-    public int getQuantity(){
-        return this.quantity;
-    }
-
-    public BigDecimal getAverageCost(){
-        return this.averageCost;
-    }
-}
+    @Schema(description="Average entry price per share", example="150.00")
+    @NotNull(message="Average cost must not be null")
+    BigDecimal averageCost
+) {}

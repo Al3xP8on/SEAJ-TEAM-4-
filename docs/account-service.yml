@@ -224,7 +224,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Account'
+                $ref: '#/components/schemas/AccountResponse'
         '400':
           description: Invalid account data - missing or invalid ID
           content:
@@ -259,7 +259,7 @@ components:
       description: JWT bearer token for authentication. Include the token in the Authorization header.
 
   schemas:
-    Account:
+    AccountResponse:
       type: object
       required:
         - id
