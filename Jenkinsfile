@@ -320,12 +320,13 @@ pipeline {
         success {
             script {
                 if (params.UPDATE_DATABASE_SCHEMA) {
+                    def timestamp = new Date().format('yyyy-MM-dd HH:mm:ss')
                     echo "=========================================="
                     echo "✅ DATABASE SCHEMA UPDATE SUCCESSFUL"
                     echo "=========================================="
                     echo ""
                     echo "Environment: ${params.DB_ENVIRONMENT}"
-                    echo "Updated on: $(date)"
+                    echo "Updated on: ${timestamp}"
                     echo ""
                     echo "Database Schema Organization:"
                     echo "  📁 Shared Tables (Reference Data)"
