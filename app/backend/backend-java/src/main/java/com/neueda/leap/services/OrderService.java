@@ -126,6 +126,11 @@ public class OrderService {
         return orderRepository.findByAccountIdAndStatus(accountId, OrderStatus.CANCELLED);
     }
 
+    // Returns all orders in the system (admin/reporting only)
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
+    }
+
     private void recordOrderHistory(String orderId, OrderStatus status) {
         OrderHistory history = new OrderHistory(orderId, status);
         orderHistoryRepository.save(history);
