@@ -1,0 +1,304 @@
+openapi: 3.0.0
+info:
+  title: Positions Service API
+  description: REST API for managing trading account positions (holdings).
+  version: 1.0.0
+  contact:
+    name: SEAJ Team
+  license:
+    name: Internal Use Only
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Positions
+    description: Position management and retrieval
+
+paths:
+  /accounts/{accountId}/positions:
+    get:
+      operationId: getPositions
+      tags:
+        - Positions
+      summary: Get all positions for an account
+      description: |
+        Retrieves all current positions (holdings) for the specified account.
+        Returns detailed information about each position including symbol, quantity,
+        entry price, current price, and unrealized P&L.
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: The unique identifier of the account
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Positions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Position'
+        '401':
+          $ref: './shared-schemas.yml#/components/responses/UnauthorizedError'
+        '403':
+          $ref: './shared-schemas.yml#/components/responses/ForbiddenError'
+        '404':
+          $ref: './shared-schemas.yml#/components/responses/NotFoundError'
+        '500':
+          $ref: './shared-schemas.yml#/components/responses/InternalServerError'
+
+  /accounts/{accountId}/positions/{positionId}:
+    get:
+      operationId: getPosition
+      tags:
+        - Positions
+      summary: Get a specific position by ID
+      description: |
+        Retrieves detailed information about a specific position including current market price, unrealized P&L, and position metrics.
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: The unique identifier of the account
+          schema:
+            type: integer
+            format: int64
+            example: 1
+        - name: positionId
+          in: path
+          required: true
+          description: The unique identifier of the position
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Position retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+        '401':
+          $ref: './shared-schemas.yml#/components/responses/UnauthorizedError'
+        '403':
+          $ref: './shared-schemas.yml#/components/responses/ForbiddenError'
+        '404':
+          $ref: './shared-schemas.yml#/components/responses/NotFoundError'
+        '500':
+          $ref: './shared-schemas.yml#/components/responses/InternalServerError'
+
+  /accounts/{accountId}/positions/{symbol}:
+    get:
+      operationId: getPositionBySymbol
+      tags:
+        - Positions
+      summary: Get position by instrument symbol
+      description: |
+        Retrieves the position for a specific instrument symbol (e.g., AAPL, MSFT).
+        Returns null/empty if account has no position in that symbol.
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: The unique identifier of the account
+          schema:
+            type: integer
+            format: int64
+            example: 1
+        - name: symbol
+          in: path
+          required: true
+          description: The trading symbol (e.g., AAPL, MSFT, GOOG)
+          schema:
+            type: string
+            pattern: '^[A-Z]{1,10}$'
+            example: AAPL
+      responses:
+        '200':
+          description: Position retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+        '204':
+          description: No position found for this symbol
+        '401':
+          $ref: './shared-schemas.yml#/components/responses/UnauthorizedError'
+        '403':
+          $ref: './shared-schemas.yml#/components/responses/ForbiddenError'
+        '404':
+          $ref: './shared-schemas.yml#/components/responses/NotFoundError'
+        '500':
+          $ref: './shared-schemas.yml#/components/responses/InternalServerError'
+
+  /accounts/{accountId}/positions/close/{positionId}:
+    put:
+      operationId: closePosition
+      tags:
+        - Positions
+      summary: Close a position
+      description: |
+        Closes an open position, locking in any realized P&L.
+        This is typically called when all shares are sold or the position is liquidated.
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: The unique identifier of the account
+          schema:
+            type: integer
+            format: int64
+            example: 1
+        - name: positionId
+          in: path
+          required: true
+          description: The unique identifier of the position to close
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - closingPrice
+                - closingQuantity
+              properties:
+                closingPrice:
+                  type: number
+                  format: decimal
+                  description: Price at which the position is being closed
+                  example: 155.50
+                closingQuantity:
+                  type: integer
+                  minimum: 1
+                  description: Number of shares being closed (can be partial close)
+                  example: 50
+                closingReason:
+                  type: string
+                  description: Reason for closing (SELL, LIQUIDATION, STOP_LOSS)
+                  example: SELL
+      responses:
+        '200':
+          description: Position closed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+        '400':
+          $ref: './shared-schemas.yml#/components/responses/BadRequestError'
+        '401':
+          $ref: './shared-schemas.yml#/components/responses/UnauthorizedError'
+        '403':
+          $ref: './shared-schemas.yml#/components/responses/ForbiddenError'
+        '404':
+          $ref: './shared-schemas.yml#/components/responses/NotFoundError'
+        '409':
+          $ref: './shared-schemas.yml#/components/responses/ConflictError'
+        '500':
+          $ref: './shared-schemas.yml#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  schemas:
+    Position:
+      type: object
+      required:
+        - positionId
+        - accountId
+        - symbol
+        - quantity
+        - entryPrice
+        - currentPrice
+        - status
+        - openedAt
+      properties:
+        positionId:
+          type: integer
+          format: int64
+          description: Unique identifier for the position
+          example: 1
+        accountId:
+          type: integer
+          format: int64
+          description: The account that owns this position
+          example: 1
+        symbol:
+          type: string
+          description: Trading symbol (e.g., AAPL, MSFT)
+          example: AAPL
+        quantity:
+          type: integer
+          description: Number of shares in the position
+          example: 100
+        entryPrice:
+          type: number
+          format: decimal
+          description: Average entry price per share
+          example: 150.00
+        currentPrice:
+          type: number
+          format: decimal
+          description: Current market price per share (real-time or last known)
+          example: 155.50
+        unrealizedPnL:
+          type: number
+          format: decimal
+          description: Unrealized profit/loss ((currentPrice - entryPrice) * quantity)
+          example: 550.00
+        unrealizedPnLPercent:
+          type: number
+          format: decimal
+          description: Unrealized P&L as percentage
+          example: 3.67
+        positionValue:
+          type: number
+          format: decimal
+          description: Current market value of position (currentPrice * quantity)
+          example: 15550.00
+        status:
+          type: string
+          enum:
+            - OPEN
+            - CLOSED
+            - PARTIALLY_CLOSED
+          description: Current status of the position
+          example: OPEN
+        openedAt:
+          type: string
+          format: date-time
+          description: Timestamp when position was opened (first buy order filled)
+          example: '2026-09-20T10:30:00Z'
+        closedAt:
+          type: string
+          format: date-time
+          description: Timestamp when position was fully closed (null if still open)
+          example: null
+        realizedPnL:
+          type: number
+          format: decimal
+          description: Realized profit/loss from closed portions (null if fully open)
+          example: null
+    
+    ErrorResponse:
+      $ref: './shared-schemas.yml#/components/schemas/ErrorResponse'
