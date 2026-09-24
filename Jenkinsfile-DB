@@ -50,7 +50,8 @@ pipeline {
                 script {
                     withCredentials([
                         string(credentialsId: 'postgres_password', variable: 'DB_PASSWORD'),
-                        string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
+                        string(credentialsId: 'postgres_username', variable: 'DB_USERNAME'),
+                        string(credentialsId: 'postgres_db', variable: 'POSTGRES_DB')
                     ]) {
                         withEnv([
                             "POSTGRES_PASSWORD=${DB_PASSWORD}",
