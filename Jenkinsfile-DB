@@ -16,6 +16,11 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+                sh '''
+                    echo "Cleaning workspace..."
+                    git clean -fd
+                    git reset --hard HEAD
+                '''
             }
         }
         
