@@ -6,23 +6,27 @@ import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.models.Positions;
 import com.neueda.leap.exceptions.AccountNotFoundException;
 import com.neueda.leap.validators.AccountValidator;
+import com.neueda.leap.repositories.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class AccountService {
     
-    private final Map<Long, Account> accountStore = new HashMap<>();
+    @Autowired
+    private AccountRepository accountRepository;
     
     @Autowired
     private AccountValidator validator;
 
+    public List<Account> getAllAccounts() {
+        return accountRepository.findAll();
+    }
+
     public Account getAccount(Long accountId) throws AccountNotFoundException {
-        Account account = accountStore.get(accountId);
+        Account account = accountRepository.findById(accountId).orElse(null);
         if (account == null) {
             throw new AccountNotFoundException("Account with ID " + accountId + " not found");
         }
@@ -45,12 +49,10 @@ public class AccountService {
     }
 
     public void addAccount(Account account) {
-        if (account.getId() != null) {
-            accountStore.put(account.getId(), account);
-        }
+        accountRepository.save(account);
     }
 
     public boolean accountExists(Long accountId) {
-        return accountStore.containsKey(accountId);
+        return accountRepository.existsById(accountId);
     }
 }

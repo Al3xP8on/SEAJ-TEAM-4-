@@ -45,7 +45,7 @@ public class OrderServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        account = new Account("ACC-001", "Test Account", new BigDecimal("50000.00"), AccountStatus.ACTIVE);
+        account = new Account("ACC-001", "Test Account", "test@example.com", "123456789", new BigDecimal("50000.00"), AccountStatus.ACTIVE);
         instrument = new Instrument("AAPL", "Apple Inc.", "EQUITY", "USD", true);
     }
 

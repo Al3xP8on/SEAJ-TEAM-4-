@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1/instruments")
+@RequestMapping("/v1/instruments")
 public class InstrumentsController {
     private final InstrumentsService instrumentsService;
 

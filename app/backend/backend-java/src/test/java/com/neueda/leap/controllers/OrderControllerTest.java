@@ -58,7 +58,7 @@ public class OrderControllerTest {
 
     @BeforeEach
     void setUp() {
-        testAccount = new Account("ACC-001", "Test Account", new BigDecimal("50000.00"), AccountStatus.ACTIVE);
+        testAccount = new Account("ACC-001", "Test Account", "test@example.com", "123456789", new BigDecimal("50000.00"), AccountStatus.ACTIVE);
         testInstrument = new Instrument("AAPL", "Apple Inc.", "EQUITY", "USD", true);
         testOrder = new Order("order-001", testAccount, testInstrument, 100, new BigDecimal("150.50"), 
                             OrderSide.BUY, "idem-key-001", OrderStatus.NEW, LocalDateTime.now());
