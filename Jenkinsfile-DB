@@ -95,7 +95,7 @@ pipeline {
                     ]) {
                         sh '''
                             echo "✓ Schema Verification:"
-                            docker-compose exec -T db psql -U $DB_USERNAME -d SEAJ_db_DEMO -c "\\dt"
+                            docker-compose exec -T db psql -U $DB_USERNAME -d SEAJ_db -c "\\dt"
                         '''
                     }
                 }
