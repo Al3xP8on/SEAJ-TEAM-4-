@@ -54,7 +54,8 @@ pipeline {
                     ]) {
                         withEnv([
                             "POSTGRES_PASSWORD=${DB_PASSWORD}",
-                            "DB_USERNAME=${DB_USERNAME}"
+                            "DB_USERNAME=${DB_USERNAME}",
+                            "POSTGRES_DB=SEAJ_db"
                         ]) {
                             sh '''
                                 echo "=========================================="
