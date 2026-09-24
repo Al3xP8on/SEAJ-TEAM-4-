@@ -71,6 +71,7 @@ pipeline {
                                 docker-compose build --no-cache db
                                 
                                 echo "Starting database container..."
+                                docker rm -f seaj_postgres_db 2>/dev/null || true
                                 docker-compose up -d db
                                 sleep 30
                                 
