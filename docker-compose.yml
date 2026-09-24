@@ -3,9 +3,6 @@ services:
     build:
       context: .
       dockerfile: infra/db/Dockerfile
-      args:
-        SCHEMA_PATH_DEMO: infra/db/SEAJ_db_DEMO.sql
-        SCHEMA_PATH_DEV: infra/db/SEAJ_db_DEV.sql
     container_name: seaj_postgres_db
     environment:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
