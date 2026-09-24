@@ -2,6 +2,7 @@ package com.neueda.leap.services;
 
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.repositories.InstrumentsRepository;
+import com.neueda.leap.validators.InstrumentsValidator;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,9 +11,11 @@ import java.util.Optional;
 @Service
 public class InstrumentsService {
     private final InstrumentsRepository instrumentsRepository;
+    private final InstrumentsValidator validator;
 
-    public InstrumentsService(InstrumentsRepository instrumentsRepository) {
+    public InstrumentsService(InstrumentsRepository instrumentsRepository, InstrumentsValidator validator) {
         this.instrumentsRepository = instrumentsRepository;
+        this.validator = validator;
     }
 
     public List<Instrument> getAllInstruments() {
@@ -24,18 +27,22 @@ public class InstrumentsService {
     }
 
     public Optional<Instrument> getInstrumentBySymbol(String symbol) {
-        return instrumentsRepository.findBySymbol(symbol);
+        String validatedSymbol = validator.validateSymbol(symbol);
+        return instrumentsRepository.findBySymbol(validatedSymbol);
     }
 
     public List<Instrument> getInstrumentsByAssetClass(String assetClass) {
-        return instrumentsRepository.findByAssetClass(assetClass);
+        String validatedAssetClass = validator.validateAssetClass(assetClass);
+        return instrumentsRepository.findByAssetClass(validatedAssetClass);
     }
 
     public List<Instrument> getInstrumentsByCurrency(String currency) {
-        return instrumentsRepository.findByCurrency(currency);
+        String validatedCurrency = validator.validateCurrency(currency);
+        return instrumentsRepository.findByCurrency(validatedCurrency);
     }
 
     public List<Instrument> getInstrumentsByAssetClassAndTradable(String assetClass, boolean tradable) {
-        return instrumentsRepository.findByAssetClassAndTradable(assetClass, tradable);
+        String validatedAssetClass = validator.validateAssetClass(assetClass);
+        return instrumentsRepository.findByAssetClassAndTradable(validatedAssetClass, tradable);
     }
 }
