@@ -27,7 +27,7 @@ public class Order {
     private Account account;
     
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "instrument_id", nullable = false)
+    @JoinColumn(name = "symbol", nullable = false, referencedColumnName = "symbol")
     private Instrument instrument;
     
     @Column(nullable = false)
@@ -47,7 +47,7 @@ public class Order {
     @Column(unique = true, nullable = false)
     private String idempotencyKey;
     
-    @Column(nullable = false)
+    @Column(nullable = false, name = "created_on")
     private LocalDateTime createdAt;
 
     public Order() {

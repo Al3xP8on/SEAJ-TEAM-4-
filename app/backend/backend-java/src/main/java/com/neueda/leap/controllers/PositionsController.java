@@ -15,11 +15,16 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1/accounts")
+@RequestMapping("/v1/positions")
 public class PositionsController {
     
     @Autowired
     private PositionsService positionsService;
+    
+    @GetMapping
+    public ResponseEntity<?> getRootPositions() {
+        return ResponseEntity.ok(Map.of("message", "Use /{accountId}/positions to get positions for an account"));
+    }
     
     @GetMapping("/{accountId}/positions")
     public ResponseEntity<?> getPositions(@PathVariable Long accountId) {
