@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mock;
+import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import java.math.BigDecimal;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.*;
 @DisplayName("OrderService Tests")
 public class OrderServiceTest {
 
+    @InjectMocks
     private OrderService orderService;
 
     @Mock
@@ -43,7 +45,6 @@ public class OrderServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        orderService = new OrderService(orderRepository, orderHistoryRepository);
         account = new Account("ACC-001", "Test Account", new BigDecimal("50000.00"), AccountStatus.ACTIVE);
         instrument = new Instrument("AAPL", "Apple Inc.", "EQUITY", "USD", true);
     }

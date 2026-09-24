@@ -5,16 +5,21 @@ import com.neueda.leap.models.Order;
 import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.models.Positions;
 import com.neueda.leap.exceptions.AccountNotFoundException;
-import org.springframework.stereotype.Component;
+import com.neueda.leap.validators.AccountValidator;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Component
+@Service
 public class AccountService {
     
     private final Map<Long, Account> accountStore = new HashMap<>();
+    
+    @Autowired
+    private AccountValidator validator;
 
     public Account getAccount(Long accountId) throws AccountNotFoundException {
         Account account = accountStore.get(accountId);

@@ -6,6 +6,7 @@ import com.neueda.leap.exceptions.AccountNotFoundException;
 import com.neueda.leap.exceptions.InsufficientHoldingsException;
 import com.neueda.leap.models.Positions;
 import com.neueda.leap.repositories.PositionsRepository;
+import com.neueda.leap.validators.PositionsValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,8 +25,12 @@ public class PositionsService {
     
     @Autowired
     private AccountService accountService;
+    
+    @Autowired
+    private PositionsValidator validator;
   
     public List<PositionResponse> getPositions(Long accountId) throws AccountNotFoundException {
+        validator.validateAccountId(accountId);
         accountService.getAccount(accountId);
         
         List<Positions> positions = positionsRepository.findByAccountId(accountId);
@@ -42,7 +47,8 @@ public class PositionsService {
     }
     
     public Optional<PositionResponse> getPositionBySymbol(Long accountId, String symbol) throws AccountNotFoundException {
-
+        validator.validateAccountId(accountId);
+        validator.validateSymbol(symbol);
         accountService.getAccount(accountId);
         
         return positionsRepository.findByAccountIdAndSymbol(accountId, symbol).map(this::toResponse);
@@ -51,6 +57,7 @@ public class PositionsService {
     @Transactional
     public PositionResponse closePosition(Long accountId, Long positionId, Map<String, Object> request) 
             throws AccountNotFoundException, PositionNotFoundException, InsufficientHoldingsException {
+        validator.validateAccountId(accountId);
         accountService.getAccount(accountId);
         
         Positions position = positionsRepository.findByPositionIdAndAccountId(positionId, accountId)
@@ -58,6 +65,7 @@ public class PositionsService {
                         String.format("Position %d not found for account %d", positionId, accountId)));
         
         BigDecimal closingPrice = new BigDecimal(request.get("closingPrice").toString());
+        validator.validatePrice(closingPrice);
         int closingQuantity = 0;
 
         Object quantityObj = request.get("closingQuantity");
@@ -66,6 +74,7 @@ public class PositionsService {
         } else if (quantityObj instanceof String) {
             closingQuantity = Integer.parseInt((String) quantityObj);
         }
+        validator.validateQuantity(closingQuantity);
         
         if (closingQuantity <= 0 || closingQuantity > position.getQuantity()) {
             throw new IllegalArgumentException(

@@ -2,6 +2,7 @@ package com.neueda.leap.services;
 
 import com.neueda.leap.models.PriceHistory;
 import com.neueda.leap.repositories.PriceHistoryRepository;
+import com.neueda.leap.validators.PriceHistoryValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,9 @@ public class PriceHistoryServiceTest {
     @Mock
     private PriceHistoryRepository priceHistoryRepository;
 
+    @Mock
+    private PriceHistoryValidator priceHistoryValidator;
+
     @InjectMocks
     private PriceHistoryService priceHistoryService;
 
@@ -35,6 +39,10 @@ public class PriceHistoryServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+
+        // Mock validator to return symbol unchanged
+        when(priceHistoryValidator.validateSymbol(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(priceHistoryValidator).validateOHLCRelationships(any(), any(), any(), any());
 
         // Create test data using past dates
         testPriceHistory = new PriceHistory(
