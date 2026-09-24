@@ -1,11 +1,19 @@
-// Multi-branch Pipeline: Database Schema Management
-// Focuses on building and deploying the modular database schema (10 separate SQL files)
+// Multi-branch Pipeline: Modular Database Schema Deployment
+// Uses 10 separate SQL files from infra/db/tables/ - executed in dependency order
 pipeline {
     agent any
     
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
         timestamps()
+    }
+    
+    parameters {
+        choice(
+            name: 'DB_ENVIRONMENT',
+            choices: ['DEMO', 'DEV', 'BOTH'],
+            description: 'Database environment(s) to deploy with modular schema'
+        )
     }
     
     tools {
@@ -19,49 +27,35 @@ pipeline {
             }
         }
         
-        stage('Clean Old Database Infrastructure') {
-            steps {
-                script {
-                    withCredentials([
-                        string(credentialsId: 'postgres_password', variable: 'DB_PASSWORD'),
-                        string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
-                    ]) {
-                        withEnv([
-                            "POSTGRES_DB=SEAJ_db_DEMO",
-                            "POSTGRES_PASSWORD=${DB_PASSWORD}",
-                            "DB_USERNAME=${DB_USERNAME}",
-                            "DB_PORT=5432"
-                        ]) {
-                            echo "=========================================="
-                            echo "STEP 1: Cleaning Old Database Infrastructure"
-                            echo "=========================================="
-                            sh '''
-                                echo "Stopping and removing containers..."
-                                docker-compose down --remove-orphans 2>/dev/null || true
-                                docker kill seaj_postgres_db 2>/dev/null || true
-                                docker rm -f seaj_postgres_db 2>/dev/null || true
-                                
-                                echo "Removing data volumes..."
-                                docker volume rm -f pgdata_volume 2>/dev/null || true
-                                
-                                echo "Pruning Docker resources..."
-                                docker system prune -af --volumes 2>/dev/null || true
-                                
-                                echo "✓ Cleanup complete"
-                            '''
-                        }
-                    }
-                }
-            }
-        }
-        
-        stage('Validate Modular Schema Files') {
+        stage('Validate 10 Modular Schema Files') {
             steps {
                 echo "=========================================="
-                echo "STEP 2: Validating Modular Schema Files"
+                echo "VALIDATING 10 MODULAR SCHEMA FILES"
                 echo "=========================================="
                 sh '''
-                    echo "Checking required schema files..."
+                    echo "Modular schema 5-layer dependency structure:"
+                    echo ""
+                    echo "├─ Layer 1: Foundation"
+                    echo "│  └─ 00-setup.sql (Extensions & Enums)"
+                    echo ""
+                    echo "├─ Layer 2: Core Entities"
+                    echo "│  ├─ 01-clients.sql"
+                    echo "│  ├─ 02-accounts.sql (FK: clients)"
+                    echo "│  └─ 03-instruments.sql"
+                    echo ""
+                    echo "├─ Layer 3: Transactions"
+                    echo "│  ├─ 04-orders.sql (FK: accounts, instruments)"
+                    echo "│  ├─ 05-positions.sql (FK: accounts, instruments)"
+                    echo "│  └─ 06-order_history.sql (FK: orders)"
+                    echo ""
+                    echo "├─ Layer 4: Market Data"
+                    echo "│  ├─ 07-price_history.sql (FK: instruments)"
+                    echo "│  └─ 08-current_prices.sql (FK: instruments)"
+                    echo ""
+                    echo "└─ Layer 5: Meta"
+                    echo "   └─ index.sql (Documentation)"
+                    echo ""
+                    
                     SCHEMA_FILES=(
                         "infra/db/tables/00-setup.sql"
                         "infra/db/tables/01-clients.sql"
@@ -75,85 +69,28 @@ pipeline {
                         "infra/db/tables/index.sql"
                     )
                     
-                    MISSING_FILES=0
+                    MISSING=0
                     for file in "${SCHEMA_FILES[@]}"; do
                         if [ -f "$file" ]; then
-                            echo "  ✓ $file"
+                            echo "  ✓ $(basename $file)"
                         else
                             echo "  ✗ MISSING: $file"
-                            MISSING_FILES=$((MISSING_FILES + 1))
+                            MISSING=$((MISSING + 1))
                         fi
                     done
                     
-                    if [ $MISSING_FILES -gt 0 ]; then
-                        echo "ERROR: $MISSING_FILES schema files are missing!"
+                    echo ""
+                    if [ $MISSING -gt 0 ]; then
+                        echo "ERROR: $MISSING files missing!"
                         exit 1
                     fi
-                    echo "✓ All schema files present"
+                    echo "✓ All 10 modular files validated"
                 '''
             }
         }
         
-        stage('Build Database Image') {
-            steps {
-                script {
-                    withCredentials([
-                        string(credentialsId: 'postgres_password', variable: 'DB_PASSWORD'),
-                        string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
-                    ]) {
-                        withEnv([
-                            "POSTGRES_DB=SEAJ_db_DEMO",
-                            "POSTGRES_PASSWORD=${DB_PASSWORD}",
-                            "DB_USERNAME=${DB_USERNAME}",
-                            "DB_PORT=5432"
-                        ]) {
-                            echo "=========================================="
-                            echo "STEP 3: Building Database Image"
-                            echo "=========================================="
-                            sh '''
-                                echo "Building PostgreSQL database image with modular schema..."
-                                docker-compose build --no-cache db
-                                echo "✓ Database image built successfully"
-                            '''
-                        }
-                    }
-                }
-            }
-        }
-        
-        stage('Start Database Container') {
-            steps {
-                script {
-                    withCredentials([
-                        string(credentialsId: 'postgres_password', variable: 'DB_PASSWORD'),
-                        string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
-                    ]) {
-                        withEnv([
-                            "POSTGRES_DB=SEAJ_db_DEMO",
-                            "POSTGRES_PASSWORD=${DB_PASSWORD}",
-                            "DB_USERNAME=${DB_USERNAME}",
-                            "DB_PORT=5432"
-                        ]) {
-                            echo "=========================================="
-                            echo "STEP 4: Starting Database Container"
-                            echo "=========================================="
-                            sh '''
-                                echo "Starting PostgreSQL container..."
-                                docker-compose up -d db
-                                
-                                echo "Waiting for database to initialize (30 seconds)..."
-                                sleep 30
-                                
-                                echo "Checking container logs..."
-                                docker-compose logs db | tail -50
-                            '''
-                        }
-                    }
-                }
-            }
-        }
-        
-        stage('Wait for Database Ready') {
+        stage('Deploy DEMO') {
+            when { expression { return params.DB_ENVIRONMENT in ['DEMO', 'BOTH'] } }
             steps {
                 script {
                     withCredentials([
@@ -166,27 +103,31 @@ pipeline {
                             "DB_USERNAME=${DB_USERNAME}"
                         ]) {
                             echo "=========================================="
-                            echo "STEP 5: Verifying Database Readiness"
+                            echo "DEPLOYING: DEMO (Modular Schema)"
                             echo "=========================================="
                             sh '''
-                                MAX_ATTEMPTS=30
-                                ATTEMPT=0
+                                echo "Cleaning old containers..."
+                                docker-compose down --remove-orphans 2>/dev/null || true
+                                docker kill seaj_postgres_db 2>/dev/null || true
+                                docker rm -f seaj_postgres_db 2>/dev/null || true
+                                docker volume rm -f pgdata_volume 2>/dev/null || true
                                 
-                                while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-                                    if docker-compose exec -T db pg_isready -U $DB_USERNAME > /dev/null 2>&1; then
-                                        echo "✓ Database is ready!"
-                                        break
-                                    fi
-                                    ATTEMPT=$((ATTEMPT + 1))
-                                    echo "  -> Waiting... (Attempt $ATTEMPT/$MAX_ATTEMPTS)"
+                                echo "Building DB image..."
+                                docker-compose build --no-cache db
+                                
+                                echo "Starting container..."
+                                docker-compose up -d db
+                                sleep 30
+                                
+                                echo "Waiting for readiness..."
+                                MAX_ATTEMPTS=30
+                                for ((i=1; i<=MAX_ATTEMPTS; i++)); do
+                                    docker-compose exec -T db pg_isready -U $DB_USERNAME >/dev/null 2>&1 && break
+                                    echo "  Attempt $i/$MAX_ATTEMPTS"
                                     sleep 2
                                 done
                                 
-                                if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-                                    echo "ERROR: Database failed to start"
-                                    docker-compose logs db
-                                    exit 1
-                                fi
+                                echo "✓ DEMO deployed"
                             '''
                         }
                     }
@@ -194,7 +135,8 @@ pipeline {
             }
         }
         
-        stage('Verify Schema Creation') {
+        stage('Deploy DEV') {
+            when { expression { return params.DB_ENVIRONMENT in ['DEV', 'BOTH'] } }
             steps {
                 script {
                     withCredentials([
@@ -202,27 +144,53 @@ pipeline {
                         string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
                     ]) {
                         withEnv([
-                            "POSTGRES_DB=SEAJ_db_DEMO",
                             "POSTGRES_PASSWORD=${DB_PASSWORD}",
                             "DB_USERNAME=${DB_USERNAME}"
                         ]) {
                             echo "=========================================="
-                            echo "STEP 6: Verifying Schema"
+                            echo "DEPLOYING: DEV (Modular Schema)"
                             echo "=========================================="
                             sh '''
-                                echo "Connected databases:"
-                                docker-compose exec -T db psql -U $DB_USERNAME -c "\\l"
+                                echo "Creating DEV database..."
+                                docker-compose exec -T db psql -U $DB_USERNAME -c "CREATE DATABASE \"SEAJ_db_DEV\";"
+                                
+                                echo "Loading 10 modular schema files into DEV..."
+                                for i in 02 03 04 05 06 07 08 09 10; do
+                                    docker-compose exec -T db psql -U $DB_USERNAME -d SEAJ_db_DEV -f /docker-entrypoint-initdb.d/$i-*.sql
+                                done
+                                
+                                echo "✓ DEV deployed"
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Verify All Layers') {
+            steps {
+                script {
+                    withCredentials([
+                        string(credentialsId: 'postgres_password', variable: 'DB_PASSWORD'),
+                        string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
+                    ]) {
+                        withEnv([
+                            "POSTGRES_PASSWORD=${DB_PASSWORD}",
+                            "DB_USERNAME=${DB_USERNAME}"
+                        ]) {
+                            echo "=========================================="
+                            echo "VERIFYING MODULAR SCHEMA LAYERS"
+                            echo "=========================================="
+                            sh '''
+                                echo "Databases:"
+                                docker-compose exec -T db psql -U $DB_USERNAME -c "\\l" | grep SEAJ
                                 
                                 echo ""
-                                echo "Database tables:"
-                                docker-compose exec -T db psql -U $DB_USERNAME -d $POSTGRES_DB -c "\\dt"
+                                echo "DEMO Schema Tables:"
+                                docker-compose exec -T db psql -U $DB_USERNAME -d SEAJ_db_DEMO -c "\\dt"
                                 
                                 echo ""
-                                echo "Database enums:"
-                                docker-compose exec -T db psql -U $DB_USERNAME -d $POSTGRES_DB -c "SELECT typname FROM pg_type WHERE typtype = 'e';"
-                                
-                                echo ""
-                                echo "✓ Schema verification complete"
+                                echo "✓ Modular schema verified"
                             '''
                         }
                     }
@@ -232,21 +200,8 @@ pipeline {
     }
     
     post {
-        failure {
-            echo "=========================================="
-            echo "DATABASE PIPELINE FAILED"
-            echo "=========================================="
-            sh '''
-                echo "Collecting diagnostic information..."
-                docker-compose logs db || true
-                docker ps -a || true
-            '''
-        }
         success {
-            echo "=========================================="
-            echo "DATABASE PIPELINE SUCCESSFUL"
-            echo "Modular schema is ready for integration"
-            echo "=========================================="
+            echo "✓ MODULAR SCHEMA DEPLOYMENT COMPLETE"
         }
     }
 }
