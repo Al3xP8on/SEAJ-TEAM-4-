@@ -1,7 +1,9 @@
 package com.neueda.leap.validators;
 
 import java.util.Objects;
+import org.springframework.stereotype.Component;
 
+@Component
 public class InstrumentsValidator {
 
     public String validateSymbol(String symbol) {
