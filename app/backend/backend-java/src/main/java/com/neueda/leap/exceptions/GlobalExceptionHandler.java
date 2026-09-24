@@ -134,5 +134,17 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception exception, HttpServletRequest request){
+    logger.error("Unexpected exception occurred at {}: {}", request.getRequestURI(), exception.getMessage(), exception);
+    ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+            "Internal server error: " + exception.getMessage(),
+            LocalDateTime.now(),
+            request.getRequestURI()
+    );
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+}
     
 }
