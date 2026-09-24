@@ -1,9 +1,11 @@
 package com.neueda.leap.validators;
 
 import java.util.Objects;
+import org.springframework.stereotype.Component;
 
 import com.neueda.leap.enums.OrderStatus;
 
+@Component
 public class OrderHistoryValidator {
     private static Long validateId(Long id) {
         Objects.requireNonNull(id, "History ID cannot be null");

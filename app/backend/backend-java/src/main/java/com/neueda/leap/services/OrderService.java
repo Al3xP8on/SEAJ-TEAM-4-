@@ -11,6 +11,9 @@ import com.neueda.leap.exceptions.OrderException;
 import com.neueda.leap.exceptions.DuplicateOrderException;
 import com.neueda.leap.repositories.OrderRepository;
 import com.neueda.leap.repositories.OrderHistoryRepository;
+import com.neueda.leap.validators.OrderValidator;
+import com.neueda.leap.validators.AccountValidator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,17 +25,22 @@ import java.util.Optional;
 @Transactional
 public class OrderService {
 
-    private final OrderRepository orderRepository;
-    private final OrderHistoryRepository orderHistoryRepository;
-
-    public OrderService(OrderRepository orderRepository, OrderHistoryRepository orderHistoryRepository) {
-        this.orderRepository = orderRepository;
-        this.orderHistoryRepository = orderHistoryRepository;
-    }
+    @Autowired
+    private OrderRepository orderRepository;
+    
+    @Autowired
+    private OrderHistoryRepository orderHistoryRepository;
+    
 
     // Creates a new order with idempotency protection.
     // Checks if an order with the same idempotency key already exists to prevent duplicates.
     public Order createOrder(Account account, Instrument instrument, long quantity, BigDecimal price, OrderSide side, String idempotencyKey) throws DuplicateOrderException {
+        OrderValidator.validateAccount(account);
+        OrderValidator.validateInstrument(instrument);
+        OrderValidator.validateQuantity(quantity);
+        OrderValidator.validatePrice(price);
+        OrderValidator.validateIdempotencyKey(idempotencyKey);
+        
         Optional<Order> existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
         if (existingOrder.isPresent()) {
             throw new DuplicateOrderException(
@@ -90,6 +98,7 @@ public class OrderService {
 
     // Returns an empty list if the account has no orders.
     public List<Order> getOrdersByAccount(String accountId) {
+        AccountValidator.validateAccountId(accountId);
         return orderRepository.findByAccountId(accountId);
     }
 
@@ -108,7 +117,7 @@ public class OrderService {
 
     public boolean isOrderValidForExecution(String orderId) {
         return orderRepository.findById(orderId)
-            .map(order -> com.neueda.leap.validators.OrderValidator.isValidForExecution(order))
+            .map(order -> OrderValidator.isValidForExecution(order))
             .orElse(false);
     }
 

@@ -2,6 +2,7 @@ package com.neueda.leap.services;
 
 import com.neueda.leap.models.PriceHistory;
 import com.neueda.leap.repositories.PriceHistoryRepository;
+import com.neueda.leap.validators.PriceHistoryValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,11 @@ public class PriceHistoryService {
     @Autowired
     private PriceHistoryRepository priceHistoryRepository;
     
+    @Autowired
+    private PriceHistoryValidator validator;
+    
     public List<PriceHistory> getPriceHistoryBySymbol(String symbol) {
+        validator.validateSymbol(symbol);
         logger.info("Fetching price history for symbol: {}", symbol);
         List<PriceHistory> history = priceHistoryRepository.findBySymbol(symbol);
         logger.info("Found {} price history records for symbol {}", history.size(), symbol);
@@ -29,6 +34,7 @@ public class PriceHistoryService {
     }
     
     public List<PriceHistory> getPriceHistoryBySymbolAndDateRange(String symbol, LocalDate fromDate, LocalDate toDate) {
+        validator.validateSymbol(symbol);
         logger.info("Fetching price history for symbol: {} from {} to {}", symbol, fromDate, toDate);
         
         if (fromDate.isAfter(toDate)) {
@@ -42,6 +48,7 @@ public class PriceHistoryService {
     }
     
     public Optional<PriceHistory> getLatestPriceHistory(String symbol) {
+        validator.validateSymbol(symbol);
         logger.info("Fetching latest price history for symbol: {}", symbol);
         PriceHistory latestPrice = priceHistoryRepository.findLatestBySymbol(symbol);
         if (latestPrice != null) {
@@ -53,6 +60,8 @@ public class PriceHistoryService {
     }
     
     public PriceHistory savePriceHistory(PriceHistory priceHistory) {
+        validator.validateSymbol(priceHistory.getSymbol());
+        validator.validateOHLCRelationships(priceHistory.getOpen(), priceHistory.getHigh(), priceHistory.getLow(), priceHistory.getClose());
         logger.info("Saving price history for symbol: {} on date: {}", priceHistory.getSymbol(), priceHistory.getPriceDate());
         PriceHistory savedPriceHistory = priceHistoryRepository.save(priceHistory);
         logger.info("Price history saved successfully for symbol: {}", priceHistory.getSymbol());
