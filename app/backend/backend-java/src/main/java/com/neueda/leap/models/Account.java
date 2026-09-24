@@ -2,41 +2,39 @@ package com.neueda.leap.models;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import jakarta.persistence.*;
 import com.neueda.leap.interfaces.Closable;
 import com.neueda.leap.validators.AccountValidator;
 import com.neueda.leap.enums.AccountStatus;
-import jakarta.persistence.*;
 
 @Entity
 @Table(name = "accounts")
 public class Account implements Closable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
     private Long id;
     
-    @Column(name = "account_id", nullable = false, unique = true, length = 50)
+    @Column(unique = true, nullable = false)
     private String accountId;
     
-    @Column(name = "holder_name", nullable = false, length = 100)
+    @Column(nullable = false)
     private String holderName;
     
-    @Column(name = "cash_balance", nullable = false, precision = 19, scale = 4)
+    @Column(nullable = false)
     private BigDecimal cashBalance;
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(nullable = false)
     private AccountStatus status;
     
-    @Column(name = "version", nullable = false)
-    @Version
+    @Column(nullable = false)
     private int version;
     
-    @Column(name = "last_updated", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime lastUpdated;
 
-    // Default constructor for JPA
-    public Account() {
+    // JPA no-arg constructor (required for Hibernate)
+    protected Account() {
     }
 
     public Account(String accountId, String holderName, BigDecimal cashBalance, 

@@ -9,24 +9,46 @@ import com.neueda.leap.exceptions.OrderException;
 import com.neueda.leap.validators.OrderValidator;
 import com.neueda.leap.utils.Utils;
 
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
-//Order entity representing a trading order.
+@Entity
+@Table(name = "orders")
 public class Order {
 
-    private final String id;
-    private final Account account;
-    private final Instrument instrument;
-    private final long quantity;
-    private final BigDecimal price;
-    private final OrderSide side;
-    private final String idempotencyKey;
-    private final LocalDateTime createdAt;
-
+    @Id
+    private String id;
+    
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "account_id", nullable = false)
+    private Account account;
+    
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "instrument_id", nullable = false)
+    private Instrument instrument;
+    
+    @Column(nullable = false)
+    private long quantity;
+    
+    @Column(nullable = false)
+    private BigDecimal price;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderSide side;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private OrderStatus status;
+    
+    @Column(unique = true, nullable = false)
+    private String idempotencyKey;
+    
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
 
     public Order() {
         this.id = null;

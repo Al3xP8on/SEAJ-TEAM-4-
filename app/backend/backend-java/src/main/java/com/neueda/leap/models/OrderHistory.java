@@ -1,15 +1,27 @@
 package com.neueda.leap.models;
 
 import com.neueda.leap.enums.OrderStatus;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+@Entity
+@Table(name = "order_history")
 public class OrderHistory {
     
-    private final Long id; 
-    private final String orderId;  
-    private final OrderStatus status;
-    private final LocalDateTime changedOn;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id; 
+    
+    @Column(name = "order_id", nullable = false)
+    private String orderId;  
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderStatus status;
+    
+    @Column(name = "changed_on", nullable = false)
+    private LocalDateTime changedOn;
 
     // No-arg constructor for ORM/serialization frameworks.
     public OrderHistory() {

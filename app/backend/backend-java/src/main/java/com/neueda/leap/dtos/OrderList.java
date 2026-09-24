@@ -5,6 +5,7 @@ import java.util.Optional;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.neueda.leap.models.Order;
 
 public record OrderList(
     @Schema(description="Account ID")
