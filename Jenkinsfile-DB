@@ -1,19 +1,11 @@
-// Multi-branch Pipeline: Modular Database Schema Deployment
-// Uses 10 separate SQL files from infra/db/tables/ - executed in dependency order
+// Multi-branch Pipeline: Deploy Modular Database Schema
+// Simply validates the 10 modular files and deploys them
 pipeline {
     agent any
     
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
         timestamps()
-    }
-    
-    parameters {
-        choice(
-            name: 'DB_ENVIRONMENT',
-            choices: ['DEMO', 'DEV', 'BOTH'],
-            description: 'Database environment(s) to deploy with modular schema'
-        )
     }
     
     tools {
@@ -29,33 +21,8 @@ pipeline {
         
         stage('Validate 10 Modular Schema Files') {
             steps {
-                echo "=========================================="
-                echo "VALIDATING 10 MODULAR SCHEMA FILES"
-                echo "=========================================="
                 sh '''
-                    echo "Modular schema 5-layer dependency structure:"
-                    echo ""
-                    echo "├─ Layer 1: Foundation"
-                    echo "│  └─ 00-setup.sql (Extensions & Enums)"
-                    echo ""
-                    echo "├─ Layer 2: Core Entities"
-                    echo "│  ├─ 01-clients.sql"
-                    echo "│  ├─ 02-accounts.sql (FK: clients)"
-                    echo "│  └─ 03-instruments.sql"
-                    echo ""
-                    echo "├─ Layer 3: Transactions"
-                    echo "│  ├─ 04-orders.sql (FK: accounts, instruments)"
-                    echo "│  ├─ 05-positions.sql (FK: accounts, instruments)"
-                    echo "│  └─ 06-order_history.sql (FK: orders)"
-                    echo ""
-                    echo "├─ Layer 4: Market Data"
-                    echo "│  ├─ 07-price_history.sql (FK: instruments)"
-                    echo "│  └─ 08-current_prices.sql (FK: instruments)"
-                    echo ""
-                    echo "└─ Layer 5: Meta"
-                    echo "   └─ index.sql (Documentation)"
-                    echo ""
-                    
+                    echo "✓ Validating modular schema files..."
                     SCHEMA_FILES=(
                         "infra/db/tables/00-setup.sql"
                         "infra/db/tables/01-clients.sql"
@@ -69,28 +36,16 @@ pipeline {
                         "infra/db/tables/index.sql"
                     )
                     
-                    MISSING=0
                     for file in "${SCHEMA_FILES[@]}"; do
-                        if [ -f "$file" ]; then
-                            echo "  ✓ $(basename $file)"
-                        else
-                            echo "  ✗ MISSING: $file"
-                            MISSING=$((MISSING + 1))
-                        fi
+                        [ -f "$file" ] || { echo "MISSING: $file"; exit 1; }
+                        echo "  ✓ $(basename $file)"
                     done
-                    
-                    echo ""
-                    if [ $MISSING -gt 0 ]; then
-                        echo "ERROR: $MISSING files missing!"
-                        exit 1
-                    fi
                     echo "✓ All 10 modular files validated"
                 '''
             }
         }
         
-        stage('Deploy DEMO') {
-            when { expression { return params.DB_ENVIRONMENT in ['DEMO', 'BOTH'] } }
+        stage('Deploy Modular Schema') {
             steps {
                 script {
                     withCredentials([
@@ -98,36 +53,33 @@ pipeline {
                         string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
                     ]) {
                         withEnv([
-                            "POSTGRES_DB=SEAJ_db_DEMO",
                             "POSTGRES_PASSWORD=${DB_PASSWORD}",
                             "DB_USERNAME=${DB_USERNAME}"
                         ]) {
-                            echo "=========================================="
-                            echo "DEPLOYING: DEMO (Modular Schema)"
-                            echo "=========================================="
                             sh '''
+                                echo "=========================================="
+                                echo "Deploying 10 Modular Schema Files"
+                                echo "=========================================="
+                                
                                 echo "Cleaning old containers..."
                                 docker-compose down --remove-orphans 2>/dev/null || true
-                                docker kill seaj_postgres_db 2>/dev/null || true
-                                docker rm -f seaj_postgres_db 2>/dev/null || true
                                 docker volume rm -f pgdata_volume 2>/dev/null || true
                                 
-                                echo "Building DB image..."
+                                echo "Building PostgreSQL image..."
                                 docker-compose build --no-cache db
                                 
-                                echo "Starting container..."
+                                echo "Starting database container..."
                                 docker-compose up -d db
                                 sleep 30
                                 
-                                echo "Waiting for readiness..."
+                                echo "Waiting for database readiness..."
                                 MAX_ATTEMPTS=30
                                 for ((i=1; i<=MAX_ATTEMPTS; i++)); do
                                     docker-compose exec -T db pg_isready -U $DB_USERNAME >/dev/null 2>&1 && break
-                                    echo "  Attempt $i/$MAX_ATTEMPTS"
                                     sleep 2
                                 done
                                 
-                                echo "✓ DEMO deployed"
+                                echo "✓ Modular schema deployed"
                             '''
                         }
                     }
@@ -135,73 +87,19 @@ pipeline {
             }
         }
         
-        stage('Deploy DEV') {
-            when { expression { return params.DB_ENVIRONMENT in ['DEV', 'BOTH'] } }
+        stage('Verify Schema') {
             steps {
                 script {
                     withCredentials([
-                        string(credentialsId: 'postgres_password', variable: 'DB_PASSWORD'),
                         string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
                     ]) {
-                        withEnv([
-                            "POSTGRES_PASSWORD=${DB_PASSWORD}",
-                            "DB_USERNAME=${DB_USERNAME}"
-                        ]) {
-                            echo "=========================================="
-                            echo "DEPLOYING: DEV (Modular Schema)"
-                            echo "=========================================="
-                            sh '''
-                                echo "Creating DEV database..."
-                                docker-compose exec -T db psql -U $DB_USERNAME -c "CREATE DATABASE \"SEAJ_db_DEV\";"
-                                
-                                echo "Loading 10 modular schema files into DEV..."
-                                for i in 02 03 04 05 06 07 08 09 10; do
-                                    docker-compose exec -T db psql -U $DB_USERNAME -d SEAJ_db_DEV -f /docker-entrypoint-initdb.d/$i-*.sql
-                                done
-                                
-                                echo "✓ DEV deployed"
-                            '''
-                        }
+                        sh '''
+                            echo "✓ Schema Verification:"
+                            docker-compose exec -T db psql -U $DB_USERNAME -d SEAJ_db_DEMO -c "\\dt"
+                        '''
                     }
                 }
             }
-        }
-        
-        stage('Verify All Layers') {
-            steps {
-                script {
-                    withCredentials([
-                        string(credentialsId: 'postgres_password', variable: 'DB_PASSWORD'),
-                        string(credentialsId: 'postgres_username', variable: 'DB_USERNAME')
-                    ]) {
-                        withEnv([
-                            "POSTGRES_PASSWORD=${DB_PASSWORD}",
-                            "DB_USERNAME=${DB_USERNAME}"
-                        ]) {
-                            echo "=========================================="
-                            echo "VERIFYING MODULAR SCHEMA LAYERS"
-                            echo "=========================================="
-                            sh '''
-                                echo "Databases:"
-                                docker-compose exec -T db psql -U $DB_USERNAME -c "\\l" | grep SEAJ
-                                
-                                echo ""
-                                echo "DEMO Schema Tables:"
-                                docker-compose exec -T db psql -U $DB_USERNAME -d SEAJ_db_DEMO -c "\\dt"
-                                
-                                echo ""
-                                echo "✓ Modular schema verified"
-                            '''
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    post {
-        success {
-            echo "✓ MODULAR SCHEMA DEPLOYMENT COMPLETE"
         }
     }
 }
