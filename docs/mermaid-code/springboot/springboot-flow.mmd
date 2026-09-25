@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant Client as API Client
+    participant Controller as Spring Controller
+    participant Service as Business Logic
+    participant Repo as JPA Repository
+    participant DB as PostgreSQL
+
+    Client->>Controller: HTTP Request
+    Note over Controller: Validate Input
+    
+    Controller->>Service: Process Request
+    Note over Service: Business Logic<br/>(Validation, Calculations)
+    
+    Service->>Repo: Query/Save Data
+    Note over Repo: Hibernate ORM<br/>(Translate to SQL)
+    
+    Repo->>DB: SQL Query
+    Note over DB: Execute on Database
+    
+    DB-->>Repo: Result Set
+    Repo-->>Service: Entity Object
+    Service-->>Controller: Response Object
+    
+    alt Exception Occurred
+        Controller->>Controller: GlobalExceptionHandler
+        Controller-->>Client: Error JSON (400/404/500)
+    else Success
+        Controller-->>Client: Success JSON (200/201)
+    end
