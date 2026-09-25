@@ -1,16 +1,27 @@
 package com.neueda.leap.models;
 
 import com.neueda.leap.enums.OrderStatus;
-
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+@Entity
+@Table(name = "order_history")
 public class OrderHistory {
     
-    private final Long id; 
-    private final String orderId;  
-    private final OrderStatus status;
-    private final LocalDateTime changedOn;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id; 
+    
+    @Column(name = "order_id", nullable = false)
+    private String orderId;  
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderStatus status;
+    
+    @Column(name = "changed_on", nullable = false)
+    private LocalDateTime changedOn;
 
     // No-arg constructor for ORM/serialization frameworks.
     public OrderHistory() {
@@ -24,47 +35,19 @@ public class OrderHistory {
     // Used when recording a status change.
     public OrderHistory(String orderId, OrderStatus status) {
         this.id = null;
-        this.orderId = validateOrderId(orderId);
-        this.status = validateStatus(status);
+        this.orderId = Objects.requireNonNull(orderId, "Order ID cannot be null");
+        this.status = Objects.requireNonNull(status, "Status cannot be null");
         this.changedOn = LocalDateTime.now();
     }
 
     // Constructor for loading existing history records from database
     public OrderHistory(Long id, String orderId, OrderStatus status, LocalDateTime changedOn) {
-        this.id = validateId(id);
-        this.orderId = validateOrderId(orderId);
-        this.status = validateStatus(status);
-        this.changedOn = Objects.requireNonNull(changedOn, "Changed timestamp cannot be null");
+        this.id = Objects.requireNonNull(id, "ID cannot be null");
+        this.orderId = Objects.requireNonNull(orderId, "Order ID cannot be null");
+        this.status = Objects.requireNonNull(status, "Status cannot be null");
+        this.changedOn = Objects.requireNonNull(changedOn, "Changed on timestamp cannot be null");
     }
 
-    //  validation methods 
-    private static Long validateId(Long id) {
-        Objects.requireNonNull(id, "History ID cannot be null");
-        if (id <= 0) {
-            throw new IllegalArgumentException("History ID must be positive");
-        }
-        return id;
-    }
-
-    private static String validateOrderId(String orderId) {
-        Objects.requireNonNull(orderId, "Order ID cannot be null");
-        String trimmed = orderId.trim();
-        if (trimmed.isEmpty()) {
-            throw new IllegalArgumentException("Order ID cannot be empty");
-        }
-        // Basic UUID validation - should be 36 chars (with hyphens)
-        if (trimmed.length() != 36 && !trimmed.matches("^[a-f0-9-]+$")) {
-            throw new IllegalArgumentException("Order ID must be a valid UUID");
-        }
-        return trimmed;
-    }
-
-    private static OrderStatus validateStatus(OrderStatus status) {
-        return Objects.requireNonNull(status, "Status cannot be null");
-    }
-
-    //  object contract methods
-    //History records are equal if they have the same ID using the database identity.
     @Override
     public boolean equals(Object object) {
         if (this == object) return true;

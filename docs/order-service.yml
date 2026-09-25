@@ -1,0 +1,662 @@
+openapi: 3.0.0
+info:
+  title: Order Service API
+  description: |
+    REST API for managing trading orders, order execution, cancellation, and order history.
+    This service provides complete order management functionality for the SEAJ trading platform.
+  version: 1.0.0
+  contact:
+    name: SEAJ Team
+    email: support@seaj.local
+  license:
+    name: Internal Use Only
+    url: https://seaj.local/license
+
+servers:
+  - url: https://api.seaj.local/order-service
+    description: Production API
+  - url: http://localhost:8080
+    description: Local development server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Orders
+    description: Order creation, retrieval, and status management
+  - name: Order Execution
+    description: Execute, cancel, and reject orders
+  - name: Order History
+    description: Order history and audit trail
+
+paths:
+  /orders:
+    post:
+      operationId: createOrder
+      tags:
+        - Orders
+      summary: Create a new order
+      description: |
+        Creates a new trading order for the specified account. The order is initialized 
+        with NEW status. Supports idempotency key for duplicate prevention.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Invalid order data - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - order with this idempotency key already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      tags:
+        - Orders
+      summary: Retrieve an order by ID
+      description: |
+        Retrieves a single order by its UUID. Returns complete order details 
+        including status, pricing, and creation timestamp.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: The unique identifier of the order (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Order found and returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          description: Unauthorized - invalid or missing authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{orderId}/execute:
+    patch:
+      operationId: executeOrder
+      tags:
+        - Order Execution
+      summary: Execute an order
+      description: |
+        Transitions an order from NEW status to EXECUTED status. 
+        The order must exist and be in NEW status to be executed.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: The unique identifier of the order (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Order executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Invalid order state - order cannot be executed in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{orderId}/cancel:
+    patch:
+      operationId: cancelOrder
+      tags:
+        - Order Execution
+      summary: Cancel an order
+      description: |
+        Cancels an existing order, transitioning it to CANCELLED status.
+        Only orders in NEW or EXECUTED status can be cancelled.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: The unique identifier of the order (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Order cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Invalid order state - order cannot be cancelled in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{orderId}/reject:
+    patch:
+      operationId: rejectOrder
+      tags:
+        - Order Execution
+      summary: Reject an order
+      description: |
+        Rejects an order with an optional reason. Transitions order to REJECTED status.
+        Typically used when validation fails or risk checks are violated.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: The unique identifier of the order (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: "Insufficient funds"
+                  description: Optional rejection reason
+      responses:
+        '200':
+          description: Order rejected successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          description: Unauthorized - invalid or missing authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /accounts/{accountId}/orders:
+    get:
+      operationId: getOrdersByAccount
+      tags:
+        - Orders
+      summary: Get all orders for an account
+      description: |
+        Retrieves all orders for the specified account, including 
+        orders in all statuses (NEW, EXECUTED, REJECTED, CANCELLED).
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: The unique identifier of the account
+          schema:
+            type: string
+            example: "ACC-001"
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderList'
+        '401':
+          description: Unauthorized - invalid or missing authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /accounts/{accountId}/orders/status/{status}:
+    get:
+      operationId: getOrdersByStatus
+      tags:
+        - Orders
+      summary: Get orders for an account by status
+      description: |
+        Retrieves all orders for the specified account filtered by order status.
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: The unique identifier of the account
+          schema:
+            type: string
+            example: "ACC-001"
+        - name: status
+          in: path
+          required: true
+          description: The status to filter by
+          schema:
+            type: string
+            enum:
+              - NEW
+              - EXECUTED
+              - REJECTED
+              - CANCELLED
+            example: EXECUTED
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderList'
+        '400':
+          description: Invalid status value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{orderId}/history:
+    get:
+      operationId: getOrderHistory
+      tags:
+        - Order History
+      summary: Get order audit trail
+      description: |
+        Retrieves the complete audit trail/history for an order, showing all status 
+        transitions with timestamps. Useful for compliance and tracking.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: The unique identifier of the order (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Order history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderHistoryResponse'
+        '401':
+          description: Unauthorized - invalid or missing authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT bearer token for authentication. Include the token in the Authorization header.
+
+  schemas:
+    CreateOrderRequest:
+      type: object
+      required:
+        - accountId
+        - instrumentId
+        - quantity
+        - price
+        - side
+        - idempotencyKey
+      properties:
+        accountId:
+          type: string
+          example: "ACC-001"
+          description: Account ID placing the order
+        instrumentId:
+          type: string
+          example: "AAPL"
+          description: Trading symbol/instrument identifier
+        quantity:
+          type: integer
+          example: 100
+          description: Number of units to order (must be positive)
+        price:
+          type: number
+          format: decimal
+          example: 150.50
+          description: Price per unit (must be positive)
+        side:
+          type: string
+          enum:
+            - BUY
+            - SELL
+          example: BUY
+          description: Order direction
+        idempotencyKey:
+          type: string
+          example: "IDEMP-20260922-001"
+          description: Unique key for idempotency - prevents duplicate orders if same request is retried
+
+    OrderResponse:
+      type: object
+      required:
+        - orderId
+        - accountId
+        - accountHolderName
+        - ticker
+        - instrumentName
+        - quantity
+        - price
+        - totalValue
+        - side
+        - status
+        - idempotencyKey
+        - createdAt
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+          description: Order ID (UUID)
+        accountId:
+          type: string
+          example: "ACC-001"
+          description: Account ID that placed the order
+        accountHolderName:
+          type: string
+          example: "Alice Johnson"
+          description: Name of the account holder
+        ticker:
+          type: string
+          example: "AAPL"
+          description: Trading symbol/instrument identifier
+        instrumentName:
+          type: string
+          example: "Apple Inc."
+          description: Name of the trading instrument
+        quantity:
+          type: integer
+          example: 100
+          description: Number of units
+        price:
+          type: number
+          format: decimal
+          example: 150.50
+          description: Order price per unit
+        totalValue:
+          type: number
+          format: decimal
+          example: 15050.00
+          description: Total value of the order (quantity * price)
+        side:
+          type: string
+          enum:
+            - BUY
+            - SELL
+          example: BUY
+          description: Order direction
+        status:
+          type: string
+          enum:
+            - NEW
+            - EXECUTED
+            - REJECTED
+            - CANCELLED
+          example: EXECUTED
+          description: Current order status
+        idempotencyKey:
+          type: string
+          example: "IDEMP-20260922-001"
+          description: Idempotency key for duplicate prevention
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-09-22T10:15:00Z"
+          description: Order creation timestamp
+
+    OrderList:
+      type: object
+      required:
+        - accountId
+        - orders
+        - totalCount
+      properties:
+        accountId:
+          type: string
+          example: "ACC-001"
+          description: Account ID
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderResponse'
+          description: List of orders
+        totalCount:
+          type: integer
+          example: 25
+          description: Total number of orders
+        newCount:
+          type: integer
+          example: 5
+          description: Number of NEW orders
+        executedCount:
+          type: integer
+          example: 15
+          description: Number of EXECUTED orders
+        rejectedCount:
+          type: integer
+          example: 3
+          description: Number of REJECTED orders
+        cancelledCount:
+          type: integer
+          example: 2
+          description: Number of CANCELLED orders
+
+    OrderHistoryEntry:
+      type: object
+      required:
+        - orderId
+        - status
+        - timestamp
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+          description: Order ID
+        status:
+          type: string
+          enum:
+            - NEW
+            - EXECUTED
+            - REJECTED
+            - CANCELLED
+          example: EXECUTED
+          description: Status at this point in history
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-09-22T10:15:30Z"
+          description: When this status change occurred
+        reason:
+          type: string
+          example: "User requested cancellation"
+          description: Optional reason for status change (especially for REJECTED/CANCELLED)
+
+    OrderHistoryResponse:
+      type: object
+      required:
+        - orderId
+        - history
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+          description: Order ID
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderHistoryEntry'
+          description: Chronological list of status changes
+        totalStatusChanges:
+          type: integer
+          example: 3
+          description: Total number of status transitions
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "DUPLICATE_ORDER"
+          description: Error code
+        message:
+          type: string
+          example: "Order with idempotency key 'IDEMP-001' already exists"
+          description: Detailed error message
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-09-22T10:30:00Z"
+          description: Timestamp when error occurred
+        status:
+          type: integer
+          example: 409
+          description: HTTP status code

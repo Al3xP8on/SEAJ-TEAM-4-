@@ -2,30 +2,63 @@ package com.neueda.leap.models;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import jakarta.persistence.*;
 import com.neueda.leap.interfaces.Closable;
 import com.neueda.leap.validators.AccountValidator;
-import com.neueda.leap.enums.AccountStatus;;
+import com.neueda.leap.enums.AccountStatus;
 
+@Entity
+@Table(name = "accounts")
 public class Account implements Closable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    
+    @Column(unique = true, nullable = false)
     private String accountId;
-    private String holderName;
+    
+    @Column(nullable = false)
+    private String name;
+    
+    @Column
+    private String email;
+    
+    @Column
+    private String phone;
+    
+    @Column(nullable = false)
     private BigDecimal cashBalance;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private AccountStatus status;
+    
+    @Column(nullable = false)
     private int version;
+    
+    @Column(nullable = false, name = "created_on")
+    private LocalDateTime createdOn;
+    
+    @Column(nullable = false)
     private LocalDateTime lastUpdated;
 
-    public Account(String accountId, String holderName, BigDecimal cashBalance, 
+    // JPA no-arg constructor (required for Hibernate)
+    protected Account() {
+    }
+
+    public Account(String accountId, String name, String email, String phone, BigDecimal cashBalance, 
                    AccountStatus status) {
         AccountValidator.validateAccountId(accountId);
-        AccountValidator.validateHolderName(holderName);
         AccountValidator.validatePositiveAmount(cashBalance, "Initial balance");
         
         this.accountId = accountId;
-        this.holderName = holderName;
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
         this.cashBalance = cashBalance;
         this.status = status;
         this.version = 0;
+        this.createdOn = LocalDateTime.now();
         this.lastUpdated = LocalDateTime.now();
     }
 
@@ -93,27 +126,38 @@ public class Account implements Closable {
     @Override
     public String toString() {
         return String.format(
-            "Account{id=%d, accountId='%s', holder='%s', balance=%s, status=%s, version=%d}",
-            id, accountId, holderName, cashBalance, status, version
+            "Account{id=%d, accountId='%s', name='%s', balance=%s, status=%s, version=%d}",
+            id, accountId, name, cashBalance, status, version
         );
     }
 
     public Long getId() { return id; }
     public String getAccountId() { return accountId; }
-    public String getHolderName() { return holderName; }
+    public String getName() { return name; }
+    public String getEmail() { return email; }
+    public String getPhone() { return phone; }
+    public String getHolderName() { return name; }  // Backward compatibility
     public BigDecimal getCashBalance() { return cashBalance; }
     public AccountStatus getStatus() { return status; }
     public int getVersion() { return version; }
     public LocalDateTime getLastUpdated() { return lastUpdated; }
+    public LocalDateTime getCreatedOn() { return createdOn; }
 
     public void setAccountId(String accountId) {
         AccountValidator.validateAccountId(accountId);
         this.accountId = accountId;
     }
     
-    public void setHolderName(String holderName) {
-        AccountValidator.validateHolderName(holderName);
-        this.holderName = holderName;
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
     
     public void setStatus(AccountStatus status) {

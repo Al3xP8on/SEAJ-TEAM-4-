@@ -1,5 +1,8 @@
-# Secrets - never commit actual env values, only .env.example
 .env
+
+/logs/
+*.log
+logs/
 
 **/__pycache__/
 **/.pytest_cache
@@ -7,11 +10,9 @@
 .venv/
 target/
 
-# Build artifacts - Maven generates these
 *.lst
 target/maven-status/
 
-# IDE and OS files
 .DS_Store
 .idea/
 *.swp

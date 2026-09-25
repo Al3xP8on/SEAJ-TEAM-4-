@@ -18,7 +18,7 @@ public class OrdersTest {
     @DisplayName("Should create an order successfully")
     public void testCreateOrder() {
         // Arrange - Create real test data
-        Account account = new Account("ACC-001", "Test Account", new BigDecimal("50000.00"), AccountStatus.ACTIVE);
+        Account account = new Account("ACC-001", "Test Account", "test@example.com", "123456789", new BigDecimal("50000.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("AAPL", "Apple Inc.", "EQUITY", "USD", true);
         BigDecimal price = new BigDecimal("150.50");
         long quantity = 100;
@@ -35,7 +35,7 @@ public class OrdersTest {
     @Test
     @DisplayName("Should execute a BUY order successfully")
     public void testExecuteBuyOrder() {
-        Account account = new Account("ACC-002", "Buyer", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
+        Account account = new Account("ACC-002", "Buyer", "buyer@example.com", "987654321", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("TSLA", "Tesla", "EQUITY", "USD", true);
         
         Order order = new Order(account, instrument, 50, new BigDecimal("100.00"), OrderSide.BUY, "exec-buy-001");
@@ -47,7 +47,7 @@ public class OrdersTest {
     @Test
     @DisplayName("Should execute a SELL order successfully")
     public void testExecuteSellOrder() {
-        Account account = new Account("ACC-003", "Seller", new BigDecimal("5000.00"), AccountStatus.ACTIVE);
+        Account account = new Account("ACC-003", "Seller", "seller@example.com", "555666777", new BigDecimal("5000.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("GOOGL", "Google", "EQUITY", "USD", true);
         
         Order order = new Order(account, instrument, 100, new BigDecimal("75.00"), OrderSide.SELL, "exec-sell-001");
@@ -59,7 +59,7 @@ public class OrdersTest {
     @Test
     @DisplayName("Should cancel order in NEW state")
     public void testCancelOrder() {
-        Account account = new Account("ACC-004", "Cancel Test", new BigDecimal("20000.00"), AccountStatus.ACTIVE);
+        Account account = new Account("ACC-004", "Cancel Test", "cancel@example.com", "111222333", new BigDecimal("20000.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("MSFT", "Microsoft", "EQUITY", "USD", true);
         
         Order order = new Order(account, instrument, 75, new BigDecimal("200.00"), OrderSide.BUY, "cancel-001");
@@ -71,7 +71,7 @@ public class OrdersTest {
     @Test
     @DisplayName("Should calculate total value correctly")
     public void testCalculateTotalValue() {
-        Account account = new Account("ACC-005", "Calc Test", new BigDecimal("100000.00"), AccountStatus.ACTIVE);
+        Account account = new Account("ACC-005", "Calc Test", "calc@example.com", "444555666", new BigDecimal("100000.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("AMZN", "Amazon", "EQUITY", "USD", true);
         
         Order order = new Order(account, instrument, 100, new BigDecimal("50.00"), OrderSide.BUY, "calc-001");
@@ -82,7 +82,7 @@ public class OrdersTest {
     @Test
     @DisplayName("Should reject order with insufficient funds")
     public void testRejectInsufficientFunds() {
-        Account poorAccount = new Account("POOR-001", "Poor", new BigDecimal("100.00"), AccountStatus.ACTIVE);
+        Account poorAccount = new Account("POOR-001", "Poor", "poor@example.com", "999888777", new BigDecimal("100.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("TEST", "Test", "EQUITY", "USD", true);
         
         Order order = new Order(poorAccount, instrument, 100, new BigDecimal("100.00"), OrderSide.BUY, "poor-001");
@@ -94,7 +94,7 @@ public class OrdersTest {
     @Test
     @DisplayName("Should reject order from inactive account")
     public void testRejectInactiveAccount() {
-        Account inactiveAccount = new Account("INACTIVE-001", "Inactive", new BigDecimal("10000.00"), AccountStatus.SUSPENDED);
+        Account inactiveAccount = new Account("INACTIVE-001", "Inactive", "inactive@example.com", "777888999", new BigDecimal("10000.00"), AccountStatus.SUSPENDED);
         Instrument instrument = new Instrument("TEST", "Test", "EQUITY", "USD", true);
         
         assertThrows(OrderException.class, () ->
@@ -105,7 +105,7 @@ public class OrdersTest {
     @Test
     @DisplayName("Should reject non-tradable instrument")
     public void testRejectNonTradableInstrument() {
-        Account account = new Account("ACC-006", "Non-Tradable Test", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
+        Account account = new Account("ACC-006", "Non-Tradable Test", "nontradable@example.com", "333444555", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
         Instrument nonTradable = new Instrument("BOND", "Bond", "BOND", "USD", false);
         
         assertThrows(OrderException.class, () ->
@@ -116,7 +116,7 @@ public class OrdersTest {
     @Test
     @DisplayName("Should reject zero quantity")
     public void testRejectZeroQuantity() {
-        Account account = new Account("ACC-007", "Zero Qty Test", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
+        Account account = new Account("ACC-007", "Zero Qty Test", "zeroqty@example.com", "222333444", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("TEST", "Test", "EQUITY", "USD", true);
         
         assertThrows(OrderException.class, () ->
@@ -127,7 +127,7 @@ public class OrdersTest {
     @Test
     @DisplayName("Should reject negative price")
     public void testRejectNegativePrice() {
-        Account account = new Account("ACC-008", "Neg Price Test", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
+        Account account = new Account("ACC-008", "Neg Price Test", "negprice@example.com", "111222333", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("TEST", "Test", "EQUITY", "USD", true);
         
         assertThrows(OrderException.class, () ->
@@ -148,7 +148,7 @@ public class OrdersTest {
     @Test
     @DisplayName("Should not allow cancellation of executed order")
     public void testCannotCancelExecutedOrder() {
-        Account account = new Account("ACC-009", "Exec Cancel Test", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
+        Account account = new Account("ACC-009", "Exec Cancel Test", "execcancel@example.com", "666777888", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("TEST", "Test", "EQUITY", "USD", true);
         
         Order order = new Order(account, instrument, 50, new BigDecimal("100.00"), OrderSide.BUY, "exec-cancel-001");
@@ -160,7 +160,7 @@ public class OrdersTest {
     @Test
     @DisplayName("Should verify order equality by ID")
     public void testOrderEqualityById() {
-        Account account = new Account("ACC-010", "Equality Test", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
+        Account account = new Account("ACC-010", "Equality Test", "equality@example.com", "555666777", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("TEST", "Test", "EQUITY", "USD", true);
         
         Order order1 = new Order(account, instrument, 50, new BigDecimal("100.00"), OrderSide.BUY, "eq-001");
