@@ -35,8 +35,9 @@ class InstrumentTest {
             );
         }
 
+        //test comment
         @Test
-        @DisplayName("Not Tradable Instrument")
+        @DisplayName("Not Tradable InstrumentT")
         void notTradableInstrument(){
             
             Instrument nonTradable = new Instrument("AAPL", "Apple Inc.", "Equity", "USD", false);
