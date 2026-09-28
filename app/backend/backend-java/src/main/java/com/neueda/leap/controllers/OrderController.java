@@ -50,7 +50,7 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrder(@PathVariable String id) {
+    public ResponseEntity<Order> getOrder(@PathVariable UUID id) {
         logger.info("GET /v1/orders/{} - Fetching order by ID", id);
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
@@ -138,7 +138,7 @@ public class OrderController {
     }
 
     @PutMapping("/{id}/execute")
-    public ResponseEntity<Order> executeOrder(@PathVariable String id) {
+    public ResponseEntity<Order> executeOrder(@PathVariable UUID id) {
         logger.info("PUT /v1/orders/{}/execute - Executing order", id);
         try {
             Order order = orderService.executeOrder(id);
@@ -151,7 +151,7 @@ public class OrderController {
     }
 
     @PutMapping("/{id}/cancel")
-    public ResponseEntity<Order> cancelOrder(@PathVariable String id) {
+    public ResponseEntity<Order> cancelOrder(@PathVariable UUID id) {
         logger.info("PUT /v1/orders/{}/cancel - Cancelling order", id);
         try {
             Order order = orderService.cancelOrder(id);
@@ -165,7 +165,7 @@ public class OrderController {
 
     @PutMapping("/{id}/reject")
     public ResponseEntity<Order> rejectOrder(
-            @PathVariable String id,
+            @PathVariable UUID id,
             @RequestParam String reason) {
         logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", id, reason);
         try {
@@ -179,7 +179,7 @@ public class OrderController {
     }
 
     @GetMapping("/{id}/history")
-    public ResponseEntity<List<OrderHistory>> getOrderHistory(@PathVariable String id) {
+    public ResponseEntity<List<OrderHistory>> getOrderHistory(@PathVariable UUID id) {
         logger.info("GET /v1/orders/{}/history - Fetching order history", id);
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
