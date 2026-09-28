@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant Client
+    participant Controller
+    participant Service
+    participant Handler
+
+    Client->>Controller: POST /api/orders
+    Controller->>Service: Process Request
+    Service->>Service: Validation Failed
+    Service->>Handler: Throw Exception
+    Handler->>Handler: Log Error
+    Handler->>Client: ErrorResponse JSON<br/>(400/404/409/500)
