@@ -1,0 +1,29 @@
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class SecurityController {
+
+    @GetMapping("/public")
+    public String publicEndpoint() {
+        return "No token required - anyone can see this.";
+    }
+
+    // Reaching this method body at all means the token was present, its
+    // signature checked out against jwt.shared-secret, and it wasn't
+    // expired. Spring Security's filter chain rejects anything that fails
+    // any of those checks before this code ever runs - same principle as
+    // Module 6's @Valid running before the controller body.
+    //
+    // @AuthenticationPrincipal is required here - without it, Spring MVC
+    // doesn't know Jwt should come from the security context, and tries to
+    // data-bind it from the request instead, which fails with a confusing
+    // "no default constructor" stack trace (see demo-guide.md).
+    @GetMapping("/mission")
+    public String missionEndpoint(@AuthenticationPrincipal Jwt jwt) {
+        String username = jwt.getSubject();
+        return "Classified mission data - authorised for " + username;
+    }
+}
