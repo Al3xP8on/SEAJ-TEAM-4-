@@ -9,6 +9,7 @@ import com.neueda.leap.enums.AccountStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import java.math.BigDecimal;
+import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("Order Tests")
@@ -164,7 +165,7 @@ public class OrdersTest {
         Instrument instrument = new Instrument("TEST", "Test", "EQUITY", "USD", true);
         
         Order order1 = new Order(account, instrument, 50, new BigDecimal("100.00"), OrderSide.BUY, "eq-001");
-        String id = order1.getId();
+        UUID id = order1.getId();
         
         Order order2 = new Order(id, account, instrument, 50, new BigDecimal("100.00"), OrderSide.BUY, "eq-001", OrderStatus.NEW, order1.getCreatedAt());
         
