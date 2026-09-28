@@ -1,4 +1,4 @@
-package main.java.com.neueda.leap.config;
+package com.neueda.leap.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
