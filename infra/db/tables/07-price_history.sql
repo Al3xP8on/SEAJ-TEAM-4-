@@ -2,6 +2,7 @@
 -- historical price data from yfinance (OHLCV)
 
 CREATE TABLE price_history (
+    id              BIGSERIAL PRIMARY KEY,
     symbol          VARCHAR(20) NOT NULL REFERENCES instruments(symbol),
     price_date      DATE NOT NULL,
     open            NUMERIC(18,2) NOT NULL,
@@ -9,7 +10,7 @@ CREATE TABLE price_history (
     low             NUMERIC(18,2) NOT NULL,
     close           NUMERIC(18,2) NOT NULL,
     volume          BIGINT NOT NULL,
-    PRIMARY KEY (symbol, price_date)
+    UNIQUE(symbol, price_date)
 );
 
 -- Indexes

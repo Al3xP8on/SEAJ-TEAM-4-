@@ -2,11 +2,16 @@
 -- holdings per account and instrument
 
 CREATE TABLE positions (
+    position_id     BIGSERIAL PRIMARY KEY,
     account_id      BIGINT NOT NULL REFERENCES accounts(id),
     symbol          VARCHAR(20) NOT NULL REFERENCES instruments(symbol),
-    quantity        INT NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+    quantity        INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
     average_cost    NUMERIC(18, 2) NOT NULL DEFAULT 0,
-    PRIMARY KEY (account_id, symbol)
+    status          VARCHAR(50) NOT NULL DEFAULT 'OPEN',
+    opened_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+    closed_at       TIMESTAMP,
+    realized_pnl    NUMERIC(19, 2),
+    UNIQUE(account_id, symbol)
 );
 
 -- Indexes

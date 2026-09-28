@@ -2,11 +2,11 @@
 -- placed and executed orders (the audit trail)
 
 CREATE TABLE orders (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id                  VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
     account_id          BIGINT NOT NULL REFERENCES accounts(id),
     symbol              VARCHAR(20) NOT NULL REFERENCES instruments(symbol),
     side                order_side NOT NULL,
-    quantity            INT NOT NULL CHECK (quantity > 0),
+    quantity            BIGINT NOT NULL CHECK (quantity > 0),
     price               NUMERIC(18, 2) NOT NULL CHECK (price > 0),
     status              order_status NOT NULL DEFAULT 'NEW',
     idempotency_key     VARCHAR(100) NOT NULL UNIQUE,

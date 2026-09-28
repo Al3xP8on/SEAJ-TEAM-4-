@@ -24,7 +24,7 @@ services:
       dockerfile: Dockerfile
     container_name: seaj_app
     ports:
-      - "8083:8080"
+      - "8083:8083"
     depends_on:
       db:
         condition: service_healthy
