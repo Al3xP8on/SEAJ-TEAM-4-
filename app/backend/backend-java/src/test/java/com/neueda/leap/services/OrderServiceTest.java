@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.List;
 import java.util.Arrays;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -90,7 +91,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should execute an order successfully")
     void testExecuteOrderSuccess() {
-        String orderId = "550e8400-e29b-41d4-a716-446655440000";
+        UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
         Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
         Order executedOrder = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.EXECUTED, LocalDateTime.now());
 
@@ -109,7 +110,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should throw OrderException when executing non-existent order")
     void testExecuteOrderNotFound() {
-        String orderId = "non-existent-order";
+        UUID orderId = UUID.randomUUID();
         when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
 
         assertThrows(OrderException.class, () -> orderService.executeOrder(orderId));
@@ -120,7 +121,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should cancel an order successfully")
     void testCancelOrderSuccess() {
-        String orderId = "550e8400-e29b-41d4-a716-446655440001";
+        UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440001");
         Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
         Order cancelledOrder = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.CANCELLED, LocalDateTime.now());
 
@@ -139,7 +140,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should throw OrderException when cancelling non-existent order")
     void testCancelOrderNotFound() {
-        String orderId = "non-existent-order";
+        UUID orderId = UUID.randomUUID();
         when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
 
         assertThrows(OrderException.class, () -> orderService.cancelOrder(orderId));
@@ -149,7 +150,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should reject an order successfully")
     void testRejectOrderSuccess() {
-        String orderId = "550e8400-e29b-41d4-a716-446655440002";
+        UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440002");
         Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
         Order rejectedOrder = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.REJECTED, LocalDateTime.now());
 
@@ -168,7 +169,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should retrieve an order by ID")
     void testGetOrderById() {
-        String orderId = "550e8400-e29b-41d4-a716-446655440003";
+        UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440003");
         Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
@@ -183,7 +184,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should return empty Optional when order not found")
     void testGetOrderByIdNotFound() {
-        String orderId = "non-existent-order";
+        UUID orderId = UUID.randomUUID();
         when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
 
         Optional<Order> result = orderService.getOrderById(orderId);
@@ -246,7 +247,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should retrieve order history for an order")
     void testGetOrderHistory() {
-        String orderId = "550e8400-e29b-41d4-a716-446655440004";
+        UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440004");
         List<OrderHistory> historyRecords = Arrays.asList(
             new OrderHistory(orderId, OrderStatus.NEW),
             new OrderHistory(orderId, OrderStatus.EXECUTED)
@@ -264,7 +265,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should validate if order is valid for execution")
     void testIsOrderValidForExecution() {
-        String orderId = "550e8400-e29b-41d4-a716-446655440005";
+        UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440005");
         Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
@@ -278,7 +279,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should return false when validating non-existent order")
     void testIsOrderValidForExecutionNotFound() {
-        String orderId = "non-existent-order";
+        UUID orderId = UUID.randomUUID();
         when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
 
         boolean result = orderService.isOrderValidForExecution(orderId);
@@ -290,7 +291,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should calculate total order value")
     void testGetOrderTotalValue() {
-        String orderId = "550e8400-e29b-41d4-a716-446655440006";
+        UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440006");
         BigDecimal price = new BigDecimal("150.50");
         long quantity = 100;
         Order order = new Order(orderId, account, instrument, quantity, price, OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
@@ -307,7 +308,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should throw OrderException when calculating value for non-existent order")
     void testGetOrderTotalValueNotFound() {
-        String orderId = "non-existent-order";
+        UUID orderId = UUID.randomUUID();
         when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
 
         assertThrows(OrderException.class, () -> orderService.getOrderTotalValue(orderId));
