@@ -18,32 +18,35 @@ public class Positions {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "position_id")
     private Long positionId;
 
-    @Column(nullable = false)
+    @Column(name = "account_id", nullable = false)
     private long accountId;
 
-    @Column(nullable = false)
+    @Column(name = "symbol", nullable = false)
     private String symbol;
 
-    @Column(nullable = false)
+    @Column(name = "quantity", nullable = false)
     private int quantity;
 
-    @Column(nullable = false, precision = 19, scale = SCALE)
+    @Column(name = "average_cost", nullable = false, precision = 19, scale = SCALE)
     private BigDecimal averageCost;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     private PositionStatus status = PositionStatus.OPEN;
 
-    @Column(nullable = false)
+    @Column(name = "opened_at", nullable = false)
     private LocalDateTime openedAt;
 
-    @Column
+    @Column(name = "closed_at")
     private LocalDateTime closedAt;
 
-    @Column(precision = 19, scale = SCALE)
+    @Column(name = "realized_pnl", precision = 19, scale = SCALE)
     private BigDecimal realizedPnL;
+
+    
 
     @Transient
     private final PositionsValidator validator;
