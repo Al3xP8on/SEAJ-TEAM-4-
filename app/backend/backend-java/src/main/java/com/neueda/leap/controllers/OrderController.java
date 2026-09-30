@@ -61,6 +61,14 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<Order>> getOrdersByStatus(@PathVariable OrderStatus status) {
+        logger.info("GET /v1/orders/status/{} - Fetching orders by status", status);
+        List<Order> orders = orderService.getOrdersByStatus(status);
+        logger.info("Found {} orders with status {}", orders.size(), status);
+        return ResponseEntity.ok(orders);
+    }
+
     @GetMapping("/account/{accountId}")
     public ResponseEntity<List<Order>> getOrdersByAccount(
             @PathVariable String accountId,
@@ -79,6 +87,14 @@ public class OrderController {
         }
         
         logger.info("Found {} orders for account {}", orders.size(), accountId);
+        return ResponseEntity.ok(orders);
+    }
+
+    @GetMapping("/account/{accountId}/pending")
+    public ResponseEntity<List<Order>> getPendingOrdersByAccount(@PathVariable String accountId) {
+        logger.info("GET /v1/orders/account/{}/pending - Fetching pending orders for account", accountId);
+        List<Order> orders = orderService.getPendingOrdersByAccount(accountId);
+        logger.info("Found {} pending orders for account {}", orders.size(), accountId);
         return ResponseEntity.ok(orders);
     }
 
@@ -134,47 +150,6 @@ public class OrderController {
         } catch (Exception e) {
             logger.error("Unexpected error creating order: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @PutMapping("/{id}/execute")
-    public ResponseEntity<Order> executeOrder(@PathVariable UUID id) {
-        logger.info("PUT /v1/orders/{}/execute - Executing order", id);
-        try {
-            Order order = orderService.executeOrder(id);
-            logger.info("Order executed: {}", id);
-            return ResponseEntity.ok(order);
-        } catch (OrderException e) {
-            logger.error("Failed to execute order {}: {}", id, e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-
-    @PutMapping("/{id}/cancel")
-    public ResponseEntity<Order> cancelOrder(@PathVariable UUID id) {
-        logger.info("PUT /v1/orders/{}/cancel - Cancelling order", id);
-        try {
-            Order order = orderService.cancelOrder(id);
-            logger.info("Order cancelled: {}", id);
-            return ResponseEntity.ok(order);
-        } catch (OrderException e) {
-            logger.error("Failed to cancel order {}: {}", id, e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-
-    @PutMapping("/{id}/reject")
-    public ResponseEntity<Order> rejectOrder(
-            @PathVariable UUID id,
-            @RequestParam String reason) {
-        logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", id, reason);
-        try {
-            Order order = orderService.rejectOrder(id, reason);
-            logger.info("Order rejected: {}", id);
-            return ResponseEntity.ok(order);
-        } catch (OrderException e) {
-            logger.error("Failed to reject order {}: {}", id, e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 

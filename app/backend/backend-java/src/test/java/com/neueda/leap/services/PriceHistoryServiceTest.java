@@ -2,7 +2,6 @@ package com.neueda.leap.services;
 
 import com.neueda.leap.models.PriceHistory;
 import com.neueda.leap.repositories.PriceHistoryRepository;
-import com.neueda.leap.validators.PriceHistoryValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,9 +26,6 @@ public class PriceHistoryServiceTest {
     @Mock
     private PriceHistoryRepository priceHistoryRepository;
 
-    @Mock
-    private PriceHistoryValidator priceHistoryValidator;
-
     @InjectMocks
     private PriceHistoryService priceHistoryService;
 
@@ -39,10 +35,6 @@ public class PriceHistoryServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-
-        // Mock validator to return symbol unchanged
-        when(priceHistoryValidator.validateSymbol(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
-        doNothing().when(priceHistoryValidator).validateOHLCRelationships(any(), any(), any(), any());
 
         // Create test data using past dates
         testPriceHistory = new PriceHistory(
@@ -66,7 +58,7 @@ public class PriceHistoryServiceTest {
         );
     }
 
-    // ==================== getPriceHistoryBySymbol Tests ====================
+    // getPriceHistoryBySymbol Tests
 
     @Test
     @DisplayName("Should get all price history records for a symbol successfully")
@@ -94,7 +86,7 @@ public class PriceHistoryServiceTest {
         verify(priceHistoryRepository, times(1)).findBySymbol("UNKNOWN");
     }
 
-    // ==================== getPriceHistoryBySymbolAndDateRange Tests ====================
+    // getPriceHistoryBySymbolAndDateRange Tests
 
     @Test
     @DisplayName("Should get price history records within date range successfully")
@@ -158,7 +150,7 @@ public class PriceHistoryServiceTest {
         verify(priceHistoryRepository, times(1)).findBySymbolAndDateRange("AAPL", date, date);
     }
 
-    // ==================== getLatestPriceHistory Tests ====================
+    // getLatestPriceHistory Tests
 
     @Test
     @DisplayName("Should get the latest price history record for a symbol successfully")
@@ -184,7 +176,7 @@ public class PriceHistoryServiceTest {
         verify(priceHistoryRepository, times(1)).findLatestBySymbol("UNKNOWN");
     }
 
-    // ==================== savePriceHistory Tests ====================
+    // savePriceHistory Tests
 
     @Test
     @DisplayName("Should save price history record successfully")
@@ -215,7 +207,7 @@ public class PriceHistoryServiceTest {
         verify(priceHistoryRepository, times(2)).save(any(PriceHistory.class));
     }
 
-    // ==================== Price Calculation Tests ====================
+    // Price Calculation Tests
 
     @Test
     @DisplayName("Should calculate daily change correctly")

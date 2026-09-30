@@ -190,6 +190,69 @@ public class OrderControllerTest {
         verify(orderService, never()).getOrderHistory(any());
     }
 
+    @Test
+    @DisplayName("Should get orders by status")
+    void testGetOrdersByStatusSuccess() throws Exception {
+        Order newOrder = new Order(UUID.randomUUID(), testAccount, testInstrument, 100, new BigDecimal("150.50"),
+                                   OrderSide.BUY, "idem-key-003", OrderStatus.NEW, LocalDateTime.now());
+        Order newOrder2 = new Order(UUID.randomUUID(), testAccount, testInstrument, 50, new BigDecimal("200.00"),
+                                    OrderSide.BUY, "idem-key-004", OrderStatus.NEW, LocalDateTime.now());
+        List<Order> orders = Arrays.asList(newOrder, newOrder2);
+        when(orderService.getOrdersByStatus(OrderStatus.NEW)).thenReturn(orders);
+
+        mockMvc.perform(get("/v1/orders/status/NEW")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].status", equalTo("NEW")))
+                .andExpect(jsonPath("$[1].status", equalTo("NEW")));
+
+        verify(orderService, times(1)).getOrdersByStatus(OrderStatus.NEW);
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no orders with status found")
+    void testGetOrdersByStatusEmpty() throws Exception {
+        when(orderService.getOrdersByStatus(OrderStatus.EXECUTED)).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/v1/orders/status/EXECUTED")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        verify(orderService, times(1)).getOrdersByStatus(OrderStatus.EXECUTED);
+    }
+
+    @Test
+    @DisplayName("Should get pending orders by account")
+    void testGetPendingOrdersByAccountSuccess() throws Exception {
+        Order pendingOrder = new Order(UUID.randomUUID(), testAccount, testInstrument, 100, new BigDecimal("150.50"),
+                                       OrderSide.BUY, "idem-key-005", OrderStatus.NEW, LocalDateTime.now());
+        List<Order> orders = Arrays.asList(pendingOrder);
+        when(orderService.getPendingOrdersByAccount("ACC-001")).thenReturn(orders);
+
+        mockMvc.perform(get("/v1/orders/account/ACC-001/pending")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].status", equalTo("NEW")));
+
+        verify(orderService, times(1)).getPendingOrdersByAccount("ACC-001");
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no pending orders for account")
+    void testGetPendingOrdersByAccountEmpty() throws Exception {
+        when(orderService.getPendingOrdersByAccount("ACC-002")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/v1/orders/account/ACC-002/pending")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        verify(orderService, times(1)).getPendingOrdersByAccount("ACC-002");
+    }
+
     // ==================== POST Tests ====================
 
     @Test
@@ -249,33 +312,7 @@ public class OrderControllerTest {
 
     // ==================== PUT Tests ====================
 
-    @Test
-    @DisplayName("Should execute order successfully")
-    void testExecuteOrderSuccess() throws Exception {
-        Order executedOrder = new Order(testOrderId, testAccount, testInstrument, 100, new BigDecimal("150.50"),
-                                       OrderSide.BUY, "idem-key-001", OrderStatus.EXECUTED, LocalDateTime.now());
-        when(orderService.executeOrder(testOrderId)).thenReturn(executedOrder);
 
-        mockMvc.perform(put("/v1/orders/" + testOrderId + "/execute")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status", equalTo("EXECUTED")));
-
-        verify(orderService, times(1)).executeOrder(testOrderId);
-    }
-
-    @Test
-    @DisplayName("Should return 400 when executing invalid order")
-    void testExecuteOrderBadRequest() throws Exception {
-        when(orderService.executeOrder(invalidOrderId))
-                .thenThrow(new OrderException("Cannot execute order", null, invalidOrderId.toString()));
-
-        mockMvc.perform(put("/v1/orders/" + invalidOrderId + "/execute")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-
-        verify(orderService, times(1)).executeOrder(invalidOrderId);
-    }
 
     @Test
     @DisplayName("Should cancel order successfully")
@@ -305,35 +342,7 @@ public class OrderControllerTest {
         verify(orderService, times(1)).cancelOrder(invalidOrderId);
     }
 
-    @Test
-    @DisplayName("Should reject order successfully")
-    void testRejectOrderSuccess() throws Exception {
-        Order rejectedOrder = new Order(testOrderId, testAccount, testInstrument, 100, new BigDecimal("150.50"),
-                                       OrderSide.BUY, "idem-key-001", OrderStatus.REJECTED, LocalDateTime.now());
-        when(orderService.rejectOrder(testOrderId, "Insufficient funds")).thenReturn(rejectedOrder);
 
-        mockMvc.perform(put("/v1/orders/" + testOrderId + "/reject")
-                .param("reason", "Insufficient funds")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status", equalTo("REJECTED")));
-
-        verify(orderService, times(1)).rejectOrder(testOrderId, "Insufficient funds");
-    }
-
-    @Test
-    @DisplayName("Should return 400 when rejecting invalid order")
-    void testRejectOrderBadRequest() throws Exception {
-        when(orderService.rejectOrder(invalidOrderId, "Test reason"))
-                .thenThrow(new OrderException("Cannot reject order", null, invalidOrderId.toString()));
-
-        mockMvc.perform(put("/v1/orders/" + invalidOrderId + "/reject")
-                .param("reason", "Test reason")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-
-        verify(orderService, times(1)).rejectOrder(invalidOrderId, "Test reason");
-    }
 
     // ==================== Error Handling Tests ====================
 
@@ -359,14 +368,5 @@ public class OrderControllerTest {
                 .andExpect(status().isInternalServerError());
     }
 
-    @Test
-    @DisplayName("Should handle internal server error on executeOrder")
-    void testExecuteOrderInternalServerError() throws Exception {
-        when(orderService.executeOrder(testOrderId))
-                .thenThrow(new RuntimeException("Unexpected error"));
 
-        mockMvc.perform(put("/v1/orders/" + testOrderId + "/execute")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isInternalServerError());
-    }
 }
