@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -58,7 +59,7 @@ public class OrderService {
     }
 
     // Validates the order state, processes account debits/credits, and tracks status change.
-    public Order executeOrder(String orderId) {
+    public Order executeOrder(UUID orderId) {
         Order order = findOrderOrThrow(orderId);
         order.execute();
 
@@ -69,7 +70,7 @@ public class OrderService {
     }
 
     // Cancels a pending order and records the status change.
-    public Order cancelOrder(String orderId) {
+    public Order cancelOrder(UUID orderId) {
         Order order = findOrderOrThrow(orderId);
         order.cancel();
 
@@ -81,7 +82,7 @@ public class OrderService {
 
     // Rejects an order
     // Records the rejection in order history.
-    public Order rejectOrder(String orderId, String reason) {
+    public Order rejectOrder(UUID orderId, String reason) {
         Order order = findOrderOrThrow(orderId);
         order.setStatus(OrderStatus.REJECTED);
 
@@ -92,7 +93,7 @@ public class OrderService {
     }
 
     // Returns an Optional that will be empty if the order does not exist.
-    public Optional<Order> getOrderById(String orderId) {
+    public Optional<Order> getOrderById(UUID orderId) {
         return orderRepository.findById(orderId);
     }
 
@@ -111,20 +112,20 @@ public class OrderService {
     }
 
     // Shows all status transitions for a specific order.
-    public List<OrderHistory> getOrderHistory(String orderId) {
+    public List<OrderHistory> getOrderHistory(UUID orderId) {
         return orderHistoryRepository.findByOrderId(orderId);
     }
 
-    public boolean isOrderValidForExecution(String orderId) {
+    public boolean isOrderValidForExecution(UUID orderId) {
         return orderRepository.findById(orderId)
             .map(order -> OrderValidator.isValidForExecution(order))
             .orElse(false);
     }
 
-    public BigDecimal getOrderTotalValue(String orderId) {
+    public BigDecimal getOrderTotalValue(UUID orderId) {
         return orderRepository.findById(orderId)
             .map(order -> com.neueda.leap.utils.Utils.calculateTotalValue(order.getPrice(), order.getQuantity()))
-            .orElseThrow(() -> new OrderException("Order not found", OrderErrorCode.EXECUTION_FAILED, orderId));
+            .orElseThrow(() -> new OrderException("Order not found", OrderErrorCode.EXECUTION_FAILED, orderId.toString()));
     }
 
     public List<Order> getExecutedOrdersByAccount(String accountId) {
@@ -140,13 +141,13 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
-    private void recordOrderHistory(String orderId, OrderStatus status) {
+    private void recordOrderHistory(UUID orderId, OrderStatus status) {
         OrderHistory history = new OrderHistory(orderId, status);
         orderHistoryRepository.save(history);
     }
 
-    private Order findOrderOrThrow(String orderId) {
+    private Order findOrderOrThrow(UUID orderId) {
         return orderRepository.findById(orderId)
-            .orElseThrow(() -> new OrderException("Order not found", OrderErrorCode.EXECUTION_FAILED, orderId));
+            .orElseThrow(() -> new OrderException("Order not found", OrderErrorCode.EXECUTION_FAILED, orderId.toString()));
     }
 }

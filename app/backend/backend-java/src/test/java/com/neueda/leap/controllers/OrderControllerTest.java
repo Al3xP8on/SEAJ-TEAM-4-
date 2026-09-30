@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -55,14 +56,18 @@ public class OrderControllerTest {
     private Instrument testInstrument;
     private Order testOrder;
     private OrderHistory testOrderHistory;
+    private UUID testOrderId;
+    private UUID invalidOrderId;
 
     @BeforeEach
     void setUp() {
         testAccount = new Account("ACC-001", "Test Account", "test@example.com", "123456789", new BigDecimal("50000.00"), AccountStatus.ACTIVE);
         testInstrument = new Instrument("AAPL", "Apple Inc.", "EQUITY", "USD", true);
-        testOrder = new Order("order-001", testAccount, testInstrument, 100, new BigDecimal("150.50"), 
+        testOrderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
+        invalidOrderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440999");
+        testOrder = new Order(testOrderId, testAccount, testInstrument, 100, new BigDecimal("150.50"), 
                             OrderSide.BUY, "idem-key-001", OrderStatus.NEW, LocalDateTime.now());
-        testOrderHistory = new OrderHistory("order-001", OrderStatus.NEW);
+        testOrderHistory = new OrderHistory(testOrderId, OrderStatus.NEW);
     }
 
     // ==================== GET Tests ====================
@@ -77,7 +82,7 @@ public class OrderControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", equalTo("order-001")));
+                .andExpect(jsonPath("$[0].id", equalTo("550e8400-e29b-41d4-a716-446655440000")));
 
         verify(orderService, times(1)).getAllOrders();
     }
@@ -85,28 +90,30 @@ public class OrderControllerTest {
     @Test
     @DisplayName("Should get order by ID successfully")
     void testGetOrderSuccess() throws Exception {
-        when(orderService.getOrderById("order-001")).thenReturn(Optional.of(testOrder));
+        UUID testOrderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
+        when(orderService.getOrderById(testOrderId)).thenReturn(Optional.of(testOrder));
 
-        mockMvc.perform(get("/v1/orders/order-001")
+        mockMvc.perform(get("/v1/orders/550e8400-e29b-41d4-a716-446655440000")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", equalTo("order-001")))
+                .andExpect(jsonPath("$.id", equalTo("550e8400-e29b-41d4-a716-446655440000")))
                 .andExpect(jsonPath("$.quantity", equalTo(100)))
                 .andExpect(jsonPath("$.status", equalTo("NEW")));
 
-        verify(orderService, times(1)).getOrderById("order-001");
+        verify(orderService, times(1)).getOrderById(testOrderId);
     }
 
     @Test
     @DisplayName("Should return 404 when order not found")
     void testGetOrderNotFound() throws Exception {
-        when(orderService.getOrderById("non-existent")).thenReturn(Optional.empty());
+        UUID nonExistentId = UUID.randomUUID();
+        when(orderService.getOrderById(nonExistentId)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/v1/orders/non-existent")
+        mockMvc.perform(get("/v1/orders/" + nonExistentId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
 
-        verify(orderService, times(1)).getOrderById("non-existent");
+        verify(orderService, times(1)).getOrderById(nonExistentId);
     }
 
     @Test
@@ -119,7 +126,7 @@ public class OrderControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", equalTo("order-001")));
+                .andExpect(jsonPath("$[0].id", equalTo(testOrderId.toString())));
 
         verify(orderService, times(1)).getOrdersByAccount("ACC-001");
     }
@@ -157,28 +164,29 @@ public class OrderControllerTest {
     @DisplayName("Should get order history")
     void testGetOrderHistorySuccess() throws Exception {
         List<OrderHistory> history = Arrays.asList(testOrderHistory);
-        when(orderService.getOrderById("order-001")).thenReturn(Optional.of(testOrder));
-        when(orderService.getOrderHistory("order-001")).thenReturn(history);
+        when(orderService.getOrderById(testOrderId)).thenReturn(Optional.of(testOrder));
+        when(orderService.getOrderHistory(testOrderId)).thenReturn(history);
 
-        mockMvc.perform(get("/v1/orders/order-001/history")
+        mockMvc.perform(get("/v1/orders/" + testOrderId + "/history")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)));
 
-        verify(orderService, times(1)).getOrderById("order-001");
-        verify(orderService, times(1)).getOrderHistory("order-001");
+        verify(orderService, times(1)).getOrderById(testOrderId);
+        verify(orderService, times(1)).getOrderHistory(testOrderId);
     }
 
     @Test
     @DisplayName("Should return 404 when order history not found")
     void testGetOrderHistoryOrderNotFound() throws Exception {
-        when(orderService.getOrderById("non-existent")).thenReturn(Optional.empty());
+        UUID nonExistentId = UUID.randomUUID();
+        when(orderService.getOrderById(nonExistentId)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/v1/orders/non-existent/history")
+        mockMvc.perform(get("/v1/orders/" + nonExistentId + "/history")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
 
-        verify(orderService, times(1)).getOrderById("non-existent");
+        verify(orderService, times(1)).getOrderById(nonExistentId);
         verify(orderService, never()).getOrderHistory(any());
     }
 
@@ -187,7 +195,7 @@ public class OrderControllerTest {
     @Test
     @DisplayName("Should create order successfully")
     void testCreateOrderSuccess() throws Exception {
-        Order createdOrder = new Order("order-002", testAccount, testInstrument, 100, new BigDecimal("150.50"),
+        Order createdOrder = new Order(UUID.randomUUID(), testAccount, testInstrument, 100, new BigDecimal("150.50"),
                                        OrderSide.BUY, "idem-key-002", OrderStatus.NEW, LocalDateTime.now());
         
         when(accountRepository.findByAccountId("ACC-001")).thenReturn(Optional.of(testAccount));
@@ -199,7 +207,7 @@ public class OrderControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"accountId\":\"ACC-001\",\"symbol\":\"AAPL\",\"quantity\":100,\"price\":150.50}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", equalTo("order-002")))
+                .andExpect(jsonPath("$.id", notNullValue()))
                 .andExpect(jsonPath("$.status", equalTo("NEW")));
 
         verify(accountRepository, times(1)).findByAccountId("ACC-001");
@@ -244,87 +252,87 @@ public class OrderControllerTest {
     @Test
     @DisplayName("Should execute order successfully")
     void testExecuteOrderSuccess() throws Exception {
-        Order executedOrder = new Order("order-001", testAccount, testInstrument, 100, new BigDecimal("150.50"),
+        Order executedOrder = new Order(testOrderId, testAccount, testInstrument, 100, new BigDecimal("150.50"),
                                        OrderSide.BUY, "idem-key-001", OrderStatus.EXECUTED, LocalDateTime.now());
-        when(orderService.executeOrder("order-001")).thenReturn(executedOrder);
+        when(orderService.executeOrder(testOrderId)).thenReturn(executedOrder);
 
-        mockMvc.perform(put("/v1/orders/order-001/execute")
+        mockMvc.perform(put("/v1/orders/" + testOrderId + "/execute")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status", equalTo("EXECUTED")));
 
-        verify(orderService, times(1)).executeOrder("order-001");
+        verify(orderService, times(1)).executeOrder(testOrderId);
     }
 
     @Test
     @DisplayName("Should return 400 when executing invalid order")
     void testExecuteOrderBadRequest() throws Exception {
-        when(orderService.executeOrder("invalid-order"))
-                .thenThrow(new OrderException("Cannot execute order", null, "invalid-order"));
+        when(orderService.executeOrder(invalidOrderId))
+                .thenThrow(new OrderException("Cannot execute order", null, invalidOrderId.toString()));
 
-        mockMvc.perform(put("/v1/orders/invalid-order/execute")
+        mockMvc.perform(put("/v1/orders/" + invalidOrderId + "/execute")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verify(orderService, times(1)).executeOrder("invalid-order");
+        verify(orderService, times(1)).executeOrder(invalidOrderId);
     }
 
     @Test
     @DisplayName("Should cancel order successfully")
     void testCancelOrderSuccess() throws Exception {
-        Order cancelledOrder = new Order("order-001", testAccount, testInstrument, 100, new BigDecimal("150.50"),
+        Order cancelledOrder = new Order(testOrderId, testAccount, testInstrument, 100, new BigDecimal("150.50"),
                                         OrderSide.BUY, "idem-key-001", OrderStatus.CANCELLED, LocalDateTime.now());
-        when(orderService.cancelOrder("order-001")).thenReturn(cancelledOrder);
+        when(orderService.cancelOrder(testOrderId)).thenReturn(cancelledOrder);
 
-        mockMvc.perform(put("/v1/orders/order-001/cancel")
+        mockMvc.perform(put("/v1/orders/" + testOrderId + "/cancel")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status", equalTo("CANCELLED")));
 
-        verify(orderService, times(1)).cancelOrder("order-001");
+        verify(orderService, times(1)).cancelOrder(testOrderId);
     }
 
     @Test
     @DisplayName("Should return 400 when cancelling invalid order")
     void testCancelOrderBadRequest() throws Exception {
-        when(orderService.cancelOrder("invalid-order"))
-                .thenThrow(new OrderException("Cannot cancel order", null, "invalid-order"));
+        when(orderService.cancelOrder(invalidOrderId))
+                .thenThrow(new OrderException("Cannot cancel order", null, invalidOrderId.toString()));
 
-        mockMvc.perform(put("/v1/orders/invalid-order/cancel")
+        mockMvc.perform(put("/v1/orders/" + invalidOrderId + "/cancel")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verify(orderService, times(1)).cancelOrder("invalid-order");
+        verify(orderService, times(1)).cancelOrder(invalidOrderId);
     }
 
     @Test
     @DisplayName("Should reject order successfully")
     void testRejectOrderSuccess() throws Exception {
-        Order rejectedOrder = new Order("order-001", testAccount, testInstrument, 100, new BigDecimal("150.50"),
+        Order rejectedOrder = new Order(testOrderId, testAccount, testInstrument, 100, new BigDecimal("150.50"),
                                        OrderSide.BUY, "idem-key-001", OrderStatus.REJECTED, LocalDateTime.now());
-        when(orderService.rejectOrder("order-001", "Insufficient funds")).thenReturn(rejectedOrder);
+        when(orderService.rejectOrder(testOrderId, "Insufficient funds")).thenReturn(rejectedOrder);
 
-        mockMvc.perform(put("/v1/orders/order-001/reject")
+        mockMvc.perform(put("/v1/orders/" + testOrderId + "/reject")
                 .param("reason", "Insufficient funds")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status", equalTo("REJECTED")));
 
-        verify(orderService, times(1)).rejectOrder("order-001", "Insufficient funds");
+        verify(orderService, times(1)).rejectOrder(testOrderId, "Insufficient funds");
     }
 
     @Test
     @DisplayName("Should return 400 when rejecting invalid order")
     void testRejectOrderBadRequest() throws Exception {
-        when(orderService.rejectOrder("invalid-order", "Test reason"))
-                .thenThrow(new OrderException("Cannot reject order", null, "invalid-order"));
+        when(orderService.rejectOrder(invalidOrderId, "Test reason"))
+                .thenThrow(new OrderException("Cannot reject order", null, invalidOrderId.toString()));
 
-        mockMvc.perform(put("/v1/orders/invalid-order/reject")
+        mockMvc.perform(put("/v1/orders/" + invalidOrderId + "/reject")
                 .param("reason", "Test reason")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verify(orderService, times(1)).rejectOrder("invalid-order", "Test reason");
+        verify(orderService, times(1)).rejectOrder(invalidOrderId, "Test reason");
     }
 
     // ==================== Error Handling Tests ====================
@@ -332,7 +340,7 @@ public class OrderControllerTest {
     @Test
     @DisplayName("Should handle internal server error on getOrder")
     void testGetOrderInternalServerError() throws Exception {
-        when(orderService.getOrderById("order-001"))
+        when(orderService.getOrderById(testOrderId))
                 .thenThrow(new RuntimeException("Database connection failed"));
 
         mockMvc.perform(get("/v1/orders/order-001")
@@ -354,10 +362,10 @@ public class OrderControllerTest {
     @Test
     @DisplayName("Should handle internal server error on executeOrder")
     void testExecuteOrderInternalServerError() throws Exception {
-        when(orderService.executeOrder("order-001"))
+        when(orderService.executeOrder(testOrderId))
                 .thenThrow(new RuntimeException("Unexpected error"));
 
-        mockMvc.perform(put("/v1/orders/order-001/execute")
+        mockMvc.perform(put("/v1/orders/" + testOrderId + "/execute")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError());
     }

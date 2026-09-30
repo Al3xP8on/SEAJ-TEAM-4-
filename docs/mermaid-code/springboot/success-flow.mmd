@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant Client
+    participant Controller
+    participant Service
+    participant Repo
+    participant DB
+
+    Client->>Controller: POST /api/orders
+    Controller->>Service: Process Request
+    Service->>Repo: Save Entity
+    Repo->>DB: INSERT SQL
+    DB-->>Repo: Success
+    Repo-->>Service: Saved Object
+    Service-->>Controller: Return Data
+    Controller-->>Client: 201 Created + JSON
