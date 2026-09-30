@@ -24,7 +24,7 @@ public class BasicCsrfFilter extends OncePerRequestFilter {
         Arrays.asList("POST", "PUT", "DELETE", "PATCH")
     );
     
-    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080}")
+    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:8081,http://127.0.0.1:4200,http://127.0.0.1:8081")
     private String allowedOriginsList;
     
     @Value("${app.csrf.enabled:true}")

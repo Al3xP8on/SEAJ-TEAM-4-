@@ -2,8 +2,12 @@ package com.neueda.leap.validators;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import org.springframework.stereotype.Component;
 
+@Component
 public class AccountValidator {
+
+    private AccountValidator() {}
 
     public static void validateAccountId(String accountId) {
         Objects.requireNonNull(accountId, "Account ID cannot be null");

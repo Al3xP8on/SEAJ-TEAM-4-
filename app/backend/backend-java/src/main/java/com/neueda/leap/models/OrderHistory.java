@@ -4,6 +4,7 @@ import com.neueda.leap.enums.OrderStatus;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.UUID;
 
 @Entity
 @Table(name = "order_history")
@@ -14,7 +15,7 @@ public class OrderHistory {
     private Long id; 
     
     @Column(name = "order_id", nullable = false)
-    private String orderId;  
+    private UUID orderId;  
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -33,7 +34,7 @@ public class OrderHistory {
 
     // Constructor for creating new order history records.
     // Used when recording a status change.
-    public OrderHistory(String orderId, OrderStatus status) {
+    public OrderHistory(UUID orderId, OrderStatus status) {
         this.id = null;
         this.orderId = Objects.requireNonNull(orderId, "Order ID cannot be null");
         this.status = Objects.requireNonNull(status, "Status cannot be null");
@@ -41,7 +42,7 @@ public class OrderHistory {
     }
 
     // Constructor for loading existing history records from database
-    public OrderHistory(Long id, String orderId, OrderStatus status, LocalDateTime changedOn) {
+    public OrderHistory(Long id, UUID orderId, OrderStatus status, LocalDateTime changedOn) {
         this.id = Objects.requireNonNull(id, "ID cannot be null");
         this.orderId = Objects.requireNonNull(orderId, "Order ID cannot be null");
         this.status = Objects.requireNonNull(status, "Status cannot be null");
@@ -78,7 +79,7 @@ public class OrderHistory {
         return id;
     }
 
-    public String getOrderId() {
+    public UUID getOrderId() {
         return orderId;
     }
 

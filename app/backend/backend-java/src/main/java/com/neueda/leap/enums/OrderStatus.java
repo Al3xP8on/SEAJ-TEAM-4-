@@ -7,6 +7,7 @@ public enum OrderStatus {
     NEW("NEW", "Order created but not yet processed"),
     PENDING("PENDING", "Order awaiting execution"),
     EXECUTED("EXECUTED", "Order successfully executed"),
+    FILLED("FILLED", "Order filled"),
     CANCELLED("CANCELLED", "Order has been cancelled"),
     REJECTED("REJECTED", "Order rejected due to validation failure");
 

@@ -11,11 +11,21 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 
 @RestController
-@RequestMapping("/api/v1/accounts")
+@RequestMapping("/v1/accounts")
 public class AccountController {
     
     @Autowired
     private AccountService accountService;
+
+    @GetMapping
+    public ResponseEntity<?> getAllAccounts() {
+        try {
+            return ResponseEntity.ok(accountService.getAllAccounts());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error retrieving accounts: " + e.getMessage());
+        }
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<Account> getAccount(@PathVariable Long id) {

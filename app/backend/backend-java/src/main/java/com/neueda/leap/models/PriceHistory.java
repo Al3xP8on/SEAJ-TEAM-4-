@@ -1,19 +1,49 @@
-package com.neueda.leap;
+package com.neueda.leap.models;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
 import com.neueda.leap.validators.PriceHistoryValidator;
+import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+@Entity
+@Table(name = "price_history")
 public class PriceHistory {
     
-    private final String symbol;
-    private final LocalDate priceDate;
-    private final BigDecimal open;
-    private final BigDecimal high;
-    private final BigDecimal low;
-    private final BigDecimal close;
-    private final long volume;
-    private final PriceHistoryValidator validator;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false)
+    private String symbol;
+    
+    @Column(nullable = false)
+    private LocalDate priceDate;
+    
+    @Column(nullable = false)
+    private BigDecimal open;
+    
+    @Column(nullable = false)
+    private BigDecimal high;
+    
+    @Column(nullable = false)
+    private BigDecimal low;
+    
+    @Column(nullable = false)
+    private BigDecimal close;
+    
+    @Column(nullable = false)
+    private long volume;
+    
+    @Transient
+    @JsonIgnore
+    private PriceHistoryValidator validator;
+    
+    // Default constructor for JPA
+    public PriceHistory() {
+        this.validator = new PriceHistoryValidator();
+    }
 
     public PriceHistory(String symbol, LocalDate priceDate, BigDecimal open, 
                        BigDecimal high, BigDecimal low, BigDecimal close, long volume,
@@ -35,32 +65,72 @@ public class PriceHistory {
         this(symbol, priceDate, open, high, low, close, volume, new PriceHistoryValidator());
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getSymbol() {
         return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = validator.validateSymbol(symbol);
     }
 
     public LocalDate getPriceDate() {
         return priceDate;
     }
 
+    public void setPriceDate(LocalDate priceDate) {
+        this.priceDate = validator.validateDate(priceDate);
+    }
+
     public BigDecimal getOpen() {
         return open;
+    }
+
+    public void setOpen(BigDecimal open) {
+        this.open = validator.validatePrice(open, "Open");
     }
 
     public BigDecimal getHigh() {
         return high;
     }
 
+    public void setHigh(BigDecimal high) {
+        this.high = validator.validatePrice(high, "High");
+    }
+
     public BigDecimal getLow() {
         return low;
+    }
+
+    public void setLow(BigDecimal low) {
+        this.low = validator.validatePrice(low, "Low");
     }
 
     public BigDecimal getClose() {
         return close;
     }
 
+    public void setClose(BigDecimal close) {
+        this.close = validator.validatePrice(close, "Close");
+    }
+
     public long getVolume() {
         return volume;
+    }
+
+    public void setVolume(long volume) {
+        this.volume = validator.validateVolume(volume);
+    }
+
+    public PriceHistoryValidator getValidator() {
+        return validator;
     }
 
     public BigDecimal getPriceRange() {
@@ -90,10 +160,6 @@ public class PriceHistory {
 
     public boolean isNeutral() {
         return close.compareTo(open) == 0;
-    }
-
-    public PriceHistoryValidator getValidator() {
-        return validator;
     }
 
     @Override

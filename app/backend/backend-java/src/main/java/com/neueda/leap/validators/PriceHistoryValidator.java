@@ -3,7 +3,9 @@ package com.neueda.leap.validators;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
+import org.springframework.stereotype.Component;
 
+@Component
 public class PriceHistoryValidator {
 
     public String validateSymbol(String symbol) {

@@ -20,14 +20,14 @@ import java.util.UUID;
 public class Order {
 
     @Id
-    private String id;
+    private UUID id;
     
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
     
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "instrument_id", nullable = false)
+    @JoinColumn(name = "symbol", nullable = false, referencedColumnName = "symbol")
     private Instrument instrument;
     
     @Column(nullable = false)
@@ -47,7 +47,7 @@ public class Order {
     @Column(unique = true, nullable = false)
     private String idempotencyKey;
     
-    @Column(nullable = false)
+    @Column(nullable = false, name = "created_on")
     private LocalDateTime createdAt;
 
     public Order() {
@@ -64,7 +64,7 @@ public class Order {
 
     // Primary constructor for creating new orders
     public Order(Account account, Instrument instrument, long quantity, BigDecimal price, OrderSide side, String idempotencyKey) {
-        this.id = UUID.randomUUID().toString();
+        this.id = UUID.randomUUID();
         this.account = OrderValidator.validateAccount(account);
         this.instrument = OrderValidator.validateInstrument(instrument);
         this.quantity = OrderValidator.validateQuantity(quantity);
@@ -76,7 +76,7 @@ public class Order {
     }
 
     // Constructor for loading existing orders from database
-    public Order(String id, Account account, Instrument instrument, long quantity, BigDecimal price,
+    public Order(UUID id, Account account, Instrument instrument, long quantity, BigDecimal price,
                  OrderSide side, String idempotencyKey, OrderStatus status, LocalDateTime createdAt) {
         this.id = Objects.requireNonNull(id, "Order ID cannot be null");
         this.account = Objects.requireNonNull(account, "Account cannot be null");
@@ -95,7 +95,7 @@ public class Order {
             throw new OrderException(
                 "Order cannot be executed in current state",
                 OrderErrorCode.EXECUTION_FAILED,
-                id
+                id.toString()
             );
         }
 
@@ -116,7 +116,7 @@ public class Order {
             throw new OrderException(
                 "Order execution failed: " + e.getMessage(),
                 OrderErrorCode.EXECUTION_ERROR,
-                id
+                id.toString()
             );
         }
     }
@@ -127,7 +127,7 @@ public class Order {
             throw new OrderException(
                 "Order in " + status + " state cannot be cancelled",
                 OrderErrorCode.CANCEL_INVALID_STATE,
-                id
+                id.toString()
             );
         }
         transitionToCancelled();
@@ -138,7 +138,7 @@ public class Order {
             throw new OrderException(
                 "Cannot transition from " + status + " to EXECUTED",
                 OrderErrorCode.INVALID_STATE_TRANSITION,
-                id
+                id.toString()
             );
         }
         this.status = OrderStatus.EXECUTED;
@@ -149,7 +149,7 @@ public class Order {
             throw new OrderException(
                 "Cannot transition from " + status + " to CANCELLED",
                 OrderErrorCode.INVALID_STATE_TRANSITION,
-                id
+                id.toString()
             );
         }
         this.status = OrderStatus.CANCELLED;
@@ -195,7 +195,7 @@ public class Order {
         return Objects.hash(id);
     }
 
-    public String getId() { 
+    public UUID getId() { 
         return id; 
     }
 

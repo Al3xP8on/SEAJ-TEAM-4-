@@ -2,6 +2,7 @@ package com.neueda.leap.validators;
 
 import com.neueda.leap.interfaces.SymbolValidator;
 import com.neueda.leap.interfaces.PriceValidator;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
@@ -10,6 +11,8 @@ import com.neueda.leap.models.SymbolPrice;
 import com.neueda.leap.exceptions.InvalidPriceException;
 import com.neueda.leap.exceptions.InvalidSymbolPriceException;
 import com.neueda.leap.exceptions.InvalidSymbolException;
+
+@Component
 public class SymbolPriceValidator implements SymbolValidator, PriceValidator {
 
     public String validateSymbol(String symbol){

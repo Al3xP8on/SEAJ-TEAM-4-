@@ -6,10 +6,12 @@ import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.enums.OrderErrorCode;
 import com.neueda.leap.utils.Utils;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Objects;
 
+@Component
 public class OrderValidator {
     
     private static final BigDecimal MINIMUM_PRICE = BigDecimal.ZERO;

@@ -1,5 +1,7 @@
 -- SEAJ OLTP schema - Setup
--- Extensions and Enums
+-- Create the database and Extensions and Enums
+
+CREATE DATABASE SEAJ_db;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto; -- for gen_random_uuid()
 

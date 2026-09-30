@@ -1,0 +1,205 @@
+// Multi-branch Pipeline: Spring Boot Application Build & Test
+// Focuses on building, testing, and containerizing the Spring Boot backend
+pipeline {
+    agent any
+    
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timestamps()
+    }
+    
+    tools {
+        jdk 'JDK21'
+        maven 'maven'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Build Backend') {
+            steps {
+                echo "=========================================="
+                echo "STEP 1: Building Spring Boot Application"
+                echo "=========================================="
+                dir('app/backend/backend-java') {
+                    sh '''
+                        echo "Running Maven clean package..."
+                        mvn -B clean package -DskipTests
+                        
+                        echo ""
+                        echo "Build artifacts:"
+                        ls -lh target/*.jar | tail -5
+                        echo "✓ Build successful"
+                    '''
+                }
+            }
+        }
+        
+        stage('Run Unit Tests') {
+            steps {
+                echo "=========================================="
+                echo "STEP 2: Running Unit Tests"
+                echo "=========================================="
+                dir('app/backend/backend-java') {
+                    sh '''
+                        echo "Running Maven test suite..."
+                        mvn -B test || {
+                            echo "Tests failed - collecting reports..."
+                            find target/surefire-reports -name "*.xml" -exec cat {} \\;
+                            exit 1
+                        }
+                        echo "✓ Tests passed"
+                    '''
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                echo "=========================================="
+                echo "STEP 3: Building Docker Image"
+                echo "=========================================="
+                dir('app/backend/backend-java') {
+                    sh '''
+                        IMAGE_TAG="team-skeleton:${BUILD_NUMBER}"
+                        echo "Building Docker image: $IMAGE_TAG"
+                        docker build -t $IMAGE_TAG .
+                        
+                        echo ""
+                        echo "Docker image info:"
+                        docker images | grep team-skeleton | head -5
+                        echo "✓ Docker image built successfully"
+                    '''
+                }
+            }
+        }
+        
+        stage('Smoke Test - Container Startup') {
+            steps {
+                echo "=========================================="
+                echo "STEP 4: Smoke Test - Container Startup"
+                echo "=========================================="
+                sh '''
+                    IMAGE_TAG="team-skeleton:${BUILD_NUMBER}"
+                    echo "Starting application container for smoke test..."
+                    echo ""
+                    
+                    timeout(120) {
+                        docker run --rm $IMAGE_TAG | tee docker-output.log || {
+                            echo ""
+                            echo "Container startup failed. Logs:"
+                            cat docker-output.log
+                            exit 1
+                        }
+                    }
+                    
+                    echo ""
+                    echo "Checking for successful startup indicators..."
+                    if grep -q "Started Main" docker-output.log; then
+                        echo "✓ Application started successfully"
+                    else
+                        echo "✗ Application may not have started correctly"
+                        echo "Full output:"
+                        cat docker-output.log
+                        exit 1
+                    fi
+                '''
+            }
+        }
+        
+        stage('Verify JPA Entities') {
+            steps {
+                echo "=========================================="
+                echo "STEP 5: Verify JPA Entity Configuration"
+                echo "=========================================="
+                dir('app/backend/backend-java') {
+                    sh '''
+                        echo "Checking for JPA entity annotations..."
+                        
+                        ENTITY_CHECK=$(grep -r "@Entity" src/main/java/com/neueda/leap/models/ 2>/dev/null | wc -l)
+                        echo "  -> Found $ENTITY_CHECK @Entity annotations"
+                        
+                        REPO_CHECK=$(grep -r "extends JpaRepository" src/main/java/com/neueda/leap/repositories/ 2>/dev/null | wc -l)
+                        echo "  -> Found $REPO_CHECK JPA repositories"
+                        
+                        if [ $ENTITY_CHECK -gt 0 ] && [ $REPO_CHECK -gt 0 ]; then
+                            echo "✓ JPA configuration verified"
+                        else
+                            echo "⚠ Warning: Some JPA entities may be missing annotations"
+                        fi
+                    '''
+                }
+            }
+        }
+        
+        stage('Tag and Push Docker Image') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo "=========================================="
+                echo "STEP 6: Push Docker Image to Registry"
+                echo "=========================================="
+                sh '''
+                    IMAGE_TAG="team-skeleton:${BUILD_NUMBER}"
+                    echo "Image is ready for deployment: $IMAGE_TAG"
+                    
+                    # Example: docker push registry.example.com/$IMAGE_TAG
+                    # For now, just log it
+                    echo "✓ Image tagged and ready"
+                '''
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo "=========================================="
+            echo "Collecting Build Artifacts"
+            echo "=========================================="
+            dir('app/backend/backend-java') {
+                sh '''
+                    echo "Build Summary:"
+                    if [ -f target/team-skeleton.jar ]; then
+                        SIZE=$(du -h target/team-skeleton.jar | cut -f1)
+                        echo "  ✓ JAR built: $SIZE"
+                    fi
+                    
+                    if [ -d target/surefire-reports ]; then
+                        TEST_COUNT=$(find target/surefire-reports -name "*.xml" | wc -l)
+                        echo "  ✓ Test reports: $TEST_COUNT"
+                    fi
+                '''
+            }
+            
+            cleanWs(deleteDirs: true, patterns: [[pattern: '**/target/**', type: 'INCLUDE']])
+        }
+        
+        failure {
+            echo "=========================================="
+            echo "APPLICATION BUILD PIPELINE FAILED"
+            echo "=========================================="
+            sh '''
+                echo "Build failed. Checking for common issues..."
+                
+                if [ -f docker-output.log ]; then
+                    echo ""
+                    echo "Application startup log (last 50 lines):"
+                    tail -50 docker-output.log
+                fi
+            '''
+        }
+        
+        success {
+            echo "=========================================="
+            echo "APPLICATION BUILD PIPELINE SUCCESSFUL"
+            echo "Build Number: ${BUILD_NUMBER}"
+            echo "Image Tag: team-skeleton:${BUILD_NUMBER}"
+            echo "=========================================="
+        }
+    }
+}

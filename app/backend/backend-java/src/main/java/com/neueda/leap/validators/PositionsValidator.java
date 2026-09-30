@@ -1,8 +1,10 @@
 package com.neueda.leap.validators;
 import com.neueda.leap.exceptions.InsufficientHoldingsException;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+@Component
 public class PositionsValidator {
 
     public void validateAccountId(long accountId) {
