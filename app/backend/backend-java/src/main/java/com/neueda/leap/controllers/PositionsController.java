@@ -1,6 +1,7 @@
 package com.neueda.leap.controllers;
 
 import com.neueda.leap.dtos.PositionResponse;
+import com.neueda.leap.dtos.ClosePositionRequest;
 import com.neueda.leap.exceptions.PositionNotFoundException;
 import com.neueda.leap.exceptions.AccountNotFoundException;
 import com.neueda.leap.exceptions.InsufficientHoldingsException;
@@ -72,7 +73,7 @@ public class PositionsController {
     public ResponseEntity<?> closePosition(
             @PathVariable Long accountId,
             @PathVariable Long positionId,
-            @RequestBody Map<String, Object> request) {
+            @RequestBody ClosePositionRequest request) {
         try {
             PositionResponse closedPosition = positionsService.closePosition(
                     accountId, 
