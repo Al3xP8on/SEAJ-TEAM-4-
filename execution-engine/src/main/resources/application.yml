@@ -32,4 +32,5 @@ engine:
   topics:
     orders: orders
     executions: executions
+    trades: trades
     partitions: 3
