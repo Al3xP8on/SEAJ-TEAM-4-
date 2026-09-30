@@ -12,6 +12,7 @@ import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.InstrumentsRepository;
 import com.neueda.leap.services.OrderService;
+import com.neueda.leap.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,15 +51,23 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrder(@PathVariable String id) {
-        logger.info("GET /v1/orders/{} - Fetching order by ID", id);
+    public ResponseEntity<Order> getOrder(@PathVariable UUID id) {
+        logger.info("GET /v1/orders/{} - Fetching order by ID", Utils.maskUUID(id.toString()));
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
-            logger.info("Order found: {}", id);
+            logger.info("Order found: {}", Utils.maskUUID(id.toString()));
             return ResponseEntity.ok(order.get());
         }
-        logger.warn("Order not found: {}", id);
+        logger.warn("Order not found: {}", Utils.maskUUID(id.toString()));
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<Order>> getOrdersByStatus(@PathVariable OrderStatus status) {
+        logger.info("GET /v1/orders/status/{} - Fetching orders by status", status);
+        List<Order> orders = orderService.getOrdersByStatus(status);
+        logger.info("Found {} orders with status {}", orders.size(), status);
+        return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/account/{accountId}")
@@ -67,7 +76,7 @@ public class OrderController {
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
-        logger.info("GET /v1/orders/account/{} - Fetching orders for account", accountId);
+        logger.info("GET /v1/orders/account/{} - Fetching orders for account", Utils.maskSensitiveId(accountId));
         List<Order> orders = orderService.getOrdersByAccount(accountId);
         
         // Filter by status if provided
@@ -78,19 +87,27 @@ public class OrderController {
                 .collect(java.util.stream.Collectors.toList());
         }
         
-        logger.info("Found {} orders for account {}", orders.size(), accountId);
+        logger.info("Found {} orders for account {}", orders.size(), Utils.maskSensitiveId(accountId));
+        return ResponseEntity.ok(orders);
+    }
+
+    @GetMapping("/account/{accountId}/pending")
+    public ResponseEntity<List<Order>> getPendingOrdersByAccount(@PathVariable String accountId) {
+        logger.info("GET /v1/orders/account/{}/pending - Fetching pending orders for account", Utils.maskSensitiveId(accountId));
+        List<Order> orders = orderService.getPendingOrdersByAccount(accountId);
+        logger.info("Found {} pending orders for account {}", orders.size(), Utils.maskSensitiveId(accountId));
         return ResponseEntity.ok(orders);
     }
 
     @PostMapping
     public ResponseEntity<Order> createOrder(@RequestBody PlaceOrderRequest request) {
-        logger.info("POST /v1/orders - Creating order for account {} with symbol {}", request.getAccountId(), request.getSymbol());
+        logger.info("POST /v1/orders - Creating order for account {} with symbol {}", Utils.maskSensitiveId(request.getAccountId()), request.getSymbol());
         
         try {
             // Fetch Account
             Optional<Account> account = accountRepository.findByAccountId(request.getAccountId());
             if (account.isEmpty()) {
-                logger.warn("Account not found: {}", request.getAccountId());
+                logger.warn("Account not found: {}", Utils.maskSensitiveId(request.getAccountId()));
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
 
@@ -123,7 +140,7 @@ public class OrderController {
                 idempotencyKey
             );
 
-            logger.info("Order created successfully: {}", order.getId());
+            logger.info("Order created successfully: {}", Utils.maskUUID(order.getId().toString()));
             return ResponseEntity.status(HttpStatus.CREATED).body(order);
         } catch (DuplicateOrderException e) {
             logger.error("Duplicate order: {}", e.getMessage());
@@ -137,57 +154,16 @@ public class OrderController {
         }
     }
 
-    @PutMapping("/{id}/execute")
-    public ResponseEntity<Order> executeOrder(@PathVariable String id) {
-        logger.info("PUT /v1/orders/{}/execute - Executing order", id);
-        try {
-            Order order = orderService.executeOrder(id);
-            logger.info("Order executed: {}", id);
-            return ResponseEntity.ok(order);
-        } catch (OrderException e) {
-            logger.error("Failed to execute order {}: {}", id, e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-
-    @PutMapping("/{id}/cancel")
-    public ResponseEntity<Order> cancelOrder(@PathVariable String id) {
-        logger.info("PUT /v1/orders/{}/cancel - Cancelling order", id);
-        try {
-            Order order = orderService.cancelOrder(id);
-            logger.info("Order cancelled: {}", id);
-            return ResponseEntity.ok(order);
-        } catch (OrderException e) {
-            logger.error("Failed to cancel order {}: {}", id, e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-
-    @PutMapping("/{id}/reject")
-    public ResponseEntity<Order> rejectOrder(
-            @PathVariable String id,
-            @RequestParam String reason) {
-        logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", id, reason);
-        try {
-            Order order = orderService.rejectOrder(id, reason);
-            logger.info("Order rejected: {}", id);
-            return ResponseEntity.ok(order);
-        } catch (OrderException e) {
-            logger.error("Failed to reject order {}: {}", id, e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-
     @GetMapping("/{id}/history")
-    public ResponseEntity<List<OrderHistory>> getOrderHistory(@PathVariable String id) {
-        logger.info("GET /v1/orders/{}/history - Fetching order history", id);
+    public ResponseEntity<List<OrderHistory>> getOrderHistory(@PathVariable UUID id) {
+        logger.info("GET /v1/orders/{}/history - Fetching order history", Utils.maskUUID(id.toString()));
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
             List<OrderHistory> history = orderService.getOrderHistory(id);
-            logger.info("Found {} history records for order {}", history.size(), id);
+            logger.info("Found {} history records for order {}", history.size(), Utils.maskUUID(id.toString()));
             return ResponseEntity.ok(history);
         }
-        logger.warn("Order not found for history: {}", id);
+        logger.warn("Order not found for history: {}", Utils.maskUUID(id.toString()));
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 }
