@@ -52,7 +52,7 @@ public class PositionsController {
         }
     }
     
-    @GetMapping("/{accountId}/positions/{symbol}")
+    @GetMapping("/{accountId}/positions/symbol/{symbol}")
     public ResponseEntity<?> getPositionBySymbol(@PathVariable Long accountId, @PathVariable String symbol) {
         try {
             Optional<PositionResponse> position = positionsService.getPositionBySymbol(accountId, symbol);
