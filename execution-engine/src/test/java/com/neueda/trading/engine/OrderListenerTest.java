@@ -35,7 +35,8 @@ class OrderListenerTest {
     private OrderListener listener() {
         EngineProperties props = new EngineProperties(Duration.ofMillis(750), Duration.ofMillis(750), 0, "SIM");
         SimulatedMarket market = new SimulatedMarket(props, new Random(1), Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
-        return new OrderListener(market, d -> paused = d, kafka, mapper, "executions");
+        TradesEventPublisher tradesPublisher = mock(TradesEventPublisher.class);
+        return new OrderListener(market, d -> paused = d, kafka, mapper, "executions", tradesPublisher);
     }
 
     @Test

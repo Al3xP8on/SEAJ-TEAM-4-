@@ -33,14 +33,17 @@ public class OrderListener {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
     private final String executionsTopic;
+    private final TradesEventPublisher tradesEventPublisher;
 
     public OrderListener(SimulatedMarket market, Pauser pauser, KafkaTemplate<String, String> kafkaTemplate,
-                         ObjectMapper objectMapper, @Value("${engine.topics.executions}") String executionsTopic) {
+                         ObjectMapper objectMapper, @Value("${engine.topics.executions}") String executionsTopic,
+                         TradesEventPublisher tradesEventPublisher) {
         this.market = market;
         this.pauser = pauser;
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
         this.executionsTopic = executionsTopic;
+        this.tradesEventPublisher = tradesEventPublisher;
     }
 
     @KafkaListener(topics = "${engine.topics.orders}", groupId = "${spring.kafka.consumer.group-id}",
@@ -62,6 +65,7 @@ public class OrderListener {
 
         kafkaTemplate.send(executionsTopic, fill.accountId(), objectMapper.writeValueAsString(fill))
                 .get(10, TimeUnit.SECONDS);
+        tradesEventPublisher.publishExecutionEvent(fill);
         log.info("Filled order {} at {} on {}", fill.orderId(), fill.price(), fill.venue());
     }
 }
