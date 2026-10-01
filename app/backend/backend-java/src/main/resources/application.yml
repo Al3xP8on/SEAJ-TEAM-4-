@@ -8,3 +8,22 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: seaj-backend
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+trading:
+  kafka:
+    topics:
+      orders: orders
+      executions: executions
+  orders:
+    republish-after: PT5M
+    republish-interval: PT1M
