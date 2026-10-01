@@ -9,7 +9,7 @@ CREATE TABLE positions (
     average_cost    NUMERIC(18, 2) NOT NULL DEFAULT 0,
     status          VARCHAR(20) NOT NULL DEFAULT 'OPEN',
     opened_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    closeD_at TIMESTAMP,
+    closed_at TIMESTAMP,
     realized_pnl NUMERIC(18, 2),
     UNIQUE (account_id, symbol)
 );

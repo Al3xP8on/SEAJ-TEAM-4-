@@ -44,7 +44,7 @@ public class Positions {
     private LocalDateTime closedAt;
 
     @Column(name = "realized_pnl", precision = 19, scale = SCALE)
-    private BigDecimal realizedPnL;
+    private BigDecimal realisedPnL;
 
     
 
@@ -150,12 +150,12 @@ public class Positions {
         this.closedAt = closedAt;
     }
 
-    public BigDecimal getRealizedPnL() {
-        return realizedPnL;
+    public BigDecimal getRealisedPnL() {
+        return realisedPnL;
     }
 
-    public void setRealizedPnL(BigDecimal realizedPnL) {
-        this.realizedPnL = realizedPnL;
+    public void setRealisedPnL(BigDecimal realisedPnL) {
+        this.realisedPnL = realisedPnL;
     }
 
     @Override
