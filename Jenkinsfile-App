@@ -58,10 +58,23 @@ pipeline {
             }
         }
         
+        stage('Quality Gate') {
+            steps {
+                echo "=========================================="
+                echo "STEP 3: SonarQube Analysis & Quality Gate"
+                echo "=========================================="
+                dir('app/backend/backend-java') {
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        sh 'mvn -B sonar:sonar -Dsonar.token=$SONAR_TOKEN -Dsonar.qualitygate.wait=true'
+                    }
+                }
+            }
+        }
+        
         stage('Build Docker Image') {
             steps {
                 echo "=========================================="
-                echo "STEP 3: Building Docker Image"
+                echo "STEP 4: Building Docker Image"
                 echo "=========================================="
                 dir('app/backend/backend-java') {
                     sh '''
@@ -81,7 +94,7 @@ pipeline {
         stage('Smoke Test - Container Startup') {
             steps {
                 echo "=========================================="
-                echo "STEP 4: Smoke Test - Container Startup"
+                echo "STEP 5: Smoke Test - Container Startup"
                 echo "=========================================="
                 sh '''
                     IMAGE_TAG="team-skeleton:${BUILD_NUMBER}"
@@ -114,7 +127,7 @@ pipeline {
         stage('Verify JPA Entities') {
             steps {
                 echo "=========================================="
-                echo "STEP 5: Verify JPA Entity Configuration"
+                echo "STEP 6: Verify JPA Entity Configuration"
                 echo "=========================================="
                 dir('app/backend/backend-java') {
                     sh '''
@@ -142,7 +155,7 @@ pipeline {
             }
             steps {
                 echo "=========================================="
-                echo "STEP 6: Push Docker Image to Registry"
+                echo "STEP 7: Push Docker Image to Registry"
                 echo "=========================================="
                 sh '''
                     IMAGE_TAG="team-skeleton:${BUILD_NUMBER}"
