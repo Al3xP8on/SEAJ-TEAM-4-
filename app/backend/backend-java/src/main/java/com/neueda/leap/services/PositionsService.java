@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
+import com.neueda.leap.dtos.ClosePositionRequest;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -55,7 +55,7 @@ public class PositionsService {
     }
     
     @Transactional
-    public PositionResponse closePosition(Long accountId, Long positionId, Map<String, Object> request) 
+    public PositionResponse closePosition(Long accountId, Long positionId, ClosePositionRequest request) 
             throws AccountNotFoundException, PositionNotFoundException, InsufficientHoldingsException {
         validator.validateAccountId(accountId);
         accountService.getAccount(accountId);
@@ -64,16 +64,9 @@ public class PositionsService {
                 .orElseThrow(() -> new PositionNotFoundException(
                         String.format("Position %d not found for account %d", positionId, accountId)));
         
-        BigDecimal closingPrice = new BigDecimal(request.get("closingPrice").toString());
+        BigDecimal closingPrice = request.closingPrice();
         validator.validatePrice(closingPrice);
-        int closingQuantity = 0;
-
-        Object quantityObj = request.get("closingQuantity");
-        if (quantityObj instanceof Number) {
-            closingQuantity = ((Number) quantityObj).intValue();
-        } else if (quantityObj instanceof String) {
-            closingQuantity = Integer.parseInt((String) quantityObj);
-        }
+        int closingQuantity = request.closingQuantity();
         validator.validateQuantity(closingQuantity);
         
         if (closingQuantity <= 0 || closingQuantity > position.getQuantity()) {
@@ -90,10 +83,15 @@ public class PositionsService {
     
     private PositionResponse toResponse(Positions position) {
         return new PositionResponse(
-            String.valueOf(position.getAccountId()),
+            position.getPositionId(),
+            position.getAccountId(),
             position.getSymbol(),
             position.getQuantity(),
-            position.getAverageCost()
+            position.getAverageCost(),
+            position.getStatus(),
+            position.getOpenedAt(),
+            position.getClosedAt(),
+            position.getRealisedPnL()
         );
     }
 }
