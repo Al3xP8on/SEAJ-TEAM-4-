@@ -8,6 +8,7 @@ import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Order;
 import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.OrderRepository;
+import com.neueda.leap.utils.LogMaskingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,13 +74,13 @@ public class TradeEventListener {
             EventEnvelope envelope = objectMapper.readValue(message, EventEnvelope.class);
             
             logger.info("Received EventEnvelope - Event ID: {} | Event Type: {} | Partition: {} | Offset: {}",
-                    envelope.eventId(), envelope.eventType(), partition, offset);
+                    LogMaskingUtil.maskId(envelope.eventId().toString()), envelope.eventType(), partition, offset);
             
             // Extract TradeEvent from payload
             TradeEvent event = extractTradeEvent(envelope.payload());
             
             logger.info("Processing trade event - Account: {} | Trade ID: {} | Status: {} | Partition: {} | Offset: {}",
-                    event.getAccountId(), event.getTradeId(), event.getStatus(), partition, offset);
+                    LogMaskingUtil.maskAccountId(event.getAccountId()), LogMaskingUtil.maskId(event.getTradeId()), event.getStatus(), partition, offset);
             
             // Process the trade event based on EventType
             switch (envelope.eventType()) {
@@ -183,7 +184,7 @@ public class TradeEventListener {
             
             // Validate account is active
             if (!account.isValidForTrading()) {
-                logger.warn("Account {} is not valid for trading", event.getAccountId());
+                logger.warn("Account {} is not valid for trading", LogMaskingUtil.maskAccountId(event.getAccountId()));
                 return;
             }
             

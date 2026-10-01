@@ -16,6 +16,7 @@ import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.InstrumentsRepository;
 import com.neueda.leap.services.OrderService;
+import com.neueda.leap.utils.LogMaskingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,13 +65,13 @@ public class OrderController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Order> getOrder(@PathVariable UUID id) {
-        logger.info("GET /v1/orders/{} - Fetching order by ID", id);
+        logger.info("GET /v1/orders/{} - Fetching order by ID", LogMaskingUtil.maskId(id));
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
-            logger.info("Order found: {}", id);
+            logger.info("Order found: {}", LogMaskingUtil.maskId(id));
             return ResponseEntity.ok(order.get());
         }
-        logger.warn("Order not found: {}", id);
+        logger.warn("Order not found: {}", LogMaskingUtil.maskId(id));
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
@@ -80,7 +81,7 @@ public class OrderController {
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
-        logger.info("GET /v1/orders/account/{} - Fetching orders for account", accountId);
+        logger.info("GET /v1/orders/account/{} - Fetching orders for account", LogMaskingUtil.maskAccountId(accountId));
         List<Order> orders = orderService.getOrdersByAccount(accountId);
         
         // Filter by status if provided
@@ -91,19 +92,19 @@ public class OrderController {
                 .collect(java.util.stream.Collectors.toList());
         }
         
-        logger.info("Found {} orders for account {}", orders.size(), accountId);
+        logger.info("Found {} orders for account {}", orders.size(), LogMaskingUtil.maskAccountId(accountId));
         return ResponseEntity.ok(orders);
     }
 
     @PostMapping
     public ResponseEntity<Order> createOrder(@Valid @RequestBody PlaceOrderRequest request) {
-        logger.info("POST /v1/orders - Creating order for account {} with symbol {}", request.getAccountId(), request.getSymbol());
+        logger.info("POST /v1/orders - Creating order for account {} with symbol {}", LogMaskingUtil.maskAccountId(request.getAccountId()), request.getSymbol());
         
         try {
             // Fetch Account
             Optional<Account> account = accountRepository.findByAccountId(request.getAccountId());
             if (account.isEmpty()) {
-                logger.warn("Account not found: {}", request.getAccountId());
+                logger.warn("Account not found: {}", LogMaskingUtil.maskAccountId(request.getAccountId()));
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
 
@@ -136,7 +137,7 @@ public class OrderController {
                 idempotencyKey
             );
 
-            logger.info("Order created successfully: {} - Side: {}", order.getId(), side);
+            logger.info("Order created successfully: {} - Side: {}", LogMaskingUtil.maskId(order.getId()), side);
             
             // Publish order to orders topic for execution-engine to consume
             try {
@@ -150,9 +151,9 @@ public class OrderController {
                     Instant.now()
                 );
                 orderEventPublisher.publish(orderEvent);
-                logger.info("Order published to execution-engine: {}", order.getId());
+                logger.info("Order published to execution-engine: {}", LogMaskingUtil.maskId(order.getId()));
             } catch (Exception e) {
-                logger.error("Failed to publish order to execution-engine: {}", order.getId(), e);
+                logger.error("Failed to publish order to execution-engine: {}", LogMaskingUtil.maskId(order.getId()), e);
                 // Don't fail order creation, but log the error
             }
             
@@ -170,9 +171,9 @@ public class OrderController {
                     LocalDateTime.now()
                 );
                 tradeEventPublisher.publishTradeEvent(tradeEvent);
-                logger.info("Trade event published for order: {}", order.getId());
+                logger.info("Trade event published for order: {}", LogMaskingUtil.maskId(order.getId()));
             } catch (Exception e) {
-                logger.error("Failed to publish trade event for order {}: {}", order.getId(), e.getMessage(), e);
+                logger.error("Failed to publish trade event for order {}: {}", LogMaskingUtil.maskId(order.getId()), e.getMessage(), e);
                 // Don't fail the order creation if Kafka publishing fails
             }
             
@@ -191,23 +192,23 @@ public class OrderController {
 
     @PutMapping("/{id}/execute")
     public ResponseEntity<Order> executeOrder(@PathVariable UUID id) {
-        logger.info("PUT /v1/orders/{}/execute - Executing order", id);
+        logger.info("PUT /v1/orders/{}/execute - Executing order", LogMaskingUtil.maskId(id));
         try {
             Order order = orderService.executeOrder(id);
-            logger.info("Order executed: {}", id);
+            logger.info("Order executed: {}", LogMaskingUtil.maskId(id));
             return ResponseEntity.ok(order);
         } catch (OrderException e) {
-            logger.error("Failed to execute order {}: {}", id, e.getMessage());
+            logger.error("Failed to execute order {}: {}", LogMaskingUtil.maskId(id), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
     @PutMapping("/{id}/cancel")
     public ResponseEntity<Order> cancelOrder(@PathVariable UUID id) {
-        logger.info("PUT /v1/orders/{}/cancel - Cancelling order", id);
+        logger.info("PUT /v1/orders/{}/cancel - Cancelling order", LogMaskingUtil.maskId(id));
         try {
             Order order = orderService.cancelOrder(id);
-            logger.info("Order cancelled: {}", id);
+            logger.info("Order cancelled: {}", LogMaskingUtil.maskId(id));
             
             // Publish CANCELLED trade event to Kafka
             try {
@@ -223,15 +224,15 @@ public class OrderController {
                     LocalDateTime.now()
                 );
                 tradeEventPublisher.publishTradeEvent(cancelledEvent);
-                logger.info("Cancellation event published for order: {}", id);
+                logger.info("Cancellation event published for order: {}", LogMaskingUtil.maskId(id));
             } catch (Exception e) {
-                logger.error("Failed to publish cancellation event for order {}: {}", id, e.getMessage(), e);
+                logger.error("Failed to publish cancellation event for order {}: {}", LogMaskingUtil.maskId(id), e.getMessage(), e);
                 // Don't fail the cancellation if Kafka publishing fails
             }
             
             return ResponseEntity.ok(order);
         } catch (OrderException e) {
-            logger.error("Failed to cancel order {}: {}", id, e.getMessage());
+            logger.error("Failed to cancel order {}: {}", LogMaskingUtil.maskId(id), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
@@ -240,13 +241,13 @@ public class OrderController {
     public ResponseEntity<Order> rejectOrder(
             @PathVariable UUID id,
             @RequestParam String reason) {
-        logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", id, reason);
+        logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", LogMaskingUtil.maskId(id), reason);
         try {
             Order order = orderService.rejectOrder(id, reason);
-            logger.info("Order rejected: {}", id);
+            logger.info("Order rejected: {}", LogMaskingUtil.maskId(id));
             return ResponseEntity.ok(order);
         } catch (OrderException e) {
-            logger.error("Failed to reject order {}: {}", id, e.getMessage());
+            logger.error("Failed to reject order {}: {}", LogMaskingUtil.maskId(id), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
