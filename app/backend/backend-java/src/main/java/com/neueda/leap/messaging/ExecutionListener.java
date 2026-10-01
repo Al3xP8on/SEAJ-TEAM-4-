@@ -7,6 +7,7 @@ import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Order;
 import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.OrderRepository;
+import com.neueda.leap.utils.LogMaskingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,12 +58,12 @@ public class ExecutionListener {
             Optional<Account> accountOpt = accountRepository.findByAccountId(event.accountId());
 
             if (orderOpt.isEmpty()) {
-                log.warn("Order not found for execution: {}", event.orderId());
+                log.warn("Order not found for execution: {}", LogMaskingUtil.maskId(event.orderId()));
                 return;
             }
 
             if (accountOpt.isEmpty()) {
-                log.warn("Account not found for execution: {}", event.accountId());
+                log.warn("Account not found for execution: {}", LogMaskingUtil.maskAccountId(event.accountId()));
                 return;
             }
 
@@ -71,7 +72,7 @@ public class ExecutionListener {
 
             // Only settle if order is still NEW (at-least-once delivery safety)
             if (!order.getStatus().equals(OrderStatus.NEW)) {
-                log.info("Order {} is already {}, skipping duplicate execution", event.orderId(), order.getStatus());
+                log.info("Order {} is already {}, skipping duplicate execution", LogMaskingUtil.maskId(event.orderId()), order.getStatus());
                 return;
             }
 
@@ -86,7 +87,7 @@ public class ExecutionListener {
                     account.credit(executionAmount);
                 }
             } catch (IllegalArgumentException e) {
-                log.warn("Cannot complete execution for order {}: {}", event.orderId(), e.getMessage());
+                log.warn("Cannot complete execution for order {}: {}", LogMaskingUtil.maskId(event.orderId()), e.getMessage());
                 return;
             }
 
@@ -97,8 +98,8 @@ public class ExecutionListener {
             orderRepository.save(order);
 
             log.info("Execution settled: Order {} FILLED | {} {} @ {} | Account {} balance: ${} | Venue: {}",
-                    event.orderId(), event.side(), event.quantity(), event.price(),
-                    event.accountId(), account.getCashBalance(), event.venue());
+                    LogMaskingUtil.maskId(event.orderId()), event.side(), event.quantity(), event.price(),
+                    LogMaskingUtil.maskAccountId(event.accountId()), account.getCashBalance(), event.venue());
 
         } catch (Exception e) {
             log.error("Error settling execution event", e);

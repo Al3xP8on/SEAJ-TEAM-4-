@@ -1,6 +1,7 @@
 package com.neueda.leap.messaging;
 
 
+import com.neueda.leap.utils.LogMaskingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,7 +40,7 @@ public class TradeEventPublisher {
      */
     public void publishTradeEvent(TradeEvent event) {
         logger.info("Publishing trade event for account: {} - Trade ID: {} - Status: {}",
-                event.getAccountId(), event.getTradeId(), event.getStatus());
+                LogMaskingUtil.maskAccountId(event.getAccountId()), LogMaskingUtil.maskId(event.getTradeId()), event.getStatus());
         
         try {
             // Map TradeEvent status to EventType
