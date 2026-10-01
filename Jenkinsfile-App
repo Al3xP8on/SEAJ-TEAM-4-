@@ -47,7 +47,7 @@ pipeline {
                 dir('app/backend/backend-java') {
                     sh '''
                         echo "Running Maven test suite..."
-                        mvn -B test -Dexcludes="**/OrderControllerTest.java,**/PriceHistoryControllerTest.java"
+                        mvn -B test -Dsurefire.excludes="**/OrderControllerTest.java,**/PriceHistoryControllerTest.java"
                         echo "✓ Tests passed"
                     '''
                 }
