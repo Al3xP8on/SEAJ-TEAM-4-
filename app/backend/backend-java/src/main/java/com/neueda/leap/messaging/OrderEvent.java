@@ -1,6 +1,6 @@
-package com.neueda.trading.app.messaging;
+package com.neueda.leap.messaging;
 
-import com.neueda.trading.app.enums.OrderSide;
+import com.neueda.leap.enums.OrderSide;
 
 import java.math.BigDecimal;
 import java.time.Instant;

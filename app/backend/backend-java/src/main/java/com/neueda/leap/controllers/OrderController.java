@@ -5,6 +5,10 @@ import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.enums.OrderSide;
 import com.neueda.leap.exceptions.OrderException;
 import com.neueda.leap.exceptions.DuplicateOrderException;
+import com.neueda.leap.messaging.OrderEvent;
+import com.neueda.leap.messaging.OrderEventPublisher;
+import com.neueda.leap.messaging.TradeEvent;
+import com.neueda.leap.messaging.TradeEventPublisher;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.models.Order;
@@ -12,7 +16,6 @@ import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.InstrumentsRepository;
 import com.neueda.leap.services.OrderService;
-import com.neueda.leap.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/v1/orders")
@@ -41,6 +47,12 @@ public class OrderController {
     @Autowired
     private InstrumentsRepository instrumentsRepository;
 
+    @Autowired
+    private OrderEventPublisher orderEventPublisher;
+
+    @Autowired
+    private TradeEventPublisher tradeEventPublisher;
+
     @GetMapping
     public ResponseEntity<List<Order>> getAllOrders() {
         logger.info("GET /v1/orders - Fetching all orders");
@@ -52,22 +64,14 @@ public class OrderController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Order> getOrder(@PathVariable UUID id) {
-        logger.info("GET /v1/orders/{} - Fetching order by ID", Utils.maskUUID(id.toString()));
+        logger.info("GET /v1/orders/{} - Fetching order by ID", id);
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
-            logger.info("Order found: {}", Utils.maskUUID(id.toString()));
+            logger.info("Order found: {}", id);
             return ResponseEntity.ok(order.get());
         }
-        logger.warn("Order not found: {}", Utils.maskUUID(id.toString()));
+        logger.warn("Order not found: {}", id);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-    }
-
-    @GetMapping("/status/{status}")
-    public ResponseEntity<List<Order>> getOrdersByStatus(@PathVariable OrderStatus status) {
-        logger.info("GET /v1/orders/status/{} - Fetching orders by status", status);
-        List<Order> orders = orderService.getOrdersByStatus(status);
-        logger.info("Found {} orders with status {}", orders.size(), status);
-        return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/account/{accountId}")
@@ -76,7 +80,7 @@ public class OrderController {
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
-        logger.info("GET /v1/orders/account/{} - Fetching orders for account", Utils.maskSensitiveId(accountId));
+        logger.info("GET /v1/orders/account/{} - Fetching orders for account", accountId);
         List<Order> orders = orderService.getOrdersByAccount(accountId);
         
         // Filter by status if provided
@@ -87,27 +91,19 @@ public class OrderController {
                 .collect(java.util.stream.Collectors.toList());
         }
         
-        logger.info("Found {} orders for account {}", orders.size(), Utils.maskSensitiveId(accountId));
-        return ResponseEntity.ok(orders);
-    }
-
-    @GetMapping("/account/{accountId}/pending")
-    public ResponseEntity<List<Order>> getPendingOrdersByAccount(@PathVariable String accountId) {
-        logger.info("GET /v1/orders/account/{}/pending - Fetching pending orders for account", Utils.maskSensitiveId(accountId));
-        List<Order> orders = orderService.getPendingOrdersByAccount(accountId);
-        logger.info("Found {} pending orders for account {}", orders.size(), Utils.maskSensitiveId(accountId));
+        logger.info("Found {} orders for account {}", orders.size(), accountId);
         return ResponseEntity.ok(orders);
     }
 
     @PostMapping
-    public ResponseEntity<Order> createOrder(@RequestBody PlaceOrderRequest request) {
-        logger.info("POST /v1/orders - Creating order for account {} with symbol {}", Utils.maskSensitiveId(request.getAccountId()), request.getSymbol());
+    public ResponseEntity<Order> createOrder(@Valid @RequestBody PlaceOrderRequest request) {
+        logger.info("POST /v1/orders - Creating order for account {} with symbol {}", request.getAccountId(), request.getSymbol());
         
         try {
             // Fetch Account
             Optional<Account> account = accountRepository.findByAccountId(request.getAccountId());
             if (account.isEmpty()) {
-                logger.warn("Account not found: {}", Utils.maskSensitiveId(request.getAccountId()));
+                logger.warn("Account not found: {}", request.getAccountId());
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
 
@@ -127,8 +123,8 @@ public class OrderController {
             // Generate idempotency key
             String idempotencyKey = UUID.randomUUID().toString();
 
-            // Default to BUY side
-            OrderSide side = OrderSide.BUY;
+            // Use side from request (BUY or SELL)
+            OrderSide side = request.getSide();
 
             // Create the order
             Order order = orderService.createOrder(
@@ -140,7 +136,46 @@ public class OrderController {
                 idempotencyKey
             );
 
-            logger.info("Order created successfully: {}", Utils.maskUUID(order.getId().toString()));
+            logger.info("Order created successfully: {} - Side: {}", order.getId(), side);
+            
+            // Publish order to orders topic for execution-engine to consume
+            try {
+                OrderEvent orderEvent = new OrderEvent(
+                    order.getId(),
+                    request.getAccountId(),
+                    request.getSymbol(),
+                    side,
+                    request.getQuantity(),
+                    request.getPrice(),
+                    Instant.now()
+                );
+                orderEventPublisher.publish(orderEvent);
+                logger.info("Order published to execution-engine: {}", order.getId());
+            } catch (Exception e) {
+                logger.error("Failed to publish order to execution-engine: {}", order.getId(), e);
+                // Don't fail order creation, but log the error
+            }
+            
+            // Publish trade event to Kafka for status tracking (INITIATED → PENDING)
+            try {
+                TradeEvent tradeEvent = new TradeEvent(
+                    order.getId(),
+                    request.getAccountId(),
+                    request.getSymbol(),
+                    side.toString(),
+                    request.getPrice(),
+                    request.getQuantity(),
+                    "INITIATED",
+                    request.getTimeInForce().toString(),
+                    LocalDateTime.now()
+                );
+                tradeEventPublisher.publishTradeEvent(tradeEvent);
+                logger.info("Trade event published for order: {}", order.getId());
+            } catch (Exception e) {
+                logger.error("Failed to publish trade event for order {}: {}", order.getId(), e.getMessage(), e);
+                // Don't fail the order creation if Kafka publishing fails
+            }
+            
             return ResponseEntity.status(HttpStatus.CREATED).body(order);
         } catch (DuplicateOrderException e) {
             logger.error("Duplicate order: {}", e.getMessage());
@@ -154,16 +189,78 @@ public class OrderController {
         }
     }
 
+    @PutMapping("/{id}/execute")
+    public ResponseEntity<Order> executeOrder(@PathVariable UUID id) {
+        logger.info("PUT /v1/orders/{}/execute - Executing order", id);
+        try {
+            Order order = orderService.executeOrder(id);
+            logger.info("Order executed: {}", id);
+            return ResponseEntity.ok(order);
+        } catch (OrderException e) {
+            logger.error("Failed to execute order {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<Order> cancelOrder(@PathVariable UUID id) {
+        logger.info("PUT /v1/orders/{}/cancel - Cancelling order", id);
+        try {
+            Order order = orderService.cancelOrder(id);
+            logger.info("Order cancelled: {}", id);
+            
+            // Publish CANCELLED trade event to Kafka
+            try {
+                TradeEvent cancelledEvent = new TradeEvent(
+                    order.getId(),
+                    order.getAccount().getAccountId(),
+                    order.getInstrument().getSymbol(),
+                    order.getSide().toString(),
+                    order.getPrice(),
+                    order.getQuantity(),
+                    "CANCELLED",
+                    "GTC",  // timeInForce
+                    LocalDateTime.now()
+                );
+                tradeEventPublisher.publishTradeEvent(cancelledEvent);
+                logger.info("Cancellation event published for order: {}", id);
+            } catch (Exception e) {
+                logger.error("Failed to publish cancellation event for order {}: {}", id, e.getMessage(), e);
+                // Don't fail the cancellation if Kafka publishing fails
+            }
+            
+            return ResponseEntity.ok(order);
+        } catch (OrderException e) {
+            logger.error("Failed to cancel order {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<Order> rejectOrder(
+            @PathVariable UUID id,
+            @RequestParam String reason) {
+        logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", id, reason);
+        try {
+            Order order = orderService.rejectOrder(id, reason);
+            logger.info("Order rejected: {}", id);
+            return ResponseEntity.ok(order);
+        } catch (OrderException e) {
+            logger.error("Failed to reject order {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
     @GetMapping("/{id}/history")
     public ResponseEntity<List<OrderHistory>> getOrderHistory(@PathVariable UUID id) {
-        logger.info("GET /v1/orders/{}/history - Fetching order history", Utils.maskUUID(id.toString()));
+        logger.info("GET /v1/orders/{}/history - Fetching order history", id);
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
             List<OrderHistory> history = orderService.getOrderHistory(id);
-            logger.info("Found {} history records for order {}", history.size(), Utils.maskUUID(id.toString()));
+            logger.info("Found {} history records for order {}", history.size(), id);
             return ResponseEntity.ok(history);
         }
-        logger.warn("Order not found for history: {}", Utils.maskUUID(id.toString()));
+        logger.warn("Order not found for history: {}", id);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 }
