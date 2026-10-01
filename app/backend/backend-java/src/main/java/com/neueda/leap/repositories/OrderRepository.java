@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,4 +25,11 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     
     @Query("SELECT o FROM Order o WHERE o.account.accountId = :accountId AND o.status = :status")
     List<Order> findByAccountIdAndStatus(@Param("accountId") String accountId, @Param("status") OrderStatus status);
+    
+    /**
+     * Find orders with a specific status created before a given timestamp.
+     * Used for republishing stale orders (e.g., those created before Kafka was available).
+     */
+    @Query("SELECT o FROM Order o WHERE o.status = :status AND o.createdAt < :createdBefore")
+    List<Order> findByStatusAndCreatedBefore(@Param("status") OrderStatus status, @Param("createdBefore") LocalDateTime createdBefore);
 }
