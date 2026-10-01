@@ -90,5 +90,16 @@ services:
       ENGINE_MAX_DELAY: "${ENGINE_MAX_DELAY:-2000ms}"
       ENGINE_MAX_PRICE_IMPROVEMENT_BPS: "${ENGINE_MAX_PRICE_IMPROVEMENT_BPS:-50}"
 
+  sonarqube:
+    image: sonarqube:9.9-community
+    container_name: seaj_sonarqube
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+
 volumes:
   pgdata_volume:
+  sonarqube_data:
+  sonarqube_logs:

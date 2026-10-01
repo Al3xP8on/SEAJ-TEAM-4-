@@ -20,7 +20,23 @@
         <maven.compiler.parameters>true</maven.compiler.parameters>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.10.2</junit.version>
+        <spring.version>6.1.8</spring.version>
+        <sonar.projectKey>seaj-team-4</sonar.projectKey>
+        <sonar.projectName>SEAJ Team 4</sonar.projectName>
+        <sonar.host.url>http://10.9.69.224:9000</sonar.host.url>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>6.1.8</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
      <dependency>
@@ -140,6 +156,11 @@
                         </manifest>
                     </archive>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>4.0.0.4121</version>
             </plugin>
             <!-- OWASP Dependency Check (disabled for development - network issues) -->
             <!-- 
