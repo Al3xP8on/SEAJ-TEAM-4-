@@ -34,3 +34,11 @@ trading:
   orders:
     republish-after: PT5M
     republish-interval: PT1M
+
+market:
+  data:
+    poll:
+      symbols: AAPL,GOOGL,MSFT,TSLA,META
+      interval: 5000
+    staleness:
+      threshold-seconds: 60
