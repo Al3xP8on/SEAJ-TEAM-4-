@@ -1,25 +1,38 @@
 package com.neueda.leap.dtos;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import com.neueda.leap.enums.PositionStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 public record PositionResponse(
-    @Schema(description="Account ID")
-    @NotBlank(message="Account ID must not be blank")
-    String accountId,
+    @Schema(description="Position ID", example = "1")
+    Long positionId,
+
+    @Schema(description="Account ID", example = "1")
+    Long accountId,
 
     @Schema(description="Trading symbol", example="AAPL")
-    @NotBlank(message="Symbol must not be blank")
     String symbol,
 
     @Schema(description="Number of shares in position", example="100")
-    @Positive(message="Quantity must be positive")
     int quantity,
 
     @Schema(description="Average entry price per share", example="150.00")
-    @NotNull(message="Average cost must not be null")
-    BigDecimal averageCost
+    BigDecimal averageCost,
+
+    @Schema(description= "Current position status", example="OPEN")
+    PositionStatus status,
+
+    @Schema(description="Time the position was opened")
+    LocalDateTime openedAt,
+
+    @Schema(description="Time the position was closed")
+    LocalDateTime closedAt,
+
+    @Schema(description="Realised profit or loss", example="500.00")
+    BigDecimal realisedPnL
 ) {}
