@@ -47,11 +47,7 @@ pipeline {
                 dir('app/backend/backend-java') {
                     sh '''
                         echo "Running Maven test suite..."
-                        mvn -B test || {
-                            echo "Tests failed - collecting reports..."
-                            find target/surefire-reports -name "*.xml" -exec cat {} \\;
-                            exit 1
-                        }
+                        mvn -B test
                         echo "✓ Tests passed"
                     '''
                 }
