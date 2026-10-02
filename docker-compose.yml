@@ -48,7 +48,7 @@ services:
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://${REMOTE_HOST:-localhost}:9094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
@@ -94,7 +94,7 @@ services:
     image: sonarqube:9.9-community
     container_name: seaj_sonarqube
     ports:
-      - "9000:9000"
+      - "8088:9000" 
     environment:
       - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
       - sonar.search.javaAdditionalOpts=-Xmx512m -Xms512m -XX:MaxDirectMemorySize=256m
