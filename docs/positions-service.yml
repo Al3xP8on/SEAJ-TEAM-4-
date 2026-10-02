@@ -20,7 +20,7 @@ tags:
     description: Position management and retrieval
 
 paths:
-  /accounts/{accountId}/positions:
+  /v1/positions/{accountId}/positions:
     get:
       operationId: getPositions
       tags:
@@ -57,7 +57,7 @@ paths:
         '500':
           $ref: './shared-schemas.yml#/components/responses/InternalServerError'
 
-  /accounts/{accountId}/positions/{positionId}:
+  /v1/positions/{accountId}/positions/{positionId}:
     get:
       operationId: getPosition
       tags:

@@ -90,5 +90,20 @@ services:
       ENGINE_MAX_DELAY: "${ENGINE_MAX_DELAY:-2000ms}"
       ENGINE_MAX_PRICE_IMPROVEMENT_BPS: "${ENGINE_MAX_PRICE_IMPROVEMENT_BPS:-50}"
 
+  sonarqube:
+    image: sonarqube:9.9-community
+    container_name: seaj_sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+      - sonar.search.javaAdditionalOpts=-Xmx512m -Xms512m -XX:MaxDirectMemorySize=256m
+      - ES_JAVA_OPTS=-Des.cluster.routing.allocation.disk.watermark.low=97% -Des.cluster.routing.allocation.disk.watermark.high=98% -Des.cluster.routing.allocation.disk.watermark.flood_stage=99%
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+
 volumes:
   pgdata_volume:
+  sonarqube_data:
+  sonarqube_logs:

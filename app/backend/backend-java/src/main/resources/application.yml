@@ -2,9 +2,43 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/SEAJ_db
     username: postgres
-    password: n3u3d4!
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${HIBERNATE_DDL_AUTO:validate}
+  kafka:
+    bootstrap-servers: kafka:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: latest
+      group-id: app-service
+
+trading:
+  kafka:
+    topics:
+      trades: trades
+      trade-events: trade-events
+      market-data: market-data
+      orders: orders
+      executions: executions
+    partitions:
+      trades: 2
+      trade-events: 3
+      market-data: 6
+  orders:
+    republish-after: PT5M
+    republish-interval: PT1M
+
+market:
+  data:
+    poll:
+      symbols: AAPL,GOOGL,MSFT,TSLA,META
+      interval: 5000
+    staleness:
+      threshold-seconds: 60
