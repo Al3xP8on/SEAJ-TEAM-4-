@@ -5,6 +5,7 @@ import com.neueda.leap.models.Order;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.enums.OrderErrorCode;
+import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.utils.Utils;
 import org.springframework.stereotype.Component;
 
@@ -83,7 +84,8 @@ public class OrderValidator {
     }
 
     public static boolean isValidForExecution(Order order) {
-        if (!order.getStatus().canTransitionToExecuted()) {
+        // Order must be in PENDING state to be executed
+        if (order.getStatus() != OrderStatus.PENDING) {
             return false;
         }
 

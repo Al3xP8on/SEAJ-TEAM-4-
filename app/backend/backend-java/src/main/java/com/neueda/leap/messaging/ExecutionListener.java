@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,6 +38,9 @@ public class ExecutionListener {
 
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private TradeEventPublisher tradeEventPublisher;
 
     @KafkaListener(topics = "${trading.kafka.topics.executions}", groupId = "${spring.kafka.consumer.group-id}")
     @Transactional
@@ -70,8 +74,9 @@ public class ExecutionListener {
             Order order = orderOpt.get();
             Account account = accountOpt.get();
 
-            // Only settle if order is still NEW (at-least-once delivery safety)
-            if (!order.getStatus().equals(OrderStatus.NEW)) {
+            // Only settle if order is still NEW or PENDING (at-least-once delivery safety)
+            // PENDING means it was accepted but not yet filled
+            if (order.getStatus() != OrderStatus.NEW && order.getStatus() != OrderStatus.PENDING) {
                 log.info("Order {} is already {}, skipping duplicate execution", LogMaskingUtil.maskId(event.orderId()), order.getStatus());
                 return;
             }
@@ -100,6 +105,49 @@ public class ExecutionListener {
             log.info("Execution settled: Order {} FILLED | {} {} @ {} | Account {} balance: ${} | Venue: {}",
                     LogMaskingUtil.maskId(event.orderId()), event.side(), event.quantity(), event.price(),
                     LogMaskingUtil.maskAccountId(event.accountId()), account.getCashBalance(), event.venue());
+            
+            // Publish TRADE_EXECUTED event first (order matched by execution engine)
+            try {
+                TradeEvent executedEvent = new TradeEvent(
+                    event.orderId(),
+                    event.accountId(),
+                    order.getInstrument().getSymbol(),
+                    event.side().toString(),
+                    event.price(),
+                    event.quantity(),
+                    "EXECUTED",
+                    "GTC",
+                    LocalDateTime.now()
+                );
+                tradeEventPublisher.publishTradeEvent(executedEvent);
+                log.info("Published TRADE_EXECUTED event for order: {}", LogMaskingUtil.maskId(event.orderId()));
+            } catch (Exception e) {
+                log.error("Failed to publish TRADE_EXECUTED event for order {}: {}", 
+                    LogMaskingUtil.maskId(event.orderId()), e.getMessage(), e);
+                // Don't fail the execution if event publishing fails
+            }
+            
+            // Publish ORDER_FILLED event to Kafka for complete audit trail
+            try {
+                TradeEvent filledEvent = new TradeEvent(
+                    event.orderId(),
+                    event.accountId(),
+                    order.getInstrument().getSymbol(),
+                    event.side().toString(),
+                    event.price(),
+                    event.quantity(),
+                    "FILLED",
+                    "GTC",
+                    LocalDateTime.now()
+                );
+                
+                tradeEventPublisher.publishTradeEvent(filledEvent);
+                log.info("Published ORDER_FILLED event for order: {}", LogMaskingUtil.maskId(event.orderId()));
+            } catch (Exception e) {
+                log.error("Failed to publish ORDER_FILLED event for order {}: {}", 
+                    LogMaskingUtil.maskId(event.orderId()), e.getMessage(), e);
+                // Don't fail the execution if event publishing fails
+            }
 
         } catch (Exception e) {
             log.error("Error settling execution event", e);

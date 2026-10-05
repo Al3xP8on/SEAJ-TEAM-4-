@@ -109,7 +109,7 @@ public class Order {
                 account.credit(totalValue);
             }
 
-            transitionToExecuted();
+            transitionToFilled();
 
         } catch (Exception e) {
             transitionToRejected("Execution error: " + e.getMessage());
@@ -133,15 +133,15 @@ public class Order {
         transitionToCancelled();
     }
 
-    private void transitionToExecuted() {
-        if (!status.canTransitionToExecuted()) {
+    private void transitionToFilled() {
+        if (status != OrderStatus.PENDING) {
             throw new OrderException(
-                "Cannot transition from " + status + " to EXECUTED",
+                "Cannot transition from " + status + " to FILLED",
                 OrderErrorCode.INVALID_STATE_TRANSITION,
                 id.toString()
             );
         }
-        this.status = OrderStatus.EXECUTED;
+        this.status = OrderStatus.FILLED;
     }
 
     private void transitionToCancelled() {

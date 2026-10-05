@@ -253,7 +253,7 @@ public class OrderControllerTest {
     @DisplayName("Should execute order successfully")
     void testExecuteOrderSuccess() throws Exception {
         Order executedOrder = new Order(testOrderId, testAccount, testInstrument, 100, new BigDecimal("150.50"),
-                                       OrderSide.BUY, "idem-key-001", OrderStatus.EXECUTED, LocalDateTime.now());
+                                       OrderSide.BUY, "idem-key-001", OrderStatus.FILLED, LocalDateTime.now());
         when(orderService.executeOrder(testOrderId)).thenReturn(executedOrder);
 
         mockMvc.perform(put("/v1/orders/" + testOrderId + "/execute")

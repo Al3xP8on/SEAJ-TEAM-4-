@@ -42,7 +42,7 @@ public class OrdersTest {
         Order order = new Order(account, instrument, 50, new BigDecimal("100.00"), OrderSide.BUY, "exec-buy-001");
         order.execute();
         
-        assertEquals(OrderStatus.EXECUTED, order.getStatus());
+        assertEquals(OrderStatus.FILLED, order.getStatus());
     }
 
     @Test
@@ -54,7 +54,7 @@ public class OrdersTest {
         Order order = new Order(account, instrument, 100, new BigDecimal("75.00"), OrderSide.SELL, "exec-sell-001");
         order.execute();
         
-        assertEquals(OrderStatus.EXECUTED, order.getStatus());
+        assertEquals(OrderStatus.FILLED, order.getStatus());
     }
 
     @Test
