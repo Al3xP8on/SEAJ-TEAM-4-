@@ -39,7 +39,13 @@ public class OrdersTest {
         Account account = new Account("ACC-002", "Buyer", "buyer@example.com", "987654321", new BigDecimal("10000.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("TSLA", "Tesla", "EQUITY", "USD", true);
         
+        // Create order in NEW status
         Order order = new Order(account, instrument, 50, new BigDecimal("100.00"), OrderSide.BUY, "exec-buy-001");
+        
+        // Transition to PENDING status (simulating pricing validation)
+        order.setStatus(OrderStatus.PENDING);
+        
+        // Now execute the order
         order.execute();
         
         assertEquals(OrderStatus.FILLED, order.getStatus());
@@ -51,7 +57,13 @@ public class OrdersTest {
         Account account = new Account("ACC-003", "Seller", "seller@example.com", "555666777", new BigDecimal("5000.00"), AccountStatus.ACTIVE);
         Instrument instrument = new Instrument("GOOGL", "Google", "EQUITY", "USD", true);
         
+        // Create order in NEW status
         Order order = new Order(account, instrument, 100, new BigDecimal("75.00"), OrderSide.SELL, "exec-sell-001");
+        
+        // Transition to PENDING status (simulating pricing validation)
+        order.setStatus(OrderStatus.PENDING);
+        
+        // Now execute the order
         order.execute();
         
         assertEquals(OrderStatus.FILLED, order.getStatus());
@@ -88,6 +100,10 @@ public class OrdersTest {
         
         Order order = new Order(poorAccount, instrument, 100, new BigDecimal("100.00"), OrderSide.BUY, "poor-001");
         
+        // Transition to PENDING status (simulating pricing validation)
+        order.setStatus(OrderStatus.PENDING);
+        
+        // Try to execute - should fail because account only has $100 but needs $10,000
         assertThrows(OrderException.class, order::execute);
         assertEquals(OrderStatus.REJECTED, order.getStatus());
     }
@@ -153,8 +169,14 @@ public class OrdersTest {
         Instrument instrument = new Instrument("TEST", "Test", "EQUITY", "USD", true);
         
         Order order = new Order(account, instrument, 50, new BigDecimal("100.00"), OrderSide.BUY, "exec-cancel-001");
+        
+        // Transition to PENDING status (simulating pricing validation)
+        order.setStatus(OrderStatus.PENDING);
+        
+        // Execute the order
         order.execute();
         
+        // Now the order is FILLED and should not be cancellable
         assertThrows(OrderException.class, () -> order.cancel());
     }
 

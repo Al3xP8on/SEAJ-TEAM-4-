@@ -6,6 +6,8 @@ import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.enums.AccountStatus;
 import com.neueda.leap.exceptions.OrderException;
 import com.neueda.leap.exceptions.DuplicateOrderException;
+import com.neueda.leap.messaging.OrderEventPublisher;
+import com.neueda.leap.messaging.TradeEventPublisher;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.models.Order;
@@ -13,12 +15,14 @@ import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.InstrumentsRepository;
 import com.neueda.leap.services.OrderService;
+import com.neueda.leap.config.TestSecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -37,6 +41,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(OrderController.class)
+@Import(TestSecurityConfig.class)
 @DisplayName("OrderController Tests")
 public class OrderControllerTest {
 
@@ -51,6 +56,12 @@ public class OrderControllerTest {
 
     @MockBean
     private InstrumentsRepository instrumentsRepository;
+
+    @MockBean
+    private OrderEventPublisher orderEventPublisher;
+
+    @MockBean
+    private TradeEventPublisher tradeEventPublisher;
 
     private Account testAccount;
     private Instrument testInstrument;
@@ -205,7 +216,7 @@ public class OrderControllerTest {
 
         mockMvc.perform(post("/v1/orders")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"accountId\":\"ACC-001\",\"symbol\":\"AAPL\",\"quantity\":100,\"price\":150.50}"))
+                .content("{\"accountId\":\"ACC-001\",\"symbol\":\"AAPL\",\"side\":\"BUY\",\"quantity\":100,\"price\":150.50}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", notNullValue()))
                 .andExpect(jsonPath("$.status", equalTo("NEW")));
@@ -223,7 +234,7 @@ public class OrderControllerTest {
 
         mockMvc.perform(post("/v1/orders")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"accountId\":\"ACC-999\",\"symbol\":\"AAPL\",\"quantity\":100,\"price\":150.50}"))
+                .content("{\"accountId\":\"ACC-999\",\"symbol\":\"AAPL\",\"side\":\"BUY\",\"quantity\":100,\"price\":150.50}"))
                 .andExpect(status().isNotFound());
 
         verify(accountRepository, times(1)).findByAccountId("ACC-999");
@@ -239,7 +250,7 @@ public class OrderControllerTest {
 
         mockMvc.perform(post("/v1/orders")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"accountId\":\"ACC-001\",\"symbol\":\"XYZ\",\"quantity\":100,\"price\":150.50}"))
+                .content("{\"accountId\":\"ACC-001\",\"symbol\":\"XYZ\",\"side\":\"BUY\",\"quantity\":100,\"price\":150.50}"))
                 .andExpect(status().isNotFound());
 
         verify(accountRepository, times(1)).findByAccountId("ACC-001");
@@ -259,7 +270,7 @@ public class OrderControllerTest {
         mockMvc.perform(put("/v1/orders/" + testOrderId + "/execute")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status", equalTo("EXECUTED")));
+                .andExpect(jsonPath("$.status", equalTo("FILLED")));
 
         verify(orderService, times(1)).executeOrder(testOrderId);
     }

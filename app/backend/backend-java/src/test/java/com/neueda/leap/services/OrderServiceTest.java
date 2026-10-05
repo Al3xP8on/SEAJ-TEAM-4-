@@ -92,7 +92,7 @@ public class OrderServiceTest {
     @DisplayName("Should execute an order successfully")
     void testExecuteOrderSuccess() {
         UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
-        Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
+        Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.PENDING, LocalDateTime.now());
         Order executedOrder = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.FILLED, LocalDateTime.now());
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
@@ -266,7 +266,7 @@ public class OrderServiceTest {
     @DisplayName("Should validate if order is valid for execution")
     void testIsOrderValidForExecution() {
         UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440005");
-        Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
+        Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.PENDING, LocalDateTime.now());
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
 
