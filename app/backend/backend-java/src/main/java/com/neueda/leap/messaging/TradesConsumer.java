@@ -6,6 +6,7 @@ import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.models.Order;
 import com.neueda.leap.repositories.OrderRepository;
 import com.neueda.leap.services.OrderPricingValidator;
+import com.neueda.leap.utils.LogMaskingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -15,6 +16,8 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,11 +42,13 @@ public class TradesConsumer {
     
     private final OrderRepository orderRepository;
     private final OrderPricingValidator pricingValidator;
+    private final TradeEventPublisher tradeEventPublisher;
     private final ObjectMapper objectMapper;
     
-    public TradesConsumer(OrderRepository orderRepository, OrderPricingValidator pricingValidator) {
+    public TradesConsumer(OrderRepository orderRepository, OrderPricingValidator pricingValidator, TradeEventPublisher tradeEventPublisher) {
         this.orderRepository = orderRepository;
         this.pricingValidator = pricingValidator;
+        this.tradeEventPublisher = tradeEventPublisher;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
     }
@@ -90,7 +95,7 @@ public class TradesConsumer {
                 return;
             }
             
-            applyPricingValidationAndUpdateOrder(order, orderId);
+            applyPricingValidationAndUpdateOrder(order, orderId, envelope.payload());
             
         } catch (Exception e) {
             logger.error("Failed to process ORDER_PLACED event: {}", e.getMessage(), e);
@@ -119,19 +124,95 @@ public class TradesConsumer {
         return orderOpt.get();
     }
 
-    private void applyPricingValidationAndUpdateOrder(Order order, UUID orderId) {
+    private void applyPricingValidationAndUpdateOrder(Order order, UUID orderId, Map<String, Object> payload) {
         OrderPricingValidator.PricingValidationResult result = pricingValidator.validateOrderPricing(order);
         
         order.setStatus(result.newStatus());
         orderRepository.save(order);
         
         if (result.newStatus() == OrderStatus.PENDING) {
-            logger.info("Order {} approved for execution: {}", orderId, result.reason());
-        } else {
-            logger.warn("Order {} rejected: {}", orderId, result.reason());
+            logger.info("Order {} approved for execution: {}", LogMaskingUtil.maskId(orderId), result.reason());
+            // Publish ORDER_ACCEPTED event to trade-events topic
+            publishOrderAccepted(order, orderId, payload);
+        } else if (result.newStatus() == OrderStatus.REJECTED) {
+            logger.warn("Order {} rejected: {}", LogMaskingUtil.maskId(orderId), result.reason());
+            // Publish ORDER_REJECTED event to trade-events topic
+            publishOrderRejected(order, orderId, payload, result.reason());
         }
         
-        logger.debug("Order {} status updated to {}", orderId, order.getStatus());
+        logger.debug("Order {} status updated to {}", LogMaskingUtil.maskId(orderId), order.getStatus());
+    }
+    
+    /**
+     * Publishes ORDER_ACCEPTED event to trade-events topic when order passes pricing validation.
+     */
+    private void publishOrderAccepted(Order order, UUID orderId, Map<String, Object> payload) {
+        try {
+            String accountId = (String) payload.get("accountId");
+            String symbol = (String) payload.get("symbol");
+            
+            if (accountId == null || symbol == null) {
+                logger.warn("Missing accountId or symbol in ORDER_PLACED payload for order {}", LogMaskingUtil.maskId(orderId));
+                return;
+            }
+            
+            String side = payload.get("side").toString();
+            BigDecimal price = new BigDecimal((String) payload.get("price"));
+            int quantity = ((Number) payload.get("quantity")).intValue();
+            
+            TradeEvent acceptedEvent = new TradeEvent(
+                orderId,
+                accountId,
+                symbol,
+                side,
+                price,
+                quantity,
+                "ACCEPTED",
+                "GTC",
+                LocalDateTime.now()
+            );
+            
+            tradeEventPublisher.publishTradeEvent(acceptedEvent);
+            logger.info("Published ORDER_ACCEPTED event for order: {}", LogMaskingUtil.maskId(orderId));
+        } catch (Exception e) {
+            logger.error("Failed to publish ORDER_ACCEPTED event for order {}: {}", LogMaskingUtil.maskId(orderId), e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Publishes ORDER_REJECTED event to trade-events topic when order fails pricing validation.
+     */
+    private void publishOrderRejected(Order order, UUID orderId, Map<String, Object> payload, String reason) {
+        try {
+            String accountId = (String) payload.get("accountId");
+            String symbol = (String) payload.get("symbol");
+            
+            if (accountId == null || symbol == null) {
+                logger.warn("Missing accountId or symbol in ORDER_PLACED payload for order {}", LogMaskingUtil.maskId(orderId));
+                return;
+            }
+            
+            String side = payload.get("side").toString();
+            BigDecimal price = new BigDecimal((String) payload.get("price"));
+            int quantity = ((Number) payload.get("quantity")).intValue();
+            
+            TradeEvent rejectedEvent = new TradeEvent(
+                orderId,
+                accountId,
+                symbol,
+                side,
+                price,
+                quantity,
+                "REJECTED",
+                "GTC",
+                LocalDateTime.now()
+            );
+            
+            tradeEventPublisher.publishTradeEvent(rejectedEvent);
+            logger.info("Published ORDER_REJECTED event for order: {} - Reason: {}", LogMaskingUtil.maskId(orderId), reason);
+        } catch (Exception e) {
+            logger.error("Failed to publish ORDER_REJECTED event for order {}: {}", LogMaskingUtil.maskId(orderId), e.getMessage(), e);
+        }
     }
 
     private UUID extractOrderId(Map<String, Object> payload) {

@@ -64,7 +64,7 @@ public class OrderService {
         order.execute();
 
         Order executedOrder = orderRepository.save(order);
-        recordOrderHistory(orderId, OrderStatus.EXECUTED);
+        recordOrderHistory(orderId, OrderStatus.FILLED);
 
         return executedOrder;
     }
@@ -128,8 +128,8 @@ public class OrderService {
             .orElseThrow(() -> new OrderException("Order not found", OrderErrorCode.EXECUTION_FAILED, orderId.toString()));
     }
 
-    public List<Order> getExecutedOrdersByAccount(String accountId) {
-        return orderRepository.findByAccountIdAndStatus(accountId, OrderStatus.EXECUTED);
+    public List<Order> getFilledOrdersByAccount(String accountId) {
+        return orderRepository.findByAccountIdAndStatus(accountId, OrderStatus.FILLED);
     }
 
     public List<Order> getCancelledOrdersByAccount(String accountId) {

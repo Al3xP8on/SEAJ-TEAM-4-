@@ -84,8 +84,7 @@ public class TradeEventPublisher {
      */
     private EventType mapStatusToEventType(String status) {
         return switch (status) {
-            case "INITIATED" -> EventType.ORDER_PLACED;
-            case "ACCEPTED" -> EventType.ORDER_PLACED;
+            case "ACCEPTED" -> EventType.ORDER_ACCEPTED;
             case "EXECUTED" -> EventType.TRADE_EXECUTED;
             case "FILLED" -> EventType.ORDER_FILLED;
             case "REJECTED" -> EventType.ORDER_REJECTED;

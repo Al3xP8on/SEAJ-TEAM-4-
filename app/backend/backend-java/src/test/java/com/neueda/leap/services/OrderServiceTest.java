@@ -92,8 +92,8 @@ public class OrderServiceTest {
     @DisplayName("Should execute an order successfully")
     void testExecuteOrderSuccess() {
         UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
-        Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
-        Order executedOrder = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.EXECUTED, LocalDateTime.now());
+        Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.PENDING, LocalDateTime.now());
+        Order executedOrder = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.FILLED, LocalDateTime.now());
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenReturn(executedOrder);
@@ -101,7 +101,7 @@ public class OrderServiceTest {
         Order result = orderService.executeOrder(orderId);
 
         assertNotNull(result);
-        assertEquals(OrderStatus.EXECUTED, result.getStatus());
+        assertEquals(OrderStatus.FILLED, result.getStatus());
         verify(orderRepository).findById(orderId);
         verify(orderRepository).save(any(Order.class));
         verify(orderHistoryRepository).save(any(OrderHistory.class));
@@ -250,7 +250,7 @@ public class OrderServiceTest {
         UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440004");
         List<OrderHistory> historyRecords = Arrays.asList(
             new OrderHistory(orderId, OrderStatus.NEW),
-            new OrderHistory(orderId, OrderStatus.EXECUTED)
+            new OrderHistory(orderId, OrderStatus.FILLED)
         );
 
         when(orderHistoryRepository.findByOrderId(orderId)).thenReturn(historyRecords);
@@ -266,7 +266,7 @@ public class OrderServiceTest {
     @DisplayName("Should validate if order is valid for execution")
     void testIsOrderValidForExecution() {
         UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440005");
-        Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
+        Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.PENDING, LocalDateTime.now());
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
 
@@ -316,20 +316,20 @@ public class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("Should retrieve executed orders for an account")
-    void testGetExecutedOrdersByAccount() {
+    @DisplayName("Should retrieve filled orders for an account")
+    void testGetFilledOrdersByAccount() {
         String accountId = "ACC-001";
         
         Order order = new Order(account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key");
         List<Order> orders = Arrays.asList(order);
 
-        when(orderRepository.findByAccountIdAndStatus(accountId, OrderStatus.EXECUTED)).thenReturn(orders);
-
-        List<Order> result = orderService.getExecutedOrdersByAccount(accountId);
+when(orderRepository.findByAccountIdAndStatus(accountId, OrderStatus.FILLED)).thenReturn(orders);
+        
+        List<Order> result = orderService.getFilledOrdersByAccount(accountId);
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        verify(orderRepository).findByAccountIdAndStatus(accountId, OrderStatus.EXECUTED);
+        verify(orderRepository).findByAccountIdAndStatus(accountId, OrderStatus.FILLED);
     }
 
     @Test

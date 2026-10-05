@@ -6,7 +6,6 @@ package com.neueda.leap.enums;
 public enum OrderStatus {
     NEW("NEW", "Order created but not yet processed"),
     PENDING("PENDING", "Order awaiting execution"),
-    EXECUTED("EXECUTED", "Order successfully executed"),
     FILLED("FILLED", "Order filled"),
     CANCELLED("CANCELLED", "Order has been cancelled"),
     REJECTED("REJECTED", "Order rejected due to validation failure");
@@ -32,11 +31,6 @@ public enum OrderStatus {
         return this == NEW;
     }
 
-    // Check if order can transition to EXECUTED state.
-    public boolean canTransitionToExecuted() {
-        return this == PENDING || this == NEW;
-    }
-
     // Check if order can be cancelled.
     public boolean canBeCancelled() {
         return this == NEW || this == PENDING;
@@ -44,11 +38,11 @@ public enum OrderStatus {
 
     // Check if order is in a terminal state.
     public boolean isTerminal() {
-        return this == EXECUTED || this == CANCELLED || this == REJECTED;
+        return this == FILLED || this == CANCELLED || this == REJECTED;
     }
 
-    // Check if order is filled (EXECUTED state).
+    // Check if order is filled (FILLED state).
     public boolean isFilled() {
-        return this == EXECUTED;
+        return this == FILLED;
     }
 }
