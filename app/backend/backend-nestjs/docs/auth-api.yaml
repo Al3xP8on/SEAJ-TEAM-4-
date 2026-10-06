@@ -28,6 +28,16 @@ paths:
                 properties:
                   token:
                     type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing username or password"
         '401':
           description: Unauthorized
           content:
@@ -38,3 +48,13 @@ paths:
                   error:
                     type: string
                     example: "Invalid username or password"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "A user with this username already exists"
