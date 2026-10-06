@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import com.neueda.leap.dtos.ErrorResponse;
-import com.neueda.leap.exceptions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

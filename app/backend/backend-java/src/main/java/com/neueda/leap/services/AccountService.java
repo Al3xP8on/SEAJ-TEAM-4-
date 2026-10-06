@@ -1,7 +1,6 @@
 package com.neueda.leap.services;
 
 import com.neueda.leap.models.Account;
-import com.neueda.leap.models.Order;
 import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.models.Positions;
 import com.neueda.leap.exceptions.AccountNotFoundException;
