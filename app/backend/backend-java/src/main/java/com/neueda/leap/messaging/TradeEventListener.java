@@ -51,6 +51,9 @@ public class TradeEventListener {
     @Autowired
     private AccountRepository accountRepository;
     
+    @Autowired
+    private TradeEventPublisher tradeEventPublisher;
+    
     /**
      * Listens for trade events on the trade-events topic.
      * Consumes EventEnvelope as JSON String and deserializes manually.
@@ -84,8 +87,13 @@ public class TradeEventListener {
             
             // Process the trade event based on EventType
             switch (envelope.eventType()) {
-                case ORDER_PLACED:
-                    handleInitiatedTrade(event);
+                case ORDER_ACCEPTED:
+                    logger.debug("ORDER_ACCEPTED event - order already processed as PENDING");
+                    // Order was already transitioned to PENDING, no action needed
+                    break;
+                case ORDER_REJECTED:
+                    logger.debug("ORDER_REJECTED event - order already transitioned to REJECTED status");
+                    // Order was already marked as REJECTED by TradesConsumer, no action needed
                     break;
                 case ORDER_CANCELLED:
                     handleCancelledTrade(event);
@@ -164,50 +172,6 @@ public class TradeEventListener {
         return event;
     }
     
-    @Transactional
-    private void handleInitiatedTrade(TradeEvent event) {
-        logger.info("Processing INITIATED trade: {} for account {}", 
-                event.getTradeId(), event.getAccountId());
-        
-        try {
-            // Fetch order and account
-            Optional<Order> orderOpt = orderRepository.findById(event.getTradeId());
-            Optional<Account> accountOpt = accountRepository.findByAccountId(event.getAccountId());
-            
-            if (orderOpt.isEmpty() || accountOpt.isEmpty()) {
-                logger.error("Order or Account not found for trade {}", event.getTradeId());
-                return;
-            }
-            
-            Order order = orderOpt.get();
-            Account account = accountOpt.get();
-            
-            // Validate account is active
-            if (!account.isValidForTrading()) {
-                logger.warn("Account {} is not valid for trading", LogMaskingUtil.maskAccountId(event.getAccountId()));
-                return;
-            }
-            
-            // Check if account has sufficient cash for BUY orders
-            BigDecimal requiredCash = event.getPrice().multiply(BigDecimal.valueOf(event.getQuantity()));
-            if ("BUY".equals(event.getSide()) && account.getCashBalance().compareTo(requiredCash) < 0) {
-                logger.warn("Insufficient cash for order {}. Required: {}, Available: {}", 
-                        event.getTradeId(), requiredCash, account.getCashBalance());
-                // Could publish REJECTED event here, but for now just log
-                return;
-            }
-            
-            // Update order status to PENDING (accepted by system)
-            order.setStatus(OrderStatus.PENDING);
-            orderRepository.save(order);
-            
-            logger.info("Order {} transitioned to PENDING status", event.getTradeId());
-            
-        } catch (Exception e) {
-            logger.error("Error processing INITIATED trade {}", event.getTradeId(), e);
-        }
-    }
-
     @Transactional
     private void handleCancelledTrade(TradeEvent event) {
         logger.info("Processing CANCELLED trade: {} for account {} - Reason: {}", 

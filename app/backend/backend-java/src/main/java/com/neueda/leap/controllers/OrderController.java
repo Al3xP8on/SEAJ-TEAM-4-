@@ -139,7 +139,7 @@ public class OrderController {
 
             logger.info("Order created successfully: {} - Side: {}", LogMaskingUtil.maskId(order.getId()), side);
             
-            // Publish order to orders topic for execution-engine to consume
+            // Publish order to orders topic and trades topic (ORDER_PLACED event)
             try {
                 OrderEvent orderEvent = new OrderEvent(
                     order.getId(),
@@ -151,30 +151,10 @@ public class OrderController {
                     Instant.now()
                 );
                 orderEventPublisher.publish(orderEvent);
-                logger.info("Order published to execution-engine: {}", LogMaskingUtil.maskId(order.getId()));
+                logger.info("Order published to orders topic and ORDER_PLACED to trades topic: {}", LogMaskingUtil.maskId(order.getId()));
             } catch (Exception e) {
-                logger.error("Failed to publish order to execution-engine: {}", LogMaskingUtil.maskId(order.getId()), e);
+                logger.error("Failed to publish order to Kafka: {}", LogMaskingUtil.maskId(order.getId()), e);
                 // Don't fail order creation, but log the error
-            }
-            
-            // Publish trade event to Kafka for status tracking (INITIATED → PENDING)
-            try {
-                TradeEvent tradeEvent = new TradeEvent(
-                    order.getId(),
-                    request.getAccountId(),
-                    request.getSymbol(),
-                    side.toString(),
-                    request.getPrice(),
-                    request.getQuantity(),
-                    "INITIATED",
-                    request.getTimeInForce().toString(),
-                    LocalDateTime.now()
-                );
-                tradeEventPublisher.publishTradeEvent(tradeEvent);
-                logger.info("Trade event published for order: {}", LogMaskingUtil.maskId(order.getId()));
-            } catch (Exception e) {
-                logger.error("Failed to publish trade event for order {}: {}", LogMaskingUtil.maskId(order.getId()), e.getMessage(), e);
-                // Don't fail the order creation if Kafka publishing fails
             }
             
             return ResponseEntity.status(HttpStatus.CREATED).body(order);

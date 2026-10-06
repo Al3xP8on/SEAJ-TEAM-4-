@@ -23,7 +23,7 @@
         <spring.version>6.1.8</spring.version>
         <sonar.projectKey>seaj-team-4</sonar.projectKey>
         <sonar.projectName>SEAJ Team 4</sonar.projectName>
-        <sonar.host.url>http://10.9.69.224:9000</sonar.host.url>
+        <sonar.host.url>http://10.9.69.224:8088</sonar.host.url>
     </properties>
 
     <dependencyManagement>
