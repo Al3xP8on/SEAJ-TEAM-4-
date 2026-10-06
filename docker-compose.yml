@@ -21,18 +21,18 @@ services:
       - "8081:8083"
     depends_on:
       - db
-      - auth-stub
+      - auth-service
     environment:
       SPRING_DATASOURCE_URL: "${SPRING_DATASOURCE_URL}"
       SPRING_DATASOURCE_USERNAME: "${SPRING_DATASOURCE_USERNAME}"
       SPRING_DATASOURCE_PASSWORD: "${SPRING_DATASOURCE_PASSWORD}"
       JWT_SHARED_SECRET: "${JWT_SECRET}"
 
-  auth-stub:
+  auth-service:
     build:
-      context: app/backend/shared/auth-stub
+      context: app/backend/backend-nestjs
       dockerfile: Dockerfile
-    container_name: seaj_auth_stub
+    container_name: seaj_auth_service
     ports:
       - "3000:3000"
     environment:
