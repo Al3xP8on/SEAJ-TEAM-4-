@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import com.neueda.leap.dtos.ErrorResponse;
 import com.neueda.leap.exceptions.*;
+import com.neueda.leap.exceptions.DuplicateAccountException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,18 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(DuplicateAccountException.class)
+    ResponseEntity<ErrorResponse> handleDuplicateAccount(DuplicateAccountException exception, HttpServletRequest request){
+        logger.error("DuplicateAccountException occurred at {}: {}", request.getRequestURI(), exception.getMessage(), exception);
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                exception.getMessage(),
+                LocalDateTime.now(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
     @ExceptionHandler(AccountNotFoundException.class)
