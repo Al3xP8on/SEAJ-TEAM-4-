@@ -19,6 +19,7 @@ import java.util.Optional;
 @RequestMapping("/v1/positions")
 public class PositionsController {
     private static final String NOT_FOUND_MESSAGE = " not found";
+    private static final String ACCOUNT = "Account ";
     
     @Autowired
     private PositionsService positionsService;
@@ -34,7 +35,7 @@ public class PositionsController {
             List<PositionResponse> positions = positionsService.getPositions(accountId);
             return ResponseEntity.ok(positions);
         } catch (AccountNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account " + accountId + NOT_FOUND_MESSAGE);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ACCOUNT + accountId + NOT_FOUND_MESSAGE);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving positions: " + e.getMessage());
         }
@@ -46,7 +47,7 @@ public class PositionsController {
             PositionResponse position = positionsService.getPosition(accountId, positionId);
             return ResponseEntity.ok(position);
         } catch (AccountNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account " + accountId + NOT_FOUND_MESSAGE);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ACCOUNT + accountId + NOT_FOUND_MESSAGE);
         } catch (PositionNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -64,7 +65,7 @@ public class PositionsController {
                 return ResponseEntity.noContent().build();
             }
         } catch (AccountNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account " + accountId + NOT_FOUND_MESSAGE);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ACCOUNT + accountId + NOT_FOUND_MESSAGE);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving position: " + e.getMessage());
         }
@@ -83,7 +84,7 @@ public class PositionsController {
             );
             return ResponseEntity.ok(closedPosition);
         } catch (AccountNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account " + accountId + NOT_FOUND_MESSAGE);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ACCOUNT + accountId + NOT_FOUND_MESSAGE);
         } catch (PositionNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(e.getMessage());
