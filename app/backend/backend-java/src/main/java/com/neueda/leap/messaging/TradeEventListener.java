@@ -23,7 +23,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -109,7 +108,6 @@ public class TradeEventListener {
         } catch (Exception e) {
             logger.error("Failed to process trade event: {}",
                     e.getMessage(), e);
-            // Consider implementing a dead-letter queue for failed events
             throw new RuntimeException("Failed to process trade event", e);
         }
     }
@@ -177,21 +175,11 @@ public class TradeEventListener {
         logger.info("Processing CANCELLED trade: {} for account {} - Reason: {}", 
                 event.getTradeId(), event.getAccountId(), event.getReason());
         
-        try {
-            Optional<Order> orderOpt = orderRepository.findById(event.getTradeId());
-            if (orderOpt.isEmpty()) {
-                logger.error("Order not found: {}", event.getTradeId());
-                return;
-            }
-            
-            Order order = orderOpt.get();
-            order.setStatus(OrderStatus.CANCELLED);
-            orderRepository.save(order);
-            
-            logger.info("Order {} marked as CANCELLED. Reason: {}", event.getTradeId(), event.getReason());
-            
-        } catch (Exception e) {
-            logger.error("Error processing CANCELLED trade {}", event.getTradeId(), e);
-        }
+        Order order = orderRepository.findById(event.getTradeId())
+                .orElseThrow(() -> new PoisonMessageException("Order not found: " + event.getTradeId()));
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        
+        logger.info("Order {} marked as CANCELLED. Reason: {}", event.getTradeId(), event.getReason());
     }
 }
