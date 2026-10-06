@@ -3,7 +3,11 @@ package com.neueda.leap.controllers;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.models.Positions;
+import com.neueda.leap.dtos.AccountInput;
+import com.neueda.leap.dtos.AccountResponse;
+import com.neueda.leap.exceptions.DuplicateAccountException;
 import com.neueda.leap.services.AccountService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,9 +17,21 @@ import java.math.BigDecimal;
 @RestController
 @RequestMapping("/v1/accounts")
 public class AccountController {
-    
+
     @Autowired
     private AccountService accountService;
+
+    @PostMapping
+    public ResponseEntity<?> createAccount(@Valid @RequestBody AccountInput input) {
+        try {
+            AccountResponse response = accountService.createAccount(input);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (DuplicateAccountException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
 
     @GetMapping
     public ResponseEntity<?> getAllAccounts() {
