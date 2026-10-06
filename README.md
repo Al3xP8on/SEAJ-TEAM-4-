@@ -286,6 +286,3 @@ docker exec -it seaj_postgres_db psql -U postgres -d seaj_db
 cd app/backend/backend-java
 mvn test
 ```
-
-
-
