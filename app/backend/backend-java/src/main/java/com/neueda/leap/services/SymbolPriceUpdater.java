@@ -1,12 +1,9 @@
 package com.neueda.leap.services;
 
-import com.neueda.leap.exceptions.InvalidPriceException;
 import com.neueda.leap.exceptions.InvalidSymbolPriceException;
-import com.neueda.leap.exceptions.InvalidSymbolException;
 import com.neueda.leap.models.SymbolPrice;
 import com.neueda.leap.validators.SymbolPriceValidator;
 
-import java.time.ZonedDateTime;
 import java.math.BigDecimal;
 
 public class SymbolPriceUpdater {

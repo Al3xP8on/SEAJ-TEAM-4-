@@ -10,8 +10,6 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
-import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
