@@ -1,5 +1,6 @@
 package com.neueda.leap.messaging;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
@@ -36,8 +37,7 @@ public class MarketDataConsumer {
             @Header(KafkaHeaders.RECEIVED_KEY) String symbol) {
         
         if (message == null || message.isEmpty()) {
-            logger.error("Received empty message from Kafka");
-            return;
+            throw new PoisonMessageException("Received empty message from Kafka");
         }
         
         try {
@@ -45,16 +45,14 @@ public class MarketDataConsumer {
             EventEnvelope eventEnvelope = objectMapper.readValue(message, EventEnvelope.class);
             
             if (eventEnvelope == null) {
-                logger.error("Failed to deserialize EventEnvelope from message");
-                return;
+                throw new PoisonMessageException("Failed to deserialize EventEnvelope from message");
             }
             
             // Extract payload data
             Map<String, Object> payload = eventEnvelope.payload();
             
             if (payload == null || payload.isEmpty()) {
-                logger.error("Empty payload in EventEnvelope");
-                return;
+                throw new PoisonMessageException("Empty payload in EventEnvelope");
             }
             
             // Create MarketPrice from payload
@@ -65,8 +63,7 @@ public class MarketDataConsumer {
             Object timestamp = payload.get("priceTimeStamp");
             
             if (payloadSymbol == null || bidPrice == null || askPrice == null || lastPrice == null) {
-                logger.error("Missing required fields in market data payload");
-                return;
+                throw new PoisonMessageException("Missing required fields in market data payload");
             }
             
             // Convert objects to appropriate types
@@ -84,8 +81,8 @@ public class MarketDataConsumer {
             logger.debug("Consumed market data event {} for symbol {}",
                 eventEnvelope.eventId(), payloadSymbol);
                 
-        } catch (Exception e) {
-            logger.error("Error processing market data event", e);
+        } catch (JsonProcessingException e) {
+            throw new PoisonMessageException("Unreadable market data message", e);
         }
     }
     
