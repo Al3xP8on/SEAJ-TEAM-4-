@@ -4,7 +4,6 @@ import java.time.ZonedDateTime;
 import java.math.BigDecimal;
 
 import com.neueda.leap.exceptions.InvalidSymbolException;
-import com.neueda.leap.exceptions.InvalidPriceException;
 import com.neueda.leap.validators.SymbolPriceValidator;
 
 

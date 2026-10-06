@@ -6,10 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
-import com.neueda.leap.models.SymbolPrice;
-
 import com.neueda.leap.exceptions.InvalidPriceException;
-import com.neueda.leap.exceptions.InvalidSymbolPriceException;
 import com.neueda.leap.exceptions.InvalidSymbolException;
 
 @Component

@@ -1,7 +1,5 @@
 package com.neueda.leap.models;
 
-import com.neueda.leap.models.Account;
-import com.neueda.leap.models.Instrument;
 import com.neueda.leap.enums.OrderSide;
 import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.enums.OrderErrorCode;
