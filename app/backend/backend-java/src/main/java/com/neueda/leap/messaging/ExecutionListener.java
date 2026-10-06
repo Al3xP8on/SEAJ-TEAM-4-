@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.Optional;
 
 /**
  * Reads fills from the {@code executions} topic from the execution-engine.
