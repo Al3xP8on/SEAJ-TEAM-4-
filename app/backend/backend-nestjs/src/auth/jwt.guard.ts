@@ -2,16 +2,20 @@ import { Injectable, UnauthorizedException, ExecutionContext } from '@nestjs/com
 import { CanActivate } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
+/**
+ * JWT Authentication Guard
+ * Validates Bearer tokens in Authorization header and attaches user to request
+ */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService) {}
+  constructor(private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const token = this.extractToken(request);
 
     if (!token) {
-      throw new UnauthorizedException('No token provided');
+      throw new UnauthorizedException('Authorization token is required');
     }
 
     try {
@@ -20,6 +24,7 @@ export class JwtAuthGuard implements CanActivate {
       });
       request.user = {
         userId: payload.sub,
+        username: payload.username,
         roles: payload.roles || [],
       };
       return true;
@@ -30,8 +35,14 @@ export class JwtAuthGuard implements CanActivate {
 
   private extractToken(request: any): string | null {
     const authHeader = request.headers.authorization;
-    if (!authHeader) return null;
-    const [bearer, token] = authHeader.split(' ');
+    if (!authHeader) {
+      return null;
+    }
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2) {
+      return null;
+    }
+    const [bearer, token] = parts;
     return bearer === 'Bearer' ? token : null;
   }
 }
