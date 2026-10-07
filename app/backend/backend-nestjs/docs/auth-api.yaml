@@ -1,0 +1,60 @@
+openapi: 3.0.0
+info:
+  title: Account Service API
+  version: 1.0.0
+
+paths:
+  /auth/login/:
+    post:
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing username or password"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid username or password"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "A user with this username already exists"
