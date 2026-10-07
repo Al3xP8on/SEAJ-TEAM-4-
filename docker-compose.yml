@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_DB: "${POSTGRES_DB}"
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - pgdata_volume:/var/lib/postgresql/data
 
@@ -21,22 +21,30 @@ services:
       - "8081:8083"
     depends_on:
       - db
-      - auth-stub
+      - auth-service
     environment:
       SPRING_DATASOURCE_URL: "${SPRING_DATASOURCE_URL}"
       SPRING_DATASOURCE_USERNAME: "${SPRING_DATASOURCE_USERNAME}"
       SPRING_DATASOURCE_PASSWORD: "${SPRING_DATASOURCE_PASSWORD}"
       JWT_SHARED_SECRET: "${JWT_SECRET}"
 
-  auth-stub:
+  auth-service:
     build:
-      context: app/backend/shared/auth-stub
+      context: app/backend/backend-nestjs
       dockerfile: Dockerfile
-    container_name: seaj_auth_stub
+    container_name: seaj_auth_service
     ports:
       - "3000:3000"
+    depends_on:
+      - db
     environment:
       JWT_SECRET: "${JWT_SECRET}"
+      JWT_EXPIRY: "${JWT_EXPIRY}"
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: "${POSTGRES_USER}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD}"
+      DB_NAME: "${POSTGRES_DB}"
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1

@@ -10,7 +10,6 @@ import com.neueda.leap.utils.LogMaskingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
@@ -19,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -83,18 +81,19 @@ public class TradesConsumer {
             }
             
             UUID orderId = extractOrderId(envelope.payload());
-            if (orderId == null) {
-                return;
-            }
             
             logger.info("Processing ORDER_PLACED - Order ID: {} | Partition: {} | Offset: {}",
                     orderId, partition, offset);
             
             Order order = loadAndValidateOrder(orderId);
-            if (order == null) {
+
+            // Only validate orders still NEW, so a retried or redelivered event can't overwrite a later status
+            if (order.getStatus() != OrderStatus.NEW) {
+                logger.info("Order {} is already {}, skipping duplicate ORDER_PLACED",
+                        LogMaskingUtil.maskId(orderId), order.getStatus());
                 return;
             }
-            
+
             applyPricingValidationAndUpdateOrder(order, orderId, envelope.payload());
             
         } catch (Exception e) {
@@ -116,12 +115,8 @@ public class TradesConsumer {
     }
 
     private Order loadAndValidateOrder(UUID orderId) {
-        Optional<Order> orderOpt = orderRepository.findById(orderId);
-        if (orderOpt.isEmpty()) {
-            logger.error("Order not found in database: {}", orderId);
-            return null;
-        }
-        return orderOpt.get();
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new PoisonMessageException("Order not found in database: " + orderId));
     }
 
     private void applyPricingValidationAndUpdateOrder(Order order, UUID orderId, Map<String, Object> payload) {
@@ -217,14 +212,12 @@ public class TradesConsumer {
 
     private UUID extractOrderId(Map<String, Object> payload) {
         if (payload == null || payload.isEmpty()) {
-            logger.error("Empty payload in ORDER_PLACED event");
-            return null;
+            throw new PoisonMessageException("Empty payload in ORDER_PLACED event");
         }
         
         Object orderIdObj = payload.get("orderId");
         if (orderIdObj == null) {
-            logger.error("Missing orderId in ORDER_PLACED payload");
-            return null;
+            throw new PoisonMessageException("Missing orderId in ORDER_PLACED payload");
         }
         
         if (orderIdObj instanceof String) {
@@ -233,7 +226,6 @@ public class TradesConsumer {
             return (UUID) orderIdObj;
         }
         
-        logger.error("Invalid orderId type: {}", orderIdObj.getClass());
-        return null;
+        throw new PoisonMessageException("Invalid orderId type: " + orderIdObj.getClass());
     }
 }
