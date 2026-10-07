@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import com.neueda.leap.interfaces.Closable;
 import com.neueda.leap.validators.AccountValidator;
 import com.neueda.leap.enums.AccountStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Entity
 @Table(name = "accounts")
@@ -16,6 +17,12 @@ public class Account implements Closable {
     
     @Column(unique = true, nullable = false)
     private String accountId;
+
+    @Column(unique = true, nullable = false)
+    private String username;
+
+    @Column(nullable = false)
+    private String passwordHash;
     
     @Column(nullable = false)
     private String name;
@@ -46,12 +53,20 @@ public class Account implements Closable {
     protected Account() {
     }
 
-    public Account(String accountId, String name, String email, String phone, BigDecimal cashBalance, 
-                   AccountStatus status) {
+    // Legacy constructor for backward compatibility (used in tests)
+    public Account(String accountId, String name, String email, String phone,
+                   BigDecimal cashBalance, AccountStatus status) {
+        this(accountId, accountId.toLowerCase().replace("-", ""), "placeholder", name, email, phone, cashBalance, status);
+    }
+
+    public Account(String accountId, String username, String rawPassword, String name, String email, String phone,
+                   BigDecimal cashBalance, AccountStatus status) {
         AccountValidator.validateAccountId(accountId);
         AccountValidator.validatePositiveAmount(cashBalance, "Initial balance");
-        
+
         this.accountId = accountId;
+        this.username = username;
+        this.passwordHash = new BCryptPasswordEncoder().encode(rawPassword);
         this.name = name;
         this.email = email;
         this.phone = phone;
@@ -133,6 +148,7 @@ public class Account implements Closable {
 
     public Long getId() { return id; }
     public String getAccountId() { return accountId; }
+    public String getUsername() { return username; }
     public String getName() { return name; }
     public String getEmail() { return email; }
     public String getPhone() { return phone; }

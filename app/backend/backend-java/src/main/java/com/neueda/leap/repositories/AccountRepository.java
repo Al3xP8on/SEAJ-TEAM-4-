@@ -11,6 +11,7 @@ import java.util.Optional;
 @Repository
 public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByAccountId(String accountId);
+    Optional<Account> findByUsername(String username);
     List<Account> findByStatus(AccountStatus status);
     List<Account> findByName(String name);
     List<Account> findByStatusOrderByLastUpdatedDesc(AccountStatus status);
