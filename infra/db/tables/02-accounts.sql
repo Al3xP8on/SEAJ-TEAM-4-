@@ -22,9 +22,10 @@ CREATE INDEX idx_accounts_username ON accounts(username);
 CREATE INDEX idx_accounts_status ON accounts(status);
 
 -- Seed data
+-- Passwords: alice=SecurePass123!, brian=SecurePass123!, carla=SecurePass123!, diane=SecurePass123!, ethan=SecurePass123!
 INSERT INTO accounts (account_id, username, password_hash, name, email, phone, cash_balance, status) VALUES
-    ('ACC-0001', 'alice', '$2a$10$u9fH8wJ4K3mN5pQrXzYaBehc3RvKQ2L9mP7nK4qR8sT2uV3wXyZ9i', 'Alice Johnson', 'alice.johnson@email.com', '+44-1234-567890', 10000.00, 'ACTIVE'),
-    ('ACC-0002', 'brian', '$2a$10$k8lM9nO0pQ1rS2tU3vW4xYahb2cD5eF6gH7iJ8kL9mN0oP1qR2sT', 'Brian Osei', 'brian.osei@email.com', '+44-1234-567891', 5000.00, 'ACTIVE'),
-    ('ACC-0003', 'carla', '$2a$10$v5wX9yZ1aB2cD3eF4gH5iJaj3kL6mN7oP8qR9sT0uV1wX2yZ3aB', 'Carla Mendes', 'carla.mendes@email.com', '+44-1234-567892', 0.00, 'SUSPENDED'),
-    ('ACC-0004', 'diane', '$2a$10$n2oP4qR6sT8uV0wX1yZ2aBbk4lM7nO9pQ0rS1tU2vW3xY4zA5bC', 'Diane Carter', 'diane.carter@email.com', '+44-1234-567893', 25000.00, 'ACTIVE'),
-    ('ACC-0005', 'ethan', '$2a$10$p6qR8sT0uV2wX3yZ4aB5cCcl5mN8oP0qR1sT2uV3wX4yZ5aB6cD', 'Ethan Brooks', 'ethan.brooks@email.com', '+44-1234-567894', 8000.00, 'ACTIVE');
+    ('ACC-0001', 'alice', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'Alice Johnson', 'alice.johnson@email.com', '+44-1234-567890', 10000.00, 'ACTIVE'),
+    ('ACC-0002', 'brian', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'Brian Osei', 'brian.osei@email.com', '+44-1234-567891', 5000.00, 'ACTIVE'),
+    ('ACC-0003', 'carla', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'Carla Mendes', 'carla.mendes@email.com', '+44-1234-567892', 0.00, 'SUSPENDED'),
+    ('ACC-0004', 'diane', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'Diane Carter', 'diane.carter@email.com', '+44-1234-567893', 25000.00, 'ACTIVE'),
+    ('ACC-0005', 'ethan', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'Ethan Brooks', 'ethan.brooks@email.com', '+44-1234-567894', 8000.00, 'ACTIVE');

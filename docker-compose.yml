@@ -35,8 +35,16 @@ services:
     container_name: seaj_auth_service
     ports:
       - "3000:3000"
+    depends_on:
+      - db
     environment:
       JWT_SECRET: "${JWT_SECRET}"
+      JWT_EXPIRY: "${JWT_EXPIRY}"
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: "${POSTGRES_USER}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD}"
+      DB_NAME: "${POSTGRES_DB}"
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
