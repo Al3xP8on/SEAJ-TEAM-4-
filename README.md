@@ -286,3 +286,49 @@ docker exec -it seaj_postgres_db psql -U postgres -d seaj_db
 cd app/backend/backend-java
 mvn test
 ```
+
+## Python Data Pipeline & Dashboard
+
+The Python service (`app/backend/backend-python`) has three parts:
+
+- **ETL pipeline** (`data_processing/`) - fetches instrument data from Yahoo Finance and loads it into the `instruments` table
+- **Analysis** (`data_analysis/`) - cleaning, feature engineering and analysis functions, plus exploratory notebooks
+- **Dashboard** (`dashboard/`) - a Streamlit app surfacing market insights: risk vs return, best and worst performers, drawdowns and diversification
+
+It uses the same root `.env` as the rest of the platform (`DB_HOST`, `DB_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`). `DB_HOST` defaults to `localhost`.
+
+### Setup
+
+```bash
+# From the project root
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r app/backend/backend-python/requirements.txt
+```
+
+### Run the ETL Pipeline
+
+Requires the PostgreSQL container to be running. Instruments already in the database are skipped, so it is safe to re-run.
+
+```bash
+cd app/backend/backend-python
+python -m data_processing.main
+```
+
+### Run the Dashboard
+
+Run from `app/backend/backend-python` so `.streamlit/config.toml` is picked up:
+
+```bash
+cd app/backend/backend-python
+streamlit run dashboard/app.py
+```
+
+Open http://localhost:8501. On a remote VM, forward port 8501 (e.g. the **Ports** tab in VS Code Remote) rather than opening it in the security group. Market data is cached for 6 hours; use **Refresh data** in the sidebar to reload it.
+
+### Run Python Tests
+
+```bash
+cd app/backend/backend-python
+python -m pytest -v
+```
