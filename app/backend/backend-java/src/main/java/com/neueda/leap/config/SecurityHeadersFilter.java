@@ -1,4 +1,4 @@
-package main.java.com.neueda.leap.config;
+package com.neueda.leap.config;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
