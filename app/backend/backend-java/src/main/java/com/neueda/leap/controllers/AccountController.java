@@ -62,9 +62,13 @@ public class AccountController {
                 Long expiresIn = body.get("expiresIn") != null ? 
                     Long.parseLong(body.get("expiresIn").toString()) : 1800L;
                 
+                // Fetch account to get accountId
+                Account account = accountService.getAccountByUsername(request.getUsername());
+                
                 LoginResponse loginResponse = new LoginResponse(
                     token,
                     request.getUsername(),
+                    account.getAccountId(),
                     expiresIn
                 );
                 
