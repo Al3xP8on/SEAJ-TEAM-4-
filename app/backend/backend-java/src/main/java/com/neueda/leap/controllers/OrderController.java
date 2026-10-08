@@ -17,6 +17,7 @@ import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.InstrumentsRepository;
 import com.neueda.leap.services.OrderService;
 import com.neueda.leap.utils.LogMaskingUtil;
+import com.neueda.leap.security.SecurityUtilsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,11 +53,24 @@ public class OrderController {
     @Autowired
     private TradeEventPublisher tradeEventPublisher;
 
+    @Autowired
+    private SecurityUtilsService securityUtilsService;
+
     @GetMapping
     public ResponseEntity<List<Order>> getAllOrders() {
-        logger.info("GET /v1/orders - Fetching all orders");
-        // TODO: Add @PreAuthorize("hasRole('ADMIN')") when security is integrated
-        List<Order> orders = orderService.getAllOrders();
+        logger.info("GET /v1/orders - Fetching orders");
+        
+        // If admin, return all orders; otherwise return only user's orders
+        List<Order> orders;
+        if (securityUtilsService.isAdmin()) {
+            logger.info("Admin user - returning all orders");
+            orders = orderService.getAllOrders();
+        } else {
+            Account userAccount = securityUtilsService.getAuthenticatedUserAccount();
+            logger.info("Non-admin user - returning orders for account {}", LogMaskingUtil.maskAccountId(userAccount.getAccountId()));
+            orders = orderService.getOrdersByAccount(userAccount.getAccountId());
+        }
+        
         logger.info("Found {} orders", orders.size());
         return ResponseEntity.ok(orders);
     }
@@ -66,6 +80,8 @@ public class OrderController {
         logger.info("GET /v1/orders/{} - Fetching order by ID", LogMaskingUtil.maskId(id));
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
+            // Validate user owns this order
+            securityUtilsService.validateOrderOwnership(order.get());
             logger.info("Order found: {}", LogMaskingUtil.maskId(id));
             return ResponseEntity.ok(order.get());
         }
@@ -80,6 +96,12 @@ public class OrderController {
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
         logger.info("GET /v1/orders/account/{} - Fetching orders for account", LogMaskingUtil.maskAccountId(accountId));
+        
+        // Validate user owns this account (unless user is admin)
+        if (!securityUtilsService.isAdmin()) {
+            securityUtilsService.validateAccountOwnership(accountId);
+        }
+        
         List<Order> orders = orderService.getOrdersByAccount(accountId);
         
         // Filter by status if provided
@@ -97,6 +119,9 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<Order> createOrder(@Valid @RequestBody PlaceOrderRequest request) {
         logger.info("POST /v1/orders - Creating order for account {} with symbol {}", LogMaskingUtil.maskAccountId(request.getAccountId()), request.getSymbol());
+        
+        // SECURITY: Validate that user is authorized to create orders for the requested account
+        securityUtilsService.validateAccountOwnership(request.getAccountId());
         
         try {
             // Fetch Account
@@ -173,6 +198,8 @@ public class OrderController {
         logger.info("PUT /v1/orders/{}/execute - Executing order", LogMaskingUtil.maskId(id));
         try {
             Order order = orderService.executeOrder(id);
+            // Validate user owns this order
+            securityUtilsService.validateOrderOwnership(order);
             logger.info("Order executed: {}", LogMaskingUtil.maskId(id));
             return ResponseEntity.ok(order);
         } catch (OrderException e) {
@@ -186,6 +213,8 @@ public class OrderController {
         logger.info("PUT /v1/orders/{}/cancel - Cancelling order", LogMaskingUtil.maskId(id));
         try {
             Order order = orderService.cancelOrder(id);
+            // Validate user owns this order
+            securityUtilsService.validateOrderOwnership(order);
             logger.info("Order cancelled: {}", LogMaskingUtil.maskId(id));
             
             // Publish CANCELLED trade event to Kafka
@@ -222,6 +251,10 @@ public class OrderController {
         logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", LogMaskingUtil.maskId(id), reason);
         try {
             Order order = orderService.rejectOrder(id, reason);
+            // Validate user owns this order (or is admin)
+            if (!securityUtilsService.isAdmin()) {
+                securityUtilsService.validateOrderOwnership(order);
+            }
             logger.info("Order rejected: {}", LogMaskingUtil.maskId(id));
             return ResponseEntity.ok(order);
         } catch (OrderException e) {
@@ -235,6 +268,8 @@ public class OrderController {
         logger.info("GET /v1/orders/{}/history - Fetching order history", id);
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
+            // Validate user owns this order
+            securityUtilsService.validateOrderOwnership(order.get());
             List<OrderHistory> history = orderService.getOrderHistory(id);
             logger.info("Found {} history records for order {}", history.size(), id);
             return ResponseEntity.ok(history);
