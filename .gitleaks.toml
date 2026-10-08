@@ -1,0 +1,37 @@
+title = "SEAJ secrets scanning"
+
+# Start from Gitleaks' built-in rules (API keys, tokens, private keys, ...)
+[extend]
+useDefault = true
+
+# The built-in rules miss plain passwords in config files, e.g. `spring.datasource.password=hunter2`.
+# Values that start with `$` are environment placeholders like ${SPRING_DATASOURCE_PASSWORD}, so they're allowed.
+[[rules]]
+id = "hardcoded-config-password"
+description = "Hardcoded password or secret in an application config file"
+regex = '''(?i)(?:password|passwd|pwd|secret)[a-z0-9._-]*[ \t]*[=:][ \t]*["']?([^\s"'$][^\s"']{3,})'''
+secretGroup = 1
+path = '''(?i)\.(properties|ya?ml|conf|ini)$'''
+keywords = ["password", "passwd", "pwd", "secret"]
+
+[allowlist]
+description = "Documentation examples and generated or vendored files"
+# Example values used in API docs and READMEs, not real credentials
+regexTarget = "secret"
+regexes = [
+    # jwt.io's public sample token, used as a Swagger example
+    '''^eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ\.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c$''',
+    # Truncated JWT shown in a Swagger example response
+    '''^eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.\.\.$''',
+    # Placeholder token in the NestJS README
+    '''^abc123def456$''',
+]
+paths = [
+    '''(^|/)node_modules/''',
+    '''(^|/)\.venv/''',
+    '''(^|/)target/''',
+    '''(^|/)dist/''',
+    '''(^|/)package-lock\.json$''',
+    # Local, gitignored env file: it is meant to hold secrets and never reaches the repo or CI
+    '''(^|/)\.env$''',
+]

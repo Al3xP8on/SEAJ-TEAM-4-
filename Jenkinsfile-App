@@ -11,14 +11,42 @@ pipeline {
         jdk 'JDK21'
         maven 'maven'
     }
-    
+
+    environment {
+        GITLEAKS_IMAGE = 'zricethezav/gitleaks:v8.24.3'
+        TRIVY_IMAGE = 'aquasec/trivy:0.69.1'
+        // Severities that count as a dependency-scan failure
+        TRIVY_SEVERITY = 'HIGH,CRITICAL'
+        // 'false' marks the build UNSTABLE on findings; set to 'true' to fail the build once existing findings are fixed
+        ENFORCE_DEPENDENCY_SCAN = 'false'
+        ENFORCE_SAST = 'false'
+        REPORTS_DIR = 'security-reports'
+    }
+
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
-        
+
+        stage('Secrets Scan') {
+            steps {
+                echo "=========================================="
+                echo "Scanning for hardcoded secrets (Gitleaks)"
+                echo "=========================================="
+                // Always enforced: a leaked secret fails the build before anything is built
+                sh '''
+                    # Start clean so a failed build never archives reports from an earlier run
+                    rm -rf "$REPORTS_DIR" && mkdir -p "$REPORTS_DIR"
+                    docker run --rm -u "$(id -u):$(id -g)" -v "$WORKSPACE":/repo "$GITLEAKS_IMAGE" \
+                        dir /repo --config /repo/.gitleaks.toml --redact --no-banner \
+                        --report-format json --report-path "/repo/$REPORTS_DIR/gitleaks-report.json"
+                    echo "✓ No secrets found"
+                '''
+            }
+        }
+
         stage('Build Backend') {
             steps {
                 echo "=========================================="
@@ -52,7 +80,57 @@ pipeline {
                 }
             }
         }
-        
+
+        stage('Security Scan (SAST)') {
+            steps {
+                echo "=========================================="
+                echo "Static security analysis (SpotBugs + FindSecBugs)"
+                echo "=========================================="
+                dir('app/backend/backend-java') {
+                    script {
+                        // Analyses the classes compiled in 'Build Backend'; rules are limited to security bugs
+                        def status = sh(returnStatus: true, script: 'mvn -B spotbugs:check')
+                        sh 'cp target/spotbugsXml.xml "$WORKSPACE/$REPORTS_DIR/spotbugs-report.xml" || true'
+                        if (status != 0) {
+                            def message = 'Security bugs found by SpotBugs, see spotbugs-report.xml'
+                            if (env.ENFORCE_SAST == 'true') {
+                                error(message)
+                            }
+                            unstable(message)
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Dependency Scan') {
+            steps {
+                echo "=========================================="
+                echo "Scanning dependencies for known vulnerabilities (Trivy)"
+                echo "=========================================="
+                dir('app/backend/backend-java') {
+                    script {
+                        // Scans the built jar so every bundled library is checked; the trivy-cache volume keeps the DB between builds
+                        def trivy = 'docker run --rm -v trivy-cache:/root/.cache -v "$PWD/target":/scan:ro -v "$PWD/.trivyignore":/.trivyignore:ro ' +
+                                    '"$TRIVY_IMAGE" rootfs --scanners vuln --ignorefile /.trivyignore --quiet'
+                        sh "${trivy} --format json /scan/team-skeleton.jar > \"\$WORKSPACE/\$REPORTS_DIR/trivy-report.json\""
+                        // The first run refreshed the vulnerability DB; reuse it for the HTML report and the gate
+                        trivy += ' --skip-db-update --skip-java-db-update'
+                        sh "${trivy} --format template --template '@contrib/html.tpl' /scan/team-skeleton.jar > \"\$WORKSPACE/\$REPORTS_DIR/trivy-report.html\""
+
+                        def status = sh(returnStatus: true, script: "${trivy} --severity \"\$TRIVY_SEVERITY\" --ignore-unfixed --exit-code 1 /scan/team-skeleton.jar")
+                        if (status != 0) {
+                            def message = "Dependencies with fixable ${env.TRIVY_SEVERITY} vulnerabilities, see trivy-report.html"
+                            if (env.ENFORCE_DEPENDENCY_SCAN == 'true') {
+                                error(message)
+                            }
+                            unstable(message)
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Quality Gate') {
             steps {
                 echo "=========================================="
@@ -111,7 +189,10 @@ pipeline {
                     fi
                 '''
             }
-            
+
+            // Keep the security reports with the build before the workspace is cleaned
+            archiveArtifacts artifacts: "${REPORTS_DIR}/**", allowEmptyArchive: true
+
             cleanWs(deleteDirs: true, patterns: [[pattern: '**/target/**', type: 'INCLUDE']])
         }
         

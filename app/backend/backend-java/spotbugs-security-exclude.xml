@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Reviewed security findings that do not apply. Every exclusion must state why. -->
+<FindBugsFilter>
+    <!--
+        Spring Security CSRF is disabled because the API is a stateless JWT resource server:
+        credentials are sent in the Authorization header, never in cookies, so browsers cannot
+        attach them to forged cross-site requests. BasicCsrfFilter still guards the API separately.
+    -->
+    <Match>
+        <Class name="com.neueda.leap.security.SecurityConfig"/>
+        <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED"/>
+    </Match>
+</FindBugsFilter>

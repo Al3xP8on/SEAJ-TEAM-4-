@@ -1,0 +1,4 @@
+# Vulnerabilities accepted after review, one CVE ID per line.
+# Every entry needs a reason and an expiry date so it gets revisited, e.g.:
+#
+# CVE-2024-12345 exp:2026-12-31  # not reachable: we don't use the affected XML parser
