@@ -3,14 +3,16 @@ package com.neueda.leap.dtos;
 public class LoginResponse {
     private String token;
     private String username;
+    private String accountId;
     private Long expiresIn;
 
     public LoginResponse() {
     }
 
-    public LoginResponse(String token, String username, Long expiresIn) {
+    public LoginResponse(String token, String username, String accountId, Long expiresIn) {
         this.token = token;
         this.username = username;
+        this.accountId = accountId;
         this.expiresIn = expiresIn;
     }
 
@@ -28,6 +30,14 @@ public class LoginResponse {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
     }
 
     public Long getExpiresIn() {

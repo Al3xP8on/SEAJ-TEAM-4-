@@ -60,6 +60,14 @@ public class AccountService {
         return account;
     }
 
+    public Account getAccountByUsername(String username) throws AccountNotFoundException {
+        Account account = accountRepository.findByUsername(username).orElse(null);
+        if (account == null) {
+            throw new AccountNotFoundException("Account with username " + username + " not found");
+        }
+        return account;
+    }
+
     public BigDecimal getBalance(Long accountId) throws AccountNotFoundException {
         Account account = getAccount(accountId);
         return account.getCashBalance();
