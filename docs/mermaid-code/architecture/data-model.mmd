@@ -1,0 +1,8 @@
+erDiagram
+    ACCOUNTS ||--o{ ORDERS : places
+    ACCOUNTS ||--o{ POSITIONS : holds
+    INSTRUMENTS ||--o{ ORDERS : "traded in"
+    INSTRUMENTS ||--o{ POSITIONS : "held in"
+    ORDERS ||--o{ ORDER_HISTORY : "tracked by"
+    INSTRUMENTS ||--o{ PRICE_HISTORY : has
+    INSTRUMENTS ||--|| CURRENT_PRICES : has
