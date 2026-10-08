@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from app.backend.backend_python.data_analysis.constants import TRADING_DAYS, START_DATE, END_DATE
-from app.backend.backend_python.logger.logger import logger
+from data_analysis.constants import TRADING_DAYS, START_DATE, END_DATE
+from logger.logger import logger
 
 
 def instrument_summary(df: pd.DataFrame) -> pd.DataFrame:
