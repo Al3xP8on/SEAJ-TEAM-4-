@@ -111,7 +111,101 @@ services:
       - sonarqube_data:/opt/sonarqube/data
       - sonarqube_logs:/opt/sonarqube/logs
 
+  otel-collector:
+    profiles: ["observability"]
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    container_name: seaj_otel_collector
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./infra/observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC (services running outside Docker)
+      - "4318:4318"   # OTLP HTTP (browser / Angular)
+    depends_on:
+      - tempo
+      - loki
+
+  # Tempo runs as uid 10001; fix ownership of its data volume before it starts.
+  tempo-init:
+    profiles: ["observability"]
+    image: grafana/tempo:2.6.0
+    container_name: seaj_tempo_init
+    user: root
+    entrypoint: ["chown", "10001:10001", "/var/tempo"]
+    volumes:
+      - tempo_data:/var/tempo
+
+  tempo:
+    profiles: ["observability"]
+    image: grafana/tempo:2.6.0
+    container_name: seaj_tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./infra/observability/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    depends_on:
+      tempo-init:
+        condition: service_completed_successfully
+
+  loki:
+    profiles: ["observability"]
+    image: grafana/loki:3.2.0
+    container_name: seaj_loki
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./infra/observability/loki.yaml:/etc/loki/config.yaml:ro
+      - loki_data:/loki
+
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:v2.54.1
+    container_name: seaj_prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-remote-write-receiver   # Tempo pushes service-graph / span metrics here
+      - --enable-feature=exemplar-storage    # metric -> trace jumps in Grafana
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "8085:9090"
+
+  kafka-exporter:
+    profiles: ["observability"]
+    image: danielqsj/kafka-exporter:v1.8.0
+    container_name: seaj_kafka_exporter
+    command: ["--kafka.server=kafka:9092"]
+    restart: on-failure
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  grafana:
+    profiles: ["observability"]
+    image: grafana/grafana:11.2.2
+    container_name: seaj_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
+      GF_FEATURE_TOGGLES_ENABLE: "traceqlEditor"
+    volumes:
+      - ./infra/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "8084:3000"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+
 volumes:
   pgdata_volume:
   sonarqube_data:
   sonarqube_logs:
+  tempo_data:
+  loki_data:
+  prometheus_data:
+  grafana_data:
