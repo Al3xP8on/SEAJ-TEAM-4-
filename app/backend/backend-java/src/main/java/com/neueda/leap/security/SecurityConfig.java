@@ -39,7 +39,9 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/public", "/swagger-ui/**", "/v3/api-docs/**", "/v1/accounts").permitAll()
+                        .requestMatchers("/public", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("POST", "/v1/accounts").permitAll()  // Allow public account signup
+                        .requestMatchers("POST", "/v1/accounts/login").permitAll()  // Allow public login
                         .anyRequest().authenticated())
                 .oauth2ResourceServer((OAuth2ResourceServerConfigurer<HttpSecurity> oauth2) ->
                         oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(authenticationConverter)));

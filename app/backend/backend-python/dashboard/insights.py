@@ -140,8 +140,12 @@ def diversification_insight(correlation: pd.DataFrame) -> str:
     )
 
 
-def build_insights(df: pd.DataFrame, n: int = 5) -> dict:
-    """Run the analysis functions the dashboard needs and attach a takeaway to each insight"""
+def build_insights(df: pd.DataFrame, n: int = 5, min_years: float = 0.0) -> dict:
+    """Run the analysis functions the dashboard needs and attach a takeaway to each insight.
+
+    min_years keeps instruments with a short history out of the performer rankings,
+    where annualising a few months of returns gives extreme, misleading figures.
+    """
     if df.empty:
         logger.warning("Empty DataFrame passed to build_insights()")
         return {}
@@ -154,7 +158,8 @@ def build_insights(df: pd.DataFrame, n: int = 5) -> dict:
     all_drawdowns = drawdown_summary(df)
     correlation = diversification_matrix(df)
 
-    ranked = performance.dropna(subset=["annualised_return"])
+    history_years = (performance["last_date"] - performance["first_date"]).dt.days / DAYS_PER_YEAR
+    ranked = performance[history_years >= min_years].dropna(subset=["annualised_return"])
     top = ranked.head(n)
     bottom = ranked.iloc[len(top):].tail(n)
 
