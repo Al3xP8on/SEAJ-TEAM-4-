@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import com.neueda.leap.dtos.ErrorResponse;
 import com.neueda.leap.exceptions.*;
 import com.neueda.leap.exceptions.DuplicateAccountException;
+import com.neueda.leap.security.AuthorizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,6 +147,18 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(AuthorizationException.class)
+    ResponseEntity<ErrorResponse> handleAuthorizationException(AuthorizationException exception, HttpServletRequest request){
+        logger.error("AuthorizationException occurred at {}: {}", request.getRequestURI(), exception.getMessage(), exception);
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                exception.getMessage(),
+                LocalDateTime.now(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)

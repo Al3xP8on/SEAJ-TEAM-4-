@@ -1,0 +1,19 @@
+%%{init: {"sequence": {"mirrorActors": false}}}%%
+sequenceDiagram
+    autonumber
+    actor C as Client
+    participant API as Trading API
+    participant K as Kafka
+    participant E as Execution Engine
+
+    C->>API: Place order (REST + JWT)
+    Note over API: Validate & save (NEW)
+    API-->>C: Order accepted
+    API->>K: publish to "orders"
+    K->>E: consume order
+    Note over E: Simulate fill<br/>0.5–2s delay, price improvement
+    E->>K: publish to "executions"
+    K->>API: consume execution
+    Note over API: Settle: FILLED<br/>+ cash balance updated
+
+    Note over API,E: Failed messages go to .DLT topics · stuck orders auto-republished

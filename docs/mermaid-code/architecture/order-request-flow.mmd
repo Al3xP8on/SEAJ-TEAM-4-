@@ -1,0 +1,19 @@
+flowchart LR
+    req([Place order<br/>REST + JWT])
+    jwt{JWT<br/>valid?}
+    val["<b>Validate order</b><br/>Funds / holdings<br/>Valid symbol<br/>Price vs live market<br/>No duplicate"]
+    pass{Pass?}
+    ok([201 Created<br/>saved as NEW<br/>sent to Kafka])
+    unauth([401<br/>Unauthorised])
+    err([400 / 409<br/>clear error])
+
+    req --> jwt
+    jwt -- yes --> val --> pass
+    pass -- yes --> ok
+    jwt -- no --> unauth
+    pass -- no --> err
+
+    style val fill:#fff8e1,stroke:#e0b84a
+    style ok fill:#eef8f2,stroke:#5bb07f
+    style unauth fill:#fdeeee,stroke:#d66b6b
+    style err fill:#fdeeee,stroke:#d66b6b
