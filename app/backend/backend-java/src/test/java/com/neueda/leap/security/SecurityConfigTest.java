@@ -3,6 +3,8 @@ package com.neueda.leap.security;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import static org.junit.jupiter.api.Assertions.*;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.context.ContextConfiguration;
@@ -36,6 +39,7 @@ import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -110,6 +114,36 @@ class SecurityConfigTest {
         }
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "GET, /v1/accounts",
+            "PUT, /v1/accounts",
+            "PATCH, /v1/accounts",
+            "DELETE, /v1/accounts",
+            "HEAD, /v1/accounts",
+            "OPTIONS, /v1/accounts",
+            "GET, /v1/accounts/login",
+            "PUT, /v1/accounts/login",
+            "PATCH, /v1/accounts/login",
+            "DELETE, /v1/accounts/login",
+            "HEAD, /v1/accounts/login",
+            "OPTIONS, /v1/accounts/login"
+    })
+    void rejectsAnonymousNonPostRequestsToSignupAndLogin(String method, String path) throws Exception {
+        mockMvc.perform(request(HttpMethod.valueOf(method), path))
+                .andExpect(status().isUnauthorized())
+                .andExpect(result -> assertNull(result.getHandler()));
+    }
+
+    @Test
+    void permitsAuthenticatedAccountListing() throws Exception {
+        String bearer = token(SECRET, Instant.now().plusSeconds(3600));
+
+        mockMvc.perform(get("/v1/accounts").header("Authorization", "Bearer " + bearer))
+                .andExpect(status().isOk())
+                .andExpect(content().string("alice:ROLE_TRADER"));
+    }
+
     @Test
     void rejectsAnonymousRequestsToProtectedRoutes() throws Exception {
         mockMvc.perform(get("/v1/orders"))
@@ -168,7 +202,7 @@ class SecurityConfigTest {
             return "public";
         }
 
-        @GetMapping("/v1/orders")
+        @GetMapping({"/v1/orders", "/v1/accounts"})
         String protectedEndpoint(Authentication authentication) {
             String roles = authentication.getAuthorities().stream()
                     .map(authority -> authority.getAuthority())

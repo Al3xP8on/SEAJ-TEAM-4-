@@ -3,6 +3,7 @@ package com.neueda.leap.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -40,8 +41,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/public", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("POST", "/v1/accounts").permitAll()  // Allow public account signup
-                        .requestMatchers("POST", "/v1/accounts/login").permitAll()  // Allow public login
+                        .requestMatchers(HttpMethod.POST, "/v1/accounts").permitAll()  // Allow public account signup
+                        .requestMatchers(HttpMethod.POST, "/v1/accounts/login").permitAll()  // Allow public login
                         .anyRequest().authenticated())
                 .oauth2ResourceServer((OAuth2ResourceServerConfigurer<HttpSecurity> oauth2) ->
                         oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(authenticationConverter)));
