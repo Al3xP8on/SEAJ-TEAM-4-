@@ -24,6 +24,7 @@
         <sonar.projectKey>seaj-team-4</sonar.projectKey>
         <sonar.projectName>SEAJ Team 4</sonar.projectName>
         <sonar.host.url>http://10.9.69.224:8088</sonar.host.url>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <dependencyManagement>
@@ -162,6 +163,21 @@
                         </manifest>
                     </archive>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.11</version>
+                <executions>
+                    <execution>
+                        <goals><goal>prepare-agent</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals><goal>report</goal></goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.sonarsource.scanner.maven</groupId>

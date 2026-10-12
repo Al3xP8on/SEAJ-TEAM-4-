@@ -1,11 +1,9 @@
 package com.neueda.leap.controllers;
 
-import com.neueda.leap.dtos.PlaceOrderRequest;
 import com.neueda.leap.enums.OrderSide;
 import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.enums.AccountStatus;
 import com.neueda.leap.exceptions.OrderException;
-import com.neueda.leap.exceptions.DuplicateOrderException;
 import com.neueda.leap.messaging.OrderEventPublisher;
 import com.neueda.leap.messaging.TradeEventPublisher;
 import com.neueda.leap.models.Account;

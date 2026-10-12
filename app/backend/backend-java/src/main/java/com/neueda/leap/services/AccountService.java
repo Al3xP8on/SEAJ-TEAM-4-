@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class AccountService {
@@ -27,18 +28,20 @@ public class AccountService {
     private AccountValidator validator;
 
     public AccountResponse createAccount(AccountInput input) throws DuplicateAccountException {
-        if (accountRepository.findByAccountId(input.accountId()).isPresent()) {
-            throw new DuplicateAccountException("Account ID already exists: " + input.accountId());
-        }
         if (accountRepository.findByUsername(input.username()).isPresent()) {
             throw new DuplicateAccountException("Username already taken: " + input.username());
         }
+        if (input.email() != null && accountRepository.findByEmail(input.email()).isPresent()) {
+            throw new DuplicateAccountException("Email already in use: " + input.email());
+        }
+        if (input.phone() != null && accountRepository.findByPhone(input.phone()).isPresent()) {
+            throw new DuplicateAccountException("Phone number already in use: " + input.phone());
+        }
 
-        BigDecimal balance = input.cashBalance() != null ? input.cashBalance() : BigDecimal.ZERO;
+        String accountId = "ACC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         Account account = new Account(
-            input.accountId(), input.username(), input.password(),
-            input.name(), input.email(), input.phone(),
-            balance, AccountStatus.ACTIVE
+            accountId, input.username(), input.password(),
+            input.email(), input.phone(), AccountStatus.ACTIVE
         );
         Account saved = accountRepository.save(account);
         return new AccountResponse(
@@ -81,6 +84,13 @@ public class AccountService {
     public OrderHistory getOrders(Long accountId) throws AccountNotFoundException {
         Account account = getAccount(accountId);
         return new OrderHistory();
+    }
+
+    public void deleteAccount(Long accountId) throws AccountNotFoundException {
+        if (!accountRepository.existsById(accountId)) {
+            throw new AccountNotFoundException("Account with ID " + accountId + " not found");
+        }
+        accountRepository.deleteById(accountId);
     }
 
     public void addAccount(Account account) {
