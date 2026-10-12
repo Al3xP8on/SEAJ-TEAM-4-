@@ -1,48 +1,50 @@
-import { Injectable, UnauthorizedException, ExecutionContext } from '@nestjs/common';
-import { CanActivate } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ExecutionContext,
+  CanActivate,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import type { Request } from 'express';
+import { SessionService } from './session.service';
 
-/**
- * JWT Authentication Guard
- * Validates Bearer tokens in Authorization header and attaches user to request
- */
+export interface AuthenticatedRequest extends Request {
+  user: { sub: string; role: 'USER' | 'ADMIN'; sid: string };
+}
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
-
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly sessions: SessionService,
+  ) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const token = this.extractToken(request);
-
-    if (!token) {
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const match = /^Bearer ([^ ]+)$/i.exec(request.headers.authorization ?? '');
+    if (!match)
       throw new UnauthorizedException('Authorization token is required');
-    }
-
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET || 'changeme',
-      });
-      request.user = {
-        userId: payload.sub,
-        username: payload.username,
-        roles: payload.roles || [],
-      };
+      const payload = await this.jwt.verifyAsync<{
+        sub: string;
+        role: 'USER' | 'ADMIN';
+        sid: string;
+        exp: number;
+        amr: string[];
+      }>(match[1], { algorithms: ['HS256'] });
+      if (
+        typeof payload.sub !== 'string' ||
+        typeof payload.sid !== 'string' ||
+        !Number.isFinite(payload.exp) ||
+        !Array.isArray(payload.amr) ||
+        !payload.amr.includes('pwd') ||
+        !payload.amr.includes('email_otp') ||
+        !['USER', 'ADMIN'].includes(payload.role) ||
+        !(await this.sessions.isActive(payload.sid, payload.sub))
+      )
+        throw new Error('Invalid session');
+      request.user = payload;
       return true;
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
-  }
-
-  private extractToken(request: any): string | null {
-    const authHeader = request.headers.authorization;
-    if (!authHeader) {
-      return null;
-    }
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2) {
-      return null;
-    }
-    const [bearer, token] = parts;
-    return bearer === 'Bearer' ? token : null;
   }
 }
