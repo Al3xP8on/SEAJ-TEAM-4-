@@ -165,6 +165,8 @@ class AccountControllerTest {
         verify(service).deleteAccount(1L);
     }
     @Test void listsAccountsAndHandlesRepositoryFailure() {
+        // Mock admin user
+        when(securityUtilsService.isAdmin()).thenReturn(true);
         List<Account> accounts = List.of(mock(Account.class));
         when(service.getAllAccounts()).thenReturn(accounts);
         assertSame(accounts, controller().getAllAccounts().getBody());
@@ -175,24 +177,25 @@ class AccountControllerTest {
     }
     @Test void returnsIndividualAccountResources() throws Exception {
         Account account = mock(Account.class);
+        List<Positions> positions = List.of(mock(Positions.class));
         when(account.getId()).thenReturn(1L);
         when(account.getAccountId()).thenReturn("ACC-001");
         when(account.getName()).thenReturn("Alice");
-        Positions positions = mock(Positions.class);
-        when(positions.getSymbol()).thenReturn("AAPL");
+        when(positions.get(0).getSymbol()).thenReturn("AAPL");
         OrderHistory orders = mock(OrderHistory.class);
         when(orders.getStatus()).thenReturn(OrderStatus.FILLED);
         when(service.getAccount(1L)).thenReturn(account);
         when(service.getBalance(1L)).thenReturn(BigDecimal.TEN);
         when(service.getPositions(1L)).thenReturn(positions);
         when(service.getOrders(1L)).thenReturn(orders);
+        when(securityUtilsService.isAdmin()).thenReturn(true);  // Admin can access any account
         AccountController controller = controller();
         AccountResponse accountBody = controller.getAccount(1L).getBody();
         assertEquals(1L, accountBody.id());
         assertEquals("ACC-001", accountBody.accountId());
         assertEquals("Alice", accountBody.holderName());
         assertEquals(BigDecimal.TEN, controller.getBalance(1L).getBody());
-        assertEquals("AAPL", controller.getPositions(1L).getBody().symbol());
+        assertEquals("AAPL", controller.getPositions(1L).getBody().get(0).getSymbol());
         assertEquals(OrderStatus.FILLED, controller.getOrders(1L).getBody().status());
     }
     @Test void returnsNotFoundForMissingAccountResources() throws Exception {

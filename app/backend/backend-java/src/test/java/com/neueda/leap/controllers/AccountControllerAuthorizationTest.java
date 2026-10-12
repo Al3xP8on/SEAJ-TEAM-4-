@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -143,7 +144,7 @@ public class AccountControllerAuthorizationTest {
         when(accountService.getAccount(1L)).thenReturn(aliceAccount);
         when(securityUtilsService.isAdmin()).thenReturn(false);
         doNothing().when(securityUtilsService).validateAccountOwnership("ACC-0001");
-        when(accountService.getPositions(1L)).thenReturn(new Positions());
+        when(accountService.getPositions(1L)).thenReturn(List.of(new Positions()));
 
         accountController.getPositions(1L);
 

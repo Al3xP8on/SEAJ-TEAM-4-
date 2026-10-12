@@ -82,6 +82,10 @@ public class OrderControllerTest {
         testOrder = new Order(testOrderId, testAccount, testInstrument, 100, new BigDecimal("150.50"), 
                             OrderSide.BUY, "idem-key-001", OrderStatus.NEW, LocalDateTime.now());
         testOrderHistory = new OrderHistory(testOrderId, OrderStatus.NEW);
+        
+        // Default mock setup: regular user (not admin)
+        when(securityUtilsService.isAdmin()).thenReturn(false);
+        when(securityUtilsService.getAuthenticatedUserAccount()).thenReturn(testAccount);
     }
 
     // ==================== GET Tests ====================
@@ -89,6 +93,8 @@ public class OrderControllerTest {
     @Test
     @DisplayName("Should get all orders (admin)")
     void testGetAllOrdersSuccess() throws Exception {
+        // Admin user case - should return all orders
+        when(securityUtilsService.isAdmin()).thenReturn(true);
         List<Order> orders = Arrays.asList(testOrder);
         when(orderService.getAllOrders()).thenReturn(orders);
 
