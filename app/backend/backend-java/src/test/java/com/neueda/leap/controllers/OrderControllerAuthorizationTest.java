@@ -1,5 +1,6 @@
 package com.neueda.leap.controllers;
 
+import com.neueda.leap.dtos.OrderResponse;
 import com.neueda.leap.dtos.PlaceOrderRequest;
 import com.neueda.leap.enums.AccountStatus;
 import com.neueda.leap.enums.OrderSide;
@@ -86,10 +87,10 @@ public class OrderControllerAuthorizationTest {
         when(securityUtilsService.getAuthenticatedUserAccount()).thenReturn(aliceAccount);
         when(orderService.getOrdersByAccount("ACC-0001")).thenReturn(List.of(aliceOrder));
 
-        ResponseEntity<List<Order>> response = orderController.getAllOrders();
+        ResponseEntity<List<OrderResponse>> response = orderController.getAllOrders();
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals(List.of(aliceOrder), response.getBody());
+        assertEquals(List.of(OrderResponse.from(aliceOrder)), response.getBody());
         verify(orderService).getOrdersByAccount("ACC-0001");
         verify(orderService, never()).getAllOrders();
     }
@@ -99,10 +100,10 @@ public class OrderControllerAuthorizationTest {
     void testRejectOrderValidatesRegularUserOwnership() {
         when(orderService.rejectOrder(aliceOrder.getId(), "User requested rejection")).thenReturn(aliceOrder);
 
-        ResponseEntity<Order> response = orderController.rejectOrder(aliceOrder.getId(), "User requested rejection");
+        ResponseEntity<OrderResponse> response = orderController.rejectOrder(aliceOrder.getId(), "User requested rejection");
 
         assertEquals(200, response.getStatusCode().value());
-        assertSame(aliceOrder, response.getBody());
+        assertEquals(OrderResponse.from(aliceOrder), response.getBody());
         verify(securityUtilsService).validateOrderOwnership(aliceOrder);
     }
 
@@ -112,10 +113,10 @@ public class OrderControllerAuthorizationTest {
         when(securityUtilsService.isAdmin()).thenReturn(true);
         when(orderService.rejectOrder(aliceOrder.getId(), "Admin rejected order")).thenReturn(aliceOrder);
 
-        ResponseEntity<Order> response = orderController.rejectOrder(aliceOrder.getId(), "Admin rejected order");
+        ResponseEntity<OrderResponse> response = orderController.rejectOrder(aliceOrder.getId(), "Admin rejected order");
 
         assertEquals(200, response.getStatusCode().value());
-        assertSame(aliceOrder, response.getBody());
+        assertEquals(OrderResponse.from(aliceOrder), response.getBody());
         verify(securityUtilsService, never()).validateOrderOwnership(any());
     }
 
@@ -124,7 +125,7 @@ public class OrderControllerAuthorizationTest {
     void testGetOrdersByAccountFiltersNonmatchingStatus() {
         when(orderService.getOrdersByAccount("ACC-0001")).thenReturn(List.of(aliceOrder));
 
-        ResponseEntity<List<Order>> response = orderController.getOrdersByAccount(
+        ResponseEntity<List<OrderResponse>> response = orderController.getOrdersByAccount(
                 "ACC-0001", OrderStatus.FILLED, null, null);
 
         assertEquals(200, response.getStatusCode().value());

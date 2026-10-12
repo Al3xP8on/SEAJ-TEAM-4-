@@ -3,7 +3,7 @@ package com.neueda.leap.utils;
 import java.util.UUID;
 
 /**
- * Utility for masking sensitive identifiers in logs.
+ * Utility for masking sensitive identifiers in logs and neutralising CR/LF in logged values.
  * Follows OWASP security guidelines to prevent sensitive data exposure.
  * 
  * Masks UUIDs and account IDs to show only first 8 and last 4 characters.
@@ -15,6 +15,19 @@ public class LogMaskingUtil {
     private static final int PREFIX_LENGTH = 8;
     private static final int SUFFIX_LENGTH = 4;
     
+    /**
+     * Neutralises carriage returns and line feeds so user input can't forge log lines (CWE-117).
+     *
+     * @param value the value to log
+     * @return the value with CR/LF replaced by '_', or "[null]" if input is null
+     */
+    public static String sanitize(Object value) {
+        if (value == null) {
+            return "[null]";
+        }
+        return value.toString().replace('\r', '_').replace('\n', '_');
+    }
+
     /**
      * Masks a UUID string for safe logging.
      * Shows first 8 and last 4 characters.
@@ -28,14 +41,14 @@ public class LogMaskingUtil {
         }
         
         if (uuid.length() <= PREFIX_LENGTH + SUFFIX_LENGTH) {
-            return uuid;
+            return sanitize(uuid);
         }
         
         String prefix = uuid.substring(0, PREFIX_LENGTH);
         String suffix = uuid.substring(uuid.length() - SUFFIX_LENGTH);
         String middle = MASK_CHAR.repeat(uuid.length() - PREFIX_LENGTH - SUFFIX_LENGTH);
         
-        return prefix + middle + suffix;
+        return sanitize(prefix + middle + suffix);
     }
     
     /**
@@ -61,14 +74,14 @@ public class LogMaskingUtil {
         }
         
         if (accountId.length() <= 7) {
-            return accountId;
+            return sanitize(accountId);
         }
         
         String prefix = accountId.substring(0, 4);
         String suffix = accountId.substring(accountId.length() - 3);
         String middle = MASK_CHAR.repeat(accountId.length() - 7);
         
-        return prefix + middle + suffix;
+        return sanitize(prefix + middle + suffix);
     }
     
     /**

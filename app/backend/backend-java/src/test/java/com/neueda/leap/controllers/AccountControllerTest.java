@@ -4,11 +4,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
-import com.neueda.leap.services.AccountService;
 import com.neueda.leap.security.SecurityUtilsService;
+import com.neueda.leap.services.AccountService;
 import com.neueda.leap.dtos.*;
 import com.neueda.leap.models.*;
 import com.neueda.leap.enums.AccountStatus;
+import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.exceptions.*;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.http.ResponseEntity;
@@ -174,17 +175,25 @@ class AccountControllerTest {
     }
     @Test void returnsIndividualAccountResources() throws Exception {
         Account account = mock(Account.class);
+        when(account.getId()).thenReturn(1L);
+        when(account.getAccountId()).thenReturn("ACC-001");
+        when(account.getName()).thenReturn("Alice");
         Positions positions = mock(Positions.class);
+        when(positions.getSymbol()).thenReturn("AAPL");
         OrderHistory orders = mock(OrderHistory.class);
+        when(orders.getStatus()).thenReturn(OrderStatus.FILLED);
         when(service.getAccount(1L)).thenReturn(account);
         when(service.getBalance(1L)).thenReturn(BigDecimal.TEN);
         when(service.getPositions(1L)).thenReturn(positions);
         when(service.getOrders(1L)).thenReturn(orders);
         AccountController controller = controller();
-        assertSame(account, controller.getAccount(1L).getBody());
+        AccountResponse accountBody = controller.getAccount(1L).getBody();
+        assertEquals(1L, accountBody.id());
+        assertEquals("ACC-001", accountBody.accountId());
+        assertEquals("Alice", accountBody.holderName());
         assertEquals(BigDecimal.TEN, controller.getBalance(1L).getBody());
-        assertSame(positions, controller.getPositions(1L).getBody());
-        assertSame(orders, controller.getOrders(1L).getBody());
+        assertEquals("AAPL", controller.getPositions(1L).getBody().symbol());
+        assertEquals(OrderStatus.FILLED, controller.getOrders(1L).getBody().status());
     }
     @Test void returnsNotFoundForMissingAccountResources() throws Exception {
         when(service.getAccount(1L)).thenThrow(new AccountNotFoundException("missing"));

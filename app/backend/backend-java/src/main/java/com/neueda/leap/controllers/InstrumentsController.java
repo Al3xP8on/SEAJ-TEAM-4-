@@ -1,5 +1,6 @@
 package com.neueda.leap.controllers;
 
+import com.neueda.leap.dtos.InstrumentResponse;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.services.InstrumentsService;
 import org.springframework.http.HttpStatus;
@@ -19,7 +20,7 @@ public class InstrumentsController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Instrument>> getAllInstruments(
+    public ResponseEntity<List<InstrumentResponse>> getAllInstruments(
             @RequestParam(value = "tradable", required = false) Boolean tradable,
             @RequestParam(value = "assetClass", required = false) String assetClass,
             @RequestParam(value = "currency", required = false) String currency) {
@@ -38,7 +39,7 @@ public class InstrumentsController {
             instruments = instrumentsService.getAllInstruments();
         }
         
-        return ResponseEntity.ok(instruments);
+        return ResponseEntity.ok(instruments.stream().map(InstrumentResponse::from).toList());
     }
 
     @GetMapping("/{symbol}")
@@ -48,7 +49,7 @@ public class InstrumentsController {
         if (instrument.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(HttpStatus.NOT_FOUND.value(), "Instrument not found: " + symbol));
         }
-        return ResponseEntity.ok(instrument.get());
+        return ResponseEntity.ok(InstrumentResponse.from(instrument.get()));
     }
 
     public static class ErrorResponse {

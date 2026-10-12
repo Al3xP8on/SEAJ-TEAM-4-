@@ -82,16 +82,6 @@ public class PositionsService {
     }
     
     private PositionResponse toResponse(Positions position) {
-        return new PositionResponse(
-            position.getPositionId(),
-            position.getAccountId(),
-            position.getSymbol(),
-            position.getQuantity(),
-            position.getAverageCost(),
-            position.getStatus(),
-            position.getOpenedAt(),
-            position.getClosedAt(),
-            position.getRealisedPnL()
-        );
+        return PositionResponse.from(position);
     }
 }
