@@ -1,6 +1,8 @@
 package com.neueda.leap.controllers;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 import com.neueda.leap.services.AccountService;
 import com.neueda.leap.security.SecurityUtilsService;
@@ -9,22 +11,73 @@ import com.neueda.leap.models.*;
 import com.neueda.leap.enums.AccountStatus;
 import com.neueda.leap.exceptions.*;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import static org.mockito.Mockito.*;
 
 class AccountControllerTest {
     private final AccountService service = mock(AccountService.class);
     private final SecurityUtilsService securityUtilsService = mock(SecurityUtilsService.class);
+    private final RestTemplate restTemplate = mock(RestTemplate.class);
     private AccountController controller() {
         AccountController controller = new AccountController();
         ReflectionTestUtils.setField(controller, "accountService", service);
         ReflectionTestUtils.setField(controller, "securityUtilsService", securityUtilsService);
+        ReflectionTestUtils.setField(controller, "restTemplate", restTemplate);
+        ReflectionTestUtils.setField(controller, "authServiceUrl", "http://auth-service:3000");
         when(securityUtilsService.isAdmin()).thenReturn(true);
         return controller;
     }
-    private final AccountInput input = new AccountInput("ACC-001", "alice", "password", "Alice", null, null, BigDecimal.ZERO);
+    private final AccountInput input = new AccountInput("alice", "password", null, null);
+    @ParameterizedTest
+    @ValueSource(longs = {1800L, 3600L})
+    void returnsLoginTokenWithProvidedOrDefaultExpiry(long expiresIn) throws Exception {
+        Map<String, Object> authBody = new HashMap<>();
+        authBody.put("access_token", "test-token");
+        if (expiresIn != 1800L) {
+            authBody.put("expiresIn", expiresIn);
+        }
+        when(restTemplate.postForEntity(eq("http://auth-service:3000/auth/login"),
+                eq(Map.of("username", "alice", "password", "password")), eq(Object.class)))
+                .thenReturn(ResponseEntity.ok(authBody));
+        Account account = mock(Account.class);
+        when(account.getAccountId()).thenReturn("ACC-001");
+        when(service.getAccountByUsername("alice")).thenReturn(account);
+
+        var response = controller().login(new LoginRequest("alice", "password"));
+
+        assertEquals(200, response.getStatusCode().value());
+        LoginResponse body = assertInstanceOf(LoginResponse.class, response.getBody());
+        assertEquals("test-token", body.getToken());
+        assertEquals("alice", body.getUsername());
+        assertEquals("ACC-001", body.getAccountId());
+        assertEquals(Long.valueOf(expiresIn), body.getExpiresIn());
+    }
+    @Test void rejectsLoginWhenAuthServiceReturnsAnEmptyBody() {
+        when(restTemplate.postForEntity(anyString(), any(), eq(Object.class)))
+                .thenReturn(ResponseEntity.ok().build());
+
+        var response = controller().login(new LoginRequest("alice", "password"));
+
+        assertEquals(401, response.getStatusCode().value());
+        assertEquals("Authentication failed", response.getBody());
+        verifyNoInteractions(service);
+    }
+    @Test void rejectsLoginWhenAuthServiceReturnsAnUnexpectedBodyType() {
+        when(restTemplate.postForEntity(anyString(), any(), eq(Object.class)))
+                .thenReturn(ResponseEntity.ok("invalid response"));
+
+        var response = controller().login(new LoginRequest("alice", "password"));
+
+        assertEquals(401, response.getStatusCode().value());
+        assertEquals("Authentication failed", response.getBody());
+        verifyNoInteractions(service);
+    }
     @Test void returnsCreatedAccount() throws Exception {
         AccountResponse body = new AccountResponse(1L, "ACC-001", "Alice", BigDecimal.ZERO, AccountStatus.ACTIVE, Optional.empty());
         when(service.createAccount(input)).thenReturn(body);

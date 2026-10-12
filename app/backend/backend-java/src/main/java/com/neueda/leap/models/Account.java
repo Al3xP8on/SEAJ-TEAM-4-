@@ -90,7 +90,7 @@ public class Account implements Closable {
         this.name = name;
         this.email = email;
         this.phone = phone;
-        this.cashBalance = cashBalance != null ? cashBalance : BigDecimal.ZERO;
+        this.cashBalance = cashBalance;
         this.status = status;
         this.version = 0;
         this.createdOn = LocalDateTime.now();
