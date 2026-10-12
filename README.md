@@ -130,6 +130,12 @@ Once all containers are running, access them at:
 | **Kafka UI** | http://localhost:8090 | N/A |
 | **SonarQube** | http://localhost:8088 | admin/admin |
 | **PostgreSQL** | localhost:5433 | `POSTGRES_USER` / `POSTGRES_PASSWORD` from `.env` |
+| **Grafana** * | http://addr:8084 | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from `.env` |
+| **Prometheus** * | http://addr:8085 | N/A |
+
+\* Only when `COMPOSE_PROFILES=observability` is set in `.env`. Grafana and Prometheus use ports 8084/8085 because the VM's AWS security group only allows the 8083–8100 range from the team network, so they can be opened from other machines.
+
+The OpenTelemetry Collector also listens on `4317` (OTLP gRPC) and `4318` (OTLP HTTP). Services in Docker send to `otel-collector:4317`; these host ports are for services run directly on the VM.
 
 ## Testing the Application
 
