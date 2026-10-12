@@ -57,13 +57,13 @@ public class AccountController {
             loginPayload.put("password", request.getPassword());
             
             ResponseEntity<?> response = restTemplate.postForEntity(authUrl, loginPayload, Object.class);
+            Object responseBody = response.getBody();
             
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> body = (Map<String, Object>) response.getBody();
+            if (response.getStatusCode().is2xxSuccessful() && responseBody instanceof Map<?, ?> body) {
                 String token = (String) body.get("access_token");
-                Long expiresIn = body.get("expiresIn") != null ? 
-                    Long.parseLong(body.get("expiresIn").toString()) : 1800L;
+                Object expiresInValue = body.get("expiresIn");
+                Long expiresIn = expiresInValue != null ?
+                    Long.parseLong(expiresInValue.toString()) : 1800L;
                 
                 // Fetch account to get accountId
                 Account account = accountService.getAccountByUsername(request.getUsername());

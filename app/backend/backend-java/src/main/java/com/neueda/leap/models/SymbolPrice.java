@@ -2,6 +2,7 @@ package com.neueda.leap.models;
 
 import java.time.ZonedDateTime;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 import com.neueda.leap.exceptions.InvalidSymbolException;
 import com.neueda.leap.validators.SymbolPriceValidator;
@@ -52,6 +53,11 @@ public class SymbolPrice {
         return this.symbol.equals(other.symbol) 
             && this.price.equals(other.price) 
             && this.timestamp.equals(other.timestamp);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(symbol, price, timestamp);
     }
 
     private String validateSymbol(String symbol){

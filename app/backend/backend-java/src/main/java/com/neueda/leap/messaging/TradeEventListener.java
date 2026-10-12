@@ -65,6 +65,7 @@ public class TradeEventListener {
             groupId = "trade-event-processor",
             concurrency = "3"
     )
+    @Transactional
     public void handleTradeEvent(
             @Payload String message,
             @Header("kafka_receivedPartitionId") int partition,
@@ -130,7 +131,7 @@ public class TradeEventListener {
         if (priceObj instanceof BigDecimal) {
             price = (BigDecimal) priceObj;
         } else if (priceObj instanceof Number) {
-            price = new BigDecimal(((Number) priceObj).doubleValue());
+            price = BigDecimal.valueOf(((Number) priceObj).doubleValue());
         } else if (priceObj instanceof String) {
             price = new BigDecimal((String) priceObj);
         }
@@ -172,7 +173,6 @@ public class TradeEventListener {
         return event;
     }
     
-    @Transactional
     private void handleCancelledTrade(TradeEvent event) {
         logger.info("Processing CANCELLED trade: {} for account {} - Reason: {}", 
                 event.getTradeId(), event.getAccountId(), event.getReason());

@@ -13,6 +13,7 @@ import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.InstrumentsRepository;
 import com.neueda.leap.services.OrderService;
+import com.neueda.leap.security.SecurityUtilsService;
 import com.neueda.leap.config.TestSecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -50,6 +51,9 @@ public class OrderControllerTest {
     private OrderService orderService;
 
     @MockBean
+    private SecurityUtilsService securityUtilsService;
+
+    @MockBean
     private AccountRepository accountRepository;
 
     @MockBean
@@ -70,6 +74,7 @@ public class OrderControllerTest {
 
     @BeforeEach
     void setUp() {
+        when(securityUtilsService.isAdmin()).thenReturn(true);
         testAccount = new Account("ACC-001", "Test Account", "test@example.com", "123456789", new BigDecimal("50000.00"), AccountStatus.ACTIVE);
         testInstrument = new Instrument("AAPL", "Apple Inc.", "EQUITY", "USD", true);
         testOrderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
