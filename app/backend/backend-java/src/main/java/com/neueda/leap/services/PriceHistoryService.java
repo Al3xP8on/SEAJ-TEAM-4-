@@ -1,5 +1,7 @@
 package com.neueda.leap.services;
 
+import com.neueda.leap.utils.LogMaskingUtil;
+
 import com.neueda.leap.models.PriceHistory;
 import com.neueda.leap.repositories.PriceHistoryRepository;
 import com.neueda.leap.validators.PriceHistoryValidator;
@@ -27,35 +29,35 @@ public class PriceHistoryService {
     
     public List<PriceHistory> getPriceHistoryBySymbol(String symbol) {
         validator.validateSymbol(symbol);
-        logger.info("Fetching price history for symbol: {}", symbol);
+        logger.info("Fetching price history for symbol: {}", LogMaskingUtil.sanitize(symbol));
         List<PriceHistory> history = priceHistoryRepository.findBySymbol(symbol);
-        logger.info("Found {} price history records for symbol {}", history.size(), symbol);
+        logger.info("Found {} price history records for symbol {}", history.size(), LogMaskingUtil.sanitize(symbol));
         return history;
     }
     
     public List<PriceHistory> getPriceHistoryBySymbolAndDateRange(String symbol, LocalDate fromDate, LocalDate toDate) {
         validator.validateSymbol(symbol);
-        logger.info("Fetching price history for symbol: {} from {} to {}", symbol, fromDate, toDate);
+        logger.info("Fetching price history for symbol: {} from {} to {}", LogMaskingUtil.sanitize(symbol), LogMaskingUtil.sanitize(fromDate), LogMaskingUtil.sanitize(toDate));
         
         if (fromDate.isAfter(toDate)) {
-            logger.warn("Invalid date range: fromDate {} is after toDate {}", fromDate, toDate);
+            logger.warn("Invalid date range: fromDate {} is after toDate {}", LogMaskingUtil.sanitize(fromDate), LogMaskingUtil.sanitize(toDate));
             throw new IllegalArgumentException("fromDate must be before or equal to toDate");
         }
         
         List<PriceHistory> history = priceHistoryRepository.findBySymbolAndDateRange(symbol, fromDate, toDate);
-        logger.info("Found {} price history records for symbol {} in date range", history.size(), symbol);
+        logger.info("Found {} price history records for symbol {} in date range", history.size(), LogMaskingUtil.sanitize(symbol));
         return history;
     }
     
     public Optional<PriceHistory> getLatestPriceHistory(String symbol) {
         validator.validateSymbol(symbol);
-        logger.info("Fetching latest price history for symbol: {}", symbol);
+        logger.info("Fetching latest price history for symbol: {}", LogMaskingUtil.sanitize(symbol));
         PriceHistory latestPrice = priceHistoryRepository.findLatestBySymbol(symbol);
         if (latestPrice != null) {
-            logger.info("Found latest price history for symbol {}", symbol);
+            logger.info("Found latest price history for symbol {}", LogMaskingUtil.sanitize(symbol));
             return Optional.of(latestPrice);
         }
-        logger.warn("No price history found for symbol {}", symbol);
+        logger.warn("No price history found for symbol {}", LogMaskingUtil.sanitize(symbol));
         return Optional.empty();
     }
     

@@ -1,4 +1,6 @@
 package com.neueda.leap.dtos;
+
+import com.neueda.leap.models.Account;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.NotBlank;
@@ -41,5 +43,17 @@ public record AccountResponse(
         this.cashBalance = cashBalance;
         this.status = status;
         this.lastUpdated = lastUpdated;
+    }
+
+    /** Maps an account entity to the API response; login and contact details are not included */
+    public static AccountResponse from(Account account) {
+        return new AccountResponse(
+            account.getId() == null ? 0L : account.getId(),
+            account.getAccountId(),
+            account.getName(),
+            account.getCashBalance(),
+            account.getStatus(),
+            Optional.ofNullable(account.getLastUpdated())
+        );
     }
 }
