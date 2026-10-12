@@ -5,6 +5,7 @@ import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.models.Positions;
 import com.neueda.leap.dtos.AccountInput;
 import com.neueda.leap.dtos.AccountResponse;
+import com.neueda.leap.exceptions.AccountNotFoundException;
 import com.neueda.leap.dtos.LoginRequest;
 import com.neueda.leap.dtos.LoginResponse;
 import com.neueda.leap.exceptions.DuplicateAccountException;
@@ -92,6 +93,18 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (DuplicateAccountException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteAccount(@PathVariable Long id) {
+        try {
+            accountService.deleteAccount(id);
+            return ResponseEntity.noContent().build();
+        } catch (AccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
