@@ -1,6 +1,6 @@
 /* Client session checks do not replace server-side JWT signature verification. */
 class AuthService {
-    constructor({ storage, fetchImpl = globalThis.fetch, loginUrl = '/auth/login', now = Date.now } = {}) {
+    constructor({ storage, fetchImpl = (...args) => globalThis.fetch(...args), loginUrl = '/auth/login', now = Date.now } = {}) {
         this.storage = storage ?? globalThis.sessionStorage;
         this.fetchImpl = fetchImpl;
         this.loginUrl = loginUrl;
@@ -9,34 +9,45 @@ class AuthService {
         this.generation = 0;
     }
 
+    async request(url, body) {
+        const response = await this.fetchImpl(url, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        let result;
+        try { result = await response.json(); } catch { /* Non-JSON response. */ }
+        if (!response.ok) {
+            const error = new Error(typeof result?.message === 'string' ? result.message : 'Authentication failed. Please try again.');
+            error.status = response.status;
+            error.details = result;
+            throw error;
+        }
+        return { status: response.status, result };
+    }
+
     async login(credentials) {
         this.logout();
         const generation = this.generation;
+        const { status, result } = await this.request(this.loginUrl, credentials);
+        if (generation !== this.generation) throw new Error('Login was cancelled.');
+        if (status !== 202 || typeof result?.challenge_id !== 'string' || !Number.isFinite(result.expires_in) || result.expires_in <= 0) {
+            throw new Error('Authentication service returned an invalid verification challenge.');
+        }
+        this.pendingLogin = { id: result.challenge_id, generation };
+        return result;
+    }
+
+    async verifyLogin(code) {
+        const pending = this.pendingLogin;
+        if (!pending) throw new Error('Start login before entering a verification code.');
         try {
-            const response = await this.fetchImpl(this.loginUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(credentials),
-            });
-            if (!response.ok) {
-                let body;
-                try { body = await response.json(); } catch { /* Non-JSON error response. */ }
-                const error = new Error(typeof body?.message === 'string' ? body.message : 'Login failed. Please try again.');
-                error.status = response.status;
-                error.details = body;
-                throw error;
-            }
-            const result = await response.json();
-            if (!this.isUsableToken(result.access_token)) {
-                throw new Error('Authentication service returned an invalid or expired token.');
-            }
-            if (generation !== this.generation) {
-                throw new Error('Login was cancelled.');
-            }
+            const { result } = await this.request(`${this.loginUrl}/verify`, { challenge_id: pending.id, code });
+            if (pending.generation !== this.generation) throw new Error('Login was cancelled.');
+            if (!this.isUsableToken(result?.access_token)) throw new Error('Authentication service returned an invalid or expired token.');
             this.storage.setItem(this.storageKey, result.access_token);
+            this.pendingLogin = null;
             return result;
         } catch (error) {
-            if (generation === this.generation) this.storage.removeItem(this.storageKey);
+            if (pending.generation === this.generation) this.storage.removeItem(this.storageKey);
             throw error;
         }
     }
@@ -54,6 +65,7 @@ class AuthService {
             const header = decode(parts[0]);
             const payload = decode(parts[1]);
             return typeof header.alg === 'string' && header.alg.toLowerCase() !== 'none'
+                && Array.isArray(payload.amr) && payload.amr.includes('pwd') && payload.amr.includes('email_otp')
                 && Number.isFinite(payload.exp) && payload.exp * 1000 > this.now()
                 && (payload.nbf === undefined || (Number.isFinite(payload.nbf) && payload.nbf * 1000 <= this.now()));
         } catch {
@@ -67,6 +79,7 @@ class AuthService {
 
     logout() {
         this.generation += 1;
+        this.pendingLogin = null;
         this.storage.removeItem(this.storageKey);
     }
 }
