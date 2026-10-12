@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -49,15 +50,15 @@ public class AccountServiceTest {
                 "test@example.com", "1234567890", new BigDecimal("50000.00"), AccountStatus.ACTIVE);
         ReflectionTestUtils.setField(testAccount, "id", 1L);
         
-        accountInput = new AccountInput("ACC-001", "testuser", "password", "Test Account", 
-                "test@example.com", "1234567890", new BigDecimal("50000.00"));
+        accountInput = new AccountInput("testuser", "password", "test@example.com", "1234567890");
     }
 
     @Test
-    @DisplayName("Should create account successfully with provided balance")
+    @DisplayName("Should create account with a generated account ID")
     void testCreateAccountSuccess() throws DuplicateAccountException {
-        when(accountRepository.findByAccountId("ACC-001")).thenReturn(Optional.empty());
         when(accountRepository.findByUsername("testuser")).thenReturn(Optional.empty());
+        when(accountRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+        when(accountRepository.findByPhone("1234567890")).thenReturn(Optional.empty());
         when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
 
         AccountResponse response = accountService.createAccount(accountInput);
@@ -65,60 +66,84 @@ public class AccountServiceTest {
         assertNotNull(response);
         assertEquals(testAccount.getAccountId(), response.accountId());
         assertEquals(testAccount.getName(), response.holderName());
-        assertEquals(testAccount.getCashBalance(), response.cashBalance());
         assertEquals(AccountStatus.ACTIVE, response.status());
-        verify(accountRepository).findByAccountId("ACC-001");
-        verify(accountRepository).findByUsername("testuser");
-        verify(accountRepository).save(any(Account.class));
+
+        ArgumentCaptor<Account> saved = ArgumentCaptor.forClass(Account.class);
+        verify(accountRepository).save(saved.capture());
+        assertTrue(saved.getValue().getAccountId().matches("ACC-[0-9A-F]{8}"));
+        assertEquals("testuser", saved.getValue().getUsername());
+        assertEquals("test@example.com", saved.getValue().getEmail());
+        assertEquals("1234567890", saved.getValue().getPhone());
     }
 
     @Test
-    @DisplayName("Should create account with default zero balance when not provided")
-    void testCreateAccountWithDefaultBalance() throws DuplicateAccountException {
-        AccountInput inputNullBalance = new AccountInput("ACC-002", "user2", "pass2", "Account 2", 
-                "user2@example.com", "9876543210", null);
-        
-        Account accountWithZeroBalance = new Account("ACC-002", "user2", "pass2", "Account 2", 
-                "user2@example.com", "9876543210", BigDecimal.ZERO, AccountStatus.ACTIVE);
-        ReflectionTestUtils.setField(accountWithZeroBalance, "id", 2L);
+    @DisplayName("Should create new accounts with a zero balance")
+    void testCreateAccountStartsWithZeroBalance() throws DuplicateAccountException {
+        when(accountRepository.findByUsername(anyString())).thenReturn(Optional.empty());
+        when(accountRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        when(accountRepository.findByPhone(anyString())).thenReturn(Optional.empty());
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
+            Account account = invocation.getArgument(0);
+            ReflectionTestUtils.setField(account, "id", 2L);
+            return account;
+        });
 
-        when(accountRepository.findByAccountId("ACC-002")).thenReturn(Optional.empty());
-        when(accountRepository.findByUsername("user2")).thenReturn(Optional.empty());
-        when(accountRepository.save(any(Account.class))).thenReturn(accountWithZeroBalance);
+        AccountResponse response = accountService.createAccount(accountInput);
 
-        AccountResponse response = accountService.createAccount(inputNullBalance);
-
-        assertNotNull(response);
         assertEquals(BigDecimal.ZERO, response.cashBalance());
-        verify(accountRepository).save(any(Account.class));
-    }
-
-    @Test
-    @DisplayName("Should throw DuplicateAccountException when account ID already exists")
-    void testCreateAccountDuplicateId() {
-        when(accountRepository.findByAccountId("ACC-001")).thenReturn(Optional.of(testAccount));
-
-        assertThrows(DuplicateAccountException.class, () -> 
-            accountService.createAccount(accountInput)
-        );
-
-        verify(accountRepository).findByAccountId("ACC-001");
-        verify(accountRepository, never()).save(any(Account.class));
     }
 
     @Test
     @DisplayName("Should throw DuplicateAccountException when username already taken")
     void testCreateAccountDuplicateUsername() {
-        when(accountRepository.findByAccountId("ACC-001")).thenReturn(Optional.empty());
         when(accountRepository.findByUsername("testuser")).thenReturn(Optional.of(testAccount));
 
         assertThrows(DuplicateAccountException.class, () -> 
             accountService.createAccount(accountInput)
         );
 
-        verify(accountRepository).findByAccountId("ACC-001");
-        verify(accountRepository).findByUsername("testuser");
         verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    @DisplayName("Should throw DuplicateAccountException when email already in use")
+    void testCreateAccountDuplicateEmail() {
+        when(accountRepository.findByUsername("testuser")).thenReturn(Optional.empty());
+        when(accountRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testAccount));
+
+        assertThrows(DuplicateAccountException.class, () -> 
+            accountService.createAccount(accountInput)
+        );
+
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    @DisplayName("Should throw DuplicateAccountException when phone number already in use")
+    void testCreateAccountDuplicatePhone() {
+        when(accountRepository.findByUsername("testuser")).thenReturn(Optional.empty());
+        when(accountRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+        when(accountRepository.findByPhone("1234567890")).thenReturn(Optional.of(testAccount));
+
+        assertThrows(DuplicateAccountException.class, () -> 
+            accountService.createAccount(accountInput)
+        );
+
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    @DisplayName("Should skip email and phone checks when they are not provided")
+    void testCreateAccountWithoutEmailOrPhone() throws DuplicateAccountException {
+        AccountInput minimalInput = new AccountInput("minuser", "pass", null, null);
+        when(accountRepository.findByUsername("minuser")).thenReturn(Optional.empty());
+        when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
+
+        accountService.createAccount(minimalInput);
+
+        verify(accountRepository, never()).findByEmail(any());
+        verify(accountRepository, never()).findByPhone(any());
+        verify(accountRepository).save(any(Account.class));
     }
 
     @Test
@@ -253,27 +278,6 @@ public class AccountServiceTest {
     }
 
     @Test
-    @DisplayName("Should preserve large cash balance")
-    void testCreateAccountWithLargeBalance() throws DuplicateAccountException {
-        BigDecimal largeBalance = new BigDecimal("999999999.99");
-        AccountInput largeBalanceInput = new AccountInput("ACC-BIG", "biguser", "pass", "Big Account", 
-                "big@example.com", "1111111111", largeBalance);
-        
-        Account largeBalanceAccount = new Account("ACC-BIG", "biguser", "pass", "Big Account", 
-                "big@example.com", "1111111111", largeBalance, AccountStatus.ACTIVE);
-        ReflectionTestUtils.setField(largeBalanceAccount, "id", 999L);
-
-        when(accountRepository.findByAccountId("ACC-BIG")).thenReturn(Optional.empty());
-        when(accountRepository.findByUsername("biguser")).thenReturn(Optional.empty());
-        when(accountRepository.save(any(Account.class))).thenReturn(largeBalanceAccount);
-
-        AccountResponse response = accountService.createAccount(largeBalanceInput);
-
-        assertEquals(largeBalance, response.cashBalance());
-        verify(accountRepository).save(any(Account.class));
-    }
-
-    @Test
     @DisplayName("Should handle multiple account retrievals")
     void testMultipleAccountRetrievals() throws AccountNotFoundException {
         Account account2 = new Account("ACC-002", "user2", "pass2", "Account 2", 
@@ -291,25 +295,5 @@ public class AccountServiceTest {
         assertEquals("ACC-001", result1.getAccountId());
         assertEquals("ACC-002", result2.getAccountId());
         verify(accountRepository, times(2)).findById(any());
-    }
-
-    @Test
-    @DisplayName("Should handle account with minimal balance")
-    void testCreateAccountWithMinimalBalance() throws DuplicateAccountException {
-        BigDecimal minimalBalance = new BigDecimal("0.01");
-        AccountInput minimalInput = new AccountInput("ACC-MIN", "minuser", "pass", "Min Account", 
-                "min@example.com", "0000000000", minimalBalance);
-        
-        Account minimalAccount = new Account("ACC-MIN", "minuser", "pass", "Min Account", 
-                "min@example.com", "0000000000", minimalBalance, AccountStatus.ACTIVE);
-        ReflectionTestUtils.setField(minimalAccount, "id", 1000L);
-
-        when(accountRepository.findByAccountId("ACC-MIN")).thenReturn(Optional.empty());
-        when(accountRepository.findByUsername("minuser")).thenReturn(Optional.empty());
-        when(accountRepository.save(any(Account.class))).thenReturn(minimalAccount);
-
-        AccountResponse response = accountService.createAccount(minimalInput);
-
-        assertEquals(minimalBalance, response.cashBalance());
     }
 }

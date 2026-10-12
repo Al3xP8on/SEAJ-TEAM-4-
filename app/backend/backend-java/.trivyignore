@@ -2,3 +2,11 @@
 # Every entry needs a reason and an expiry date so it gets revisited, e.g.:
 #
 # CVE-2024-12345 exp:2026-12-31  # not reachable: we don't use the affected XML parser
+
+# spring-webmvc 6.2.19: RCE via XsltView. Not reachable: the backend is a REST API with no
+# XsltView or view rendering. Only fixed in Spring Framework 7 (Spring Boot 4).
+CVE-2026-47884 exp:2027-01-31
+
+# spring-webmvc 6.2.19: stream corruption in Server-Sent Events with view fragments. Not reachable:
+# no SSE endpoints or view fragments. Only fixed in Spring Framework 7 (Spring Boot 4).
+CVE-2026-47890 exp:2027-01-31

@@ -2,6 +2,7 @@ package com.neueda.leap.controllers;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+import com.neueda.leap.security.SecurityUtilsService;
 import com.neueda.leap.services.AccountService;
 import com.neueda.leap.dtos.*;
 import com.neueda.leap.models.*;
@@ -15,12 +16,15 @@ import static org.mockito.Mockito.*;
 
 class AccountControllerTest {
     private final AccountService service = mock(AccountService.class);
+    // Ownership rules are covered by AccountControllerAuthorizationTest; here the caller owns the account
+    private final SecurityUtilsService security = mock(SecurityUtilsService.class);
     private AccountController controller() {
         AccountController controller = new AccountController();
         ReflectionTestUtils.setField(controller, "accountService", service);
+        ReflectionTestUtils.setField(controller, "securityUtilsService", security);
         return controller;
     }
-    private final AccountInput input = new AccountInput("ACC-001", "alice", "password", "Alice", null, null, BigDecimal.ZERO);
+    private final AccountInput input = new AccountInput("alice", "password", null, null);
     @Test void returnsCreatedAccount() throws Exception {
         AccountResponse body = new AccountResponse(1L, "ACC-001", "Alice", BigDecimal.ZERO, AccountStatus.ACTIVE, Optional.empty());
         when(service.createAccount(input)).thenReturn(body);
@@ -39,6 +43,7 @@ class AccountControllerTest {
         assertEquals("offline", failed.getBody());
     }
     @Test void listsAccountsAndHandlesRepositoryFailure() {
+        when(security.isAdmin()).thenReturn(true);
         List<Account> accounts = List.of(mock(Account.class));
         when(service.getAllAccounts()).thenReturn(accounts);
         assertSame(accounts, controller().getAllAccounts().getBody());
