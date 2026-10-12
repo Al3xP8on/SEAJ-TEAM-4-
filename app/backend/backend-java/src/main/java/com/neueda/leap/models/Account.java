@@ -59,10 +59,30 @@ public class Account implements Closable {
         this(accountId, accountId.toLowerCase().replace("-", ""), "placeholder", name, email, phone, cashBalance, status);
     }
 
+    public Account(String accountId, String username, String rawPassword, String email, String phone,
+                   AccountStatus status) {
+        AccountValidator.validateAccountId(accountId);
+
+        this.accountId = accountId;
+        this.username = username;
+        this.name = username;
+        this.passwordHash = new BCryptPasswordEncoder().encode(rawPassword);
+        this.email = email;
+        this.phone = phone;
+        this.cashBalance = BigDecimal.ZERO;
+        this.status = status;
+        this.version = 0;
+        this.createdOn = LocalDateTime.now();
+        this.lastUpdated = LocalDateTime.now();
+    }
+
+    // Full constructor kept for backward compatibility
     public Account(String accountId, String username, String rawPassword, String name, String email, String phone,
                    BigDecimal cashBalance, AccountStatus status) {
         AccountValidator.validateAccountId(accountId);
-        AccountValidator.validatePositiveAmount(cashBalance, "Initial balance");
+        if (cashBalance == null || cashBalance.signum() < 0) {
+            throw new IllegalArgumentException("Initial balance must be zero or positive");
+        }
 
         this.accountId = accountId;
         this.username = username;

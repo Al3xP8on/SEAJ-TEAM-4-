@@ -65,6 +65,7 @@ public class TradeEventListener {
             groupId = "trade-event-processor",
             concurrency = "3"
     )
+    @Transactional
     public void handleTradeEvent(
             @Payload String message,
             @Header("kafka_receivedPartitionId") int partition,
@@ -76,6 +77,11 @@ public class TradeEventListener {
             
             logger.info("Received EventEnvelope - Event ID: {} | Event Type: {} | Partition: {} | Offset: {}",
                     LogMaskingUtil.maskId(envelope.eventId().toString()), envelope.eventType(), partition, offset);
+
+            if (envelope.eventType() == EventType.PRICE_UPDATE) {
+                logger.debug("Price update event received - not processed here");
+                return;
+            }
             
             // Extract TradeEvent from payload
             TradeEvent event = extractTradeEvent(envelope.payload());
@@ -95,9 +101,6 @@ public class TradeEventListener {
                     break;
                 case ORDER_CANCELLED:
                     handleCancelledTrade(event);
-                    break;
-                case PRICE_UPDATE:
-                    logger.debug("Price update event received - not processed here");
                     break;
                 default:
                     logger.warn("Unknown event type: {}", envelope.eventType());
@@ -127,7 +130,7 @@ public class TradeEventListener {
         if (priceObj instanceof BigDecimal) {
             price = (BigDecimal) priceObj;
         } else if (priceObj instanceof Number) {
-            price = new BigDecimal(((Number) priceObj).doubleValue());
+            price = BigDecimal.valueOf(((Number) priceObj).doubleValue());
         } else if (priceObj instanceof String) {
             price = new BigDecimal((String) priceObj);
         }
@@ -169,7 +172,6 @@ public class TradeEventListener {
         return event;
     }
     
-    @Transactional
     private void handleCancelledTrade(TradeEvent event) {
         logger.info("Processing CANCELLED trade: {} for account {} - Reason: {}", 
                 event.getTradeId(), event.getAccountId(), event.getReason());

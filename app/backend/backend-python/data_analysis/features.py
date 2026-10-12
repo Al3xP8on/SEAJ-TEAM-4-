@@ -41,8 +41,9 @@ class MarketFeatureEngineer:
         
         result = df.copy()
         
-        # Calculate cumulative returns by symbol
-        result["cumulative_return"] = result.groupby("symbol")["daily_return"].cumsum()
+        # Compound daily returns by symbol; a simple sum understates long-run growth
+        growth = (1 + result["daily_return"].fillna(0)).groupby(result["symbol"]).cumprod()
+        result["cumulative_return"] = growth - 1
         
         logger.info("Calculated cumulative_return for all symbols")
         return result

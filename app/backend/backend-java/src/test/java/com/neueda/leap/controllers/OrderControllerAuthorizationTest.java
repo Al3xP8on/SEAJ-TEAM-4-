@@ -25,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -77,6 +78,58 @@ public class OrderControllerAuthorizationTest {
         orderRequest.setQuantity(10);
         orderRequest.setPrice(new BigDecimal("150.50"));
         orderRequest.setSide(OrderSide.BUY);
+    }
+
+    @Test
+    @DisplayName("Should list only the authenticated user's orders for a regular user")
+    void testGetAllOrdersRestrictsRegularUserToOwnAccount() {
+        when(securityUtilsService.getAuthenticatedUserAccount()).thenReturn(aliceAccount);
+        when(orderService.getOrdersByAccount("ACC-0001")).thenReturn(List.of(aliceOrder));
+
+        ResponseEntity<List<Order>> response = orderController.getAllOrders();
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(List.of(aliceOrder), response.getBody());
+        verify(orderService).getOrdersByAccount("ACC-0001");
+        verify(orderService, never()).getAllOrders();
+    }
+
+    @Test
+    @DisplayName("Should validate ownership when a regular user rejects an order")
+    void testRejectOrderValidatesRegularUserOwnership() {
+        when(orderService.rejectOrder(aliceOrder.getId(), "User requested rejection")).thenReturn(aliceOrder);
+
+        ResponseEntity<Order> response = orderController.rejectOrder(aliceOrder.getId(), "User requested rejection");
+
+        assertEquals(200, response.getStatusCode().value());
+        assertSame(aliceOrder, response.getBody());
+        verify(securityUtilsService).validateOrderOwnership(aliceOrder);
+    }
+
+    @Test
+    @DisplayName("Should allow an admin to reject an order without an ownership check")
+    void testRejectOrderAllowsAdminAccess() {
+        when(securityUtilsService.isAdmin()).thenReturn(true);
+        when(orderService.rejectOrder(aliceOrder.getId(), "Admin rejected order")).thenReturn(aliceOrder);
+
+        ResponseEntity<Order> response = orderController.rejectOrder(aliceOrder.getId(), "Admin rejected order");
+
+        assertEquals(200, response.getStatusCode().value());
+        assertSame(aliceOrder, response.getBody());
+        verify(securityUtilsService, never()).validateOrderOwnership(any());
+    }
+
+    @Test
+    @DisplayName("Should filter out orders whose status does not match the requested status")
+    void testGetOrdersByAccountFiltersNonmatchingStatus() {
+        when(orderService.getOrdersByAccount("ACC-0001")).thenReturn(List.of(aliceOrder));
+
+        ResponseEntity<List<Order>> response = orderController.getOrdersByAccount(
+                "ACC-0001", OrderStatus.FILLED, null, null);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(List.of(), response.getBody());
+        verify(securityUtilsService).validateAccountOwnership("ACC-0001");
     }
 
     @Test

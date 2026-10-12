@@ -5,6 +5,7 @@ import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.models.Positions;
 import com.neueda.leap.dtos.AccountInput;
 import com.neueda.leap.dtos.AccountResponse;
+import com.neueda.leap.exceptions.AccountNotFoundException;
 import com.neueda.leap.dtos.LoginRequest;
 import com.neueda.leap.dtos.LoginResponse;
 import com.neueda.leap.exceptions.DuplicateAccountException;
@@ -54,13 +55,13 @@ public class AccountController {
             loginPayload.put("password", request.getPassword());
             
             ResponseEntity<?> response = restTemplate.postForEntity(authUrl, loginPayload, Object.class);
+            Object responseBody = response.getBody();
             
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> body = (Map<String, Object>) response.getBody();
+            if (response.getStatusCode().is2xxSuccessful() && responseBody instanceof Map<?, ?> body) {
                 String token = (String) body.get("access_token");
-                Long expiresIn = body.get("expiresIn") != null ? 
-                    Long.parseLong(body.get("expiresIn").toString()) : 1800L;
+                Object expiresInValue = body.get("expiresIn");
+                Long expiresIn = expiresInValue != null ?
+                    Long.parseLong(expiresInValue.toString()) : 1800L;
                 
                 // Fetch account to get accountId
                 Account account = accountService.getAccountByUsername(request.getUsername());
@@ -92,6 +93,18 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (DuplicateAccountException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteAccount(@PathVariable Long id) {
+        try {
+            accountService.deleteAccount(id);
+            return ResponseEntity.noContent().build();
+        } catch (AccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
