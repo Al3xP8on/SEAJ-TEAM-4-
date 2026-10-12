@@ -170,13 +170,13 @@
                 <form id="loginForm" novalidate>
                     <div class="form-group">
                         <label for="username">Username</label>
-                        <input type="text" id="username" required minlength="3" placeholder="Enter your username">
+                        <input type="text" id="username" required minlength="3" maxlength="100" autocomplete="username" placeholder="Enter your username">
                     </div>
                     <div class="form-group">
                         <label for="password">Password</label>
-                        <input type="password" id="password" required minlength="8" placeholder="Enter your password">
+                        <input type="password" id="password" required minlength="1" autocomplete="current-password" placeholder="Enter your password">
                     </div>
-                    <p id="loginMessage"></p>
+                    <p id="loginMessage" role="status"></p>
                     <button type="submit" class="submit-btn">Login</button>
                 </form>
                 <button class="toggle-btn" onclick="showRegister()">New Customer?</button>
@@ -191,19 +191,27 @@
                 </div>
                 <div class="form-group">
                     <label for="regPassword">Password</label>
-                    <input type="password" id="regPassword" required minlength="8" placeholder="Enter a strong password">
+                    <input type="password" id="regPassword" required minlength="8" autocomplete="new-password" placeholder="Enter a strong password">
                 </div>
                 <div class="form-group">
                     <label for="regEmail">Email</label>
-                    <input type="email" id="regEmail" placeholder="your@email.com">
+                    <input type="email" id="regEmail" required placeholder="your@email.com">
                 </div>
-                <div class="form-group">
-                    <label for="regPhone">Phone</label>
-                    <input type="tel" id="regPhone" placeholder="+353-85-456-7891">
-                </div>
-                <p id="registerMessage"></p>
-                <button class="submit-btn" onclick="submitRegister()">Create Account</button>
+                <p id="registerMessage" role="status"></p>
+                <button id="registerButton" class="submit-btn" onclick="submitRegister()">Create Account</button>
                 <button class="toggle-btn" onclick="showLogin()">Back to Login</button>
+            </div>
+            <div id="verificationDiv" style="display:none;">
+                <h2>Verify your email</h2>
+                <p id="verificationMessage" role="status"></p>
+                <form id="verificationForm" novalidate>
+                    <div class="form-group">
+                        <label for="verificationCode">Six-digit verification code</label>
+                        <input id="verificationCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+                    </div>
+                    <button id="verifyButton" type="submit" class="submit-btn">Verify code</button>
+                </form>
+                <button class="toggle-btn" onclick="cancelVerification()">Cancel and start again</button>
             </div>
         </div>
     </main>
@@ -212,17 +220,6 @@
         <p>© 2026 SEAJ Capital. All rights reserved.</p>
     </footer>
 
-    <script>
-        function showRegister() {
-            document.getElementById('loginDiv').style.display = 'none';
-            document.getElementById('registerDiv').style.display = 'block';
-        }
-
-        function showLogin() {
-            document.getElementById('registerDiv').style.display = 'none';
-            document.getElementById('loginDiv').style.display = 'block';
-        }
-    </script>
     <script src="auth-service.js"></script>
     <script src="script.js"></script>
 </body>

@@ -1,195 +1,98 @@
-const AUTH_URL = 'http://localhost:3000/auth/login';
-const ACCOUNTS_URL = 'http://localhost:8081/api/v1/accounts';
-
-const authService = new AuthService({ loginUrl: formLoginUrl() });
-
-function formLoginUrl() {
-    return document.getElementById('loginForm').dataset.loginUrl || '/auth/login';
-}
-
 const form = document.getElementById('loginForm');
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
 const message = document.getElementById('loginMessage');
-const submitBtn = form.querySelector('button[type="submit"]');
-const registerUsernameInput = document.getElementById('regUsername');
-const registerPasswordInput = document.getElementById('regPassword');
-const registerEmailInput = document.getElementById('regEmail');
-const registerPhoneInput = document.getElementById('regPhone');
-const registerMessage = document.getElementById('registerMessage');
-const registerBtn = document.querySelector('#registerDiv .submit-btn');
+const authService = new AuthService({
+    loginUrl: form.dataset.loginUrl || (['8000', '5500'].includes(window.location.port) || window.location.protocol === 'file:' ? 'http://localhost:3000/auth/login' : '/auth/login'),
+});
+let verificationState = null;
+let viewGeneration = 0;
 
-function showMessage(text, type) {
-    message.textContent = text;
-    message.className = type;
-}
-
-function showRegisterMessage(text, type) {
-    registerMessage.textContent = text;
-    registerMessage.className = type;
-}
-
-async function parseJsonSafely(response) {
-    try {
-        return await response.json();
-    } catch {
-        return null;
+function setPanel(id) {
+    for (const panel of ['loginDiv', 'registerDiv', 'verificationDiv']) {
+        document.getElementById(panel).style.display = panel === id ? 'block' : 'none';
     }
 }
-
-async function parseErrorText(response, fallbackPrefix) {
-    const contentType = response.headers.get('content-type') || '';
-
-    if (contentType.includes('application/json')) {
-        const errorBody = await parseJsonSafely(response);
-        if (typeof errorBody?.message === 'string') {
-            return `${fallbackPrefix}: ${errorBody.message}`;
-        }
-        return `${fallbackPrefix} with status ${response.status}`;
-    }
-
-    const text = await response.text();
-    if (text) {
-        return `${fallbackPrefix}: ${text}`;
-    }
-
-    return `${fallbackPrefix} with status ${response.status}`;
+function showRegister() { viewGeneration += 1; verificationState = null; setPanel('registerDiv'); }
+function showLogin() { viewGeneration += 1; verificationState = null; setPanel('loginDiv'); }
+function cancelVerification() { authService.logout(); showLogin(); }
+function showVerification(purpose, challenge) {
+    verificationState = { purpose, challengeId: challenge.challenge_id, username: document.getElementById('regUsername').value.trim() };
+    document.getElementById('verificationCode').value = '';
+    document.getElementById('verificationMessage').textContent = challenge.message;
+    setPanel('verificationDiv');
 }
 
-form.addEventListener('submit', async (event) => {
+form.addEventListener('submit', async event => {
     event.preventDefault();
-
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
     const username = usernameInput.value.trim();
     const password = passwordInput.value;
-
-    if (!username || username.length < 3) {
-        usernameInput.style.borderColor = '#e74c3c';
-        showMessage('Username must be at least 3 characters.', 'error');
+    if (username.length < 3 || username.length > 100 || !password) {
+        message.textContent = 'Enter your username and password.';
+        message.className = 'error';
         return;
     }
-
-    if (!password || password.length < 8) {
-        showMessage('Password must be at least 8 characters.', 'error');
-        return;
-    }
-
-    submitBtn.disabled = true;
-    showMessage('', '');
-
-    try {
-        const response = await fetch(AUTH_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
-        });
-
-        if (!response.ok) {
-            const errorBody = await parseJsonSafely(response);
-            const errorText =
-                errorBody?.message ||
-                `Login failed with status ${response.status}`;
-
-            showMessage(`Login failed: ${errorText}`, 'error');
-            return;
-        }
-
-        const data = await parseJsonSafely(response);
-        const token = data?.access_token || data?.accessToken || data?.token;
-
-        if (!token) {
-            showMessage('Login succeeded but no token was returned.', 'error');
-            return;
-        }
-
-        showMessage(`Logged in. Token starts: ${token.slice(0, 20)}...`, 'success');
-    } catch (err) {
-        console.error('fetch() rejected:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Unknown network error';
-        showMessage(`Request failed: ${errorMessage}`, 'error');
-    } finally {
-        submitBtn.disabled = false;
-    }
-});
-
     const button = form.querySelector('button[type="submit"]');
+    const generation = viewGeneration;
     button.disabled = true;
-    message.textContent = 'Signing in…';
+    message.textContent = 'Sending verification code…';
     message.className = '';
     try {
-        await authService.login({ username, password });
+        const challenge = await authService.login({ username, password });
         passwordInput.value = '';
-        message.textContent = `Welcome, ${username}! Login successful.`;
-        message.className = 'success';
+        if (generation === viewGeneration) showVerification('LOGIN', challenge);
     } catch (error) {
-        message.textContent = error.message;
-        message.className = 'error';
-    } finally {
-        button.disabled = false;
-    }
+        if (generation === viewGeneration) { message.textContent = error.message; message.className = 'error'; }
+    } finally { button.disabled = false; }
 });
 
-usernameInput.addEventListener('input', () => {
-    usernameInput.style.borderColor = '';
-    if (message.className === 'error') {
-        showMessage('', '');
-    }
-});
+usernameInput.addEventListener('input', () => { message.textContent = ''; message.className = ''; });
 
 async function submitRegister() {
-    const username = registerUsernameInput.value.trim();
-    const password = registerPasswordInput.value;
-    const email = registerEmailInput.value.trim();
-    const phone = registerPhoneInput.value.trim();
-
-    if (!username || username.length < 3) {
-        showRegisterMessage('Username must be at least 3 characters.', 'error');
+    const feedback = document.getElementById('registerMessage');
+    const button = document.getElementById('registerButton');
+    const emailInput = document.getElementById('regEmail');
+    const password = document.getElementById('regPassword').value;
+    const username = document.getElementById('regUsername').value.trim();
+    if (!emailInput.value || !emailInput.validity.valid || password.length < 8 || new TextEncoder().encode(password).length > 72 || username.length < 3 || username.length > 100) {
+        feedback.textContent = 'Enter a unique username (3–100 characters), a valid email, and a password of at least 8 characters (maximum 72 bytes).';
         return;
     }
-
-    if (!password || password.length < 8) {
-        showRegisterMessage('Password must be at least 8 characters.', 'error');
-        return;
-    }
-
-    if (email && !registerEmailInput.checkValidity()) {
-        showRegisterMessage('Please enter a valid email address.', 'error');
-        return;
-    }
-
-    registerBtn.disabled = true;
-    showRegisterMessage('', '');
-
+    const generation = viewGeneration;
+    button.disabled = true;
+    feedback.textContent = 'Sending verification code…';
     try {
-        const response = await fetch(ACCOUNTS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username,
-                password,
-                email: email || null,
-                phone: phone || null,
-            }),
-        });
-
-        if (!response.ok) {
-            const errorText = await parseErrorText(response, 'Account creation failed');
-            showRegisterMessage(errorText, 'error');
-            return;
-        }
-
-        const data = await parseJsonSafely(response);
-        const createdAccountId = data?.accountId ? ` (${data.accountId})` : '';
-        showRegisterMessage(`Account created successfully${createdAccountId}. You can log in now.`, 'success');
-    } catch (err) {
-        console.error('fetch() rejected:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Unknown network error';
-        showRegisterMessage(`Request failed: ${errorMessage}`, 'error');
-    } finally {
-        registerBtn.disabled = false;
-    }
+        const registerUrl = authService.loginUrl.replace(/\/login$/, '/register');
+        const { result: challenge } = await authService.request(registerUrl, { email: emailInput.value.trim(), password, username });
+        document.getElementById('regPassword').value = '';
+        if (generation === viewGeneration) showVerification('REGISTER', challenge);
+    } catch (error) { if (generation === viewGeneration) feedback.textContent = error.message; }
+    finally { button.disabled = false; }
 }
 
-window.submitRegister = submitRegister;
+document.getElementById('verificationForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const state = verificationState;
+    const generation = viewGeneration;
+    const code = document.getElementById('verificationCode').value.trim();
+    const feedback = document.getElementById('verificationMessage');
+    if (!state || !/^[0-9]{6}$/.test(code)) { feedback.textContent = 'Enter the six-digit code from your email.'; return; }
+    const button = document.getElementById('verifyButton');
+    button.disabled = true;
+    try {
+        if (state.purpose === 'LOGIN') {
+            await authService.verifyLogin(code);
+            if (generation === viewGeneration) { showLogin(); message.textContent = 'Login successful.'; message.className = 'success'; }
+        } else {
+            const url = authService.loginUrl.replace(/\/login$/, '/register/verify');
+            const { result: user } = await authService.request(url, { challenge_id: state.challengeId, code });
+            if (generation === viewGeneration) {
+                usernameInput.value = user.username;
+                showLogin();
+                message.textContent = `Account ${user.account_id} created. Please log in with your username and password.`;
+                message.className = 'success';
+            }
+        }
+    } catch (error) { if (generation === viewGeneration) feedback.textContent = error.message; }
+    finally { button.disabled = false; }
+});
