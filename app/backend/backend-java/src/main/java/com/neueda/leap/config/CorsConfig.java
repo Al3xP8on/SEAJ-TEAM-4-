@@ -10,13 +10,13 @@ import java.util.Arrays;
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
     
-    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:8081,http://127.0.0.1:4200,http://127.0.0.1:8081}")
+    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:8081,http://localhost:5500,http://127.0.0.1:4200,http://127.0.0.1:8081,http://127.0.0.1:5500,null}")
     private String allowedOrigins;
     
     @Value("${app.cors.allowed-methods:GET,POST,PUT,DELETE,OPTIONS}")
     private String allowedMethods;
     
-    @Value("${app.cors.allowed-headers:Content-Type,Accept}")
+    @Value("${app.cors.allowed-headers:Content-Type,Accept,Authorization}")
     private String allowedHeaders;
     
     @Value("${app.cors.max-age:3600}")

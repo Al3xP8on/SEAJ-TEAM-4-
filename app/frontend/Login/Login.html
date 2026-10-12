@@ -132,8 +132,16 @@
             min-height: 1.2em;
         }
 
+        #registerMessage {
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            min-height: 1.2em;
+        }
+
         #loginMessage.error { color: #e74c3c; }
         #loginMessage.success { color: #316442; }
+        #registerMessage.error { color: #e74c3c; }
+        #registerMessage.success { color: #316442; }
 
         footer {
             background-color: rgba(0, 0, 0, 0.3);
@@ -166,7 +174,7 @@
                     </div>
                     <div class="form-group">
                         <label for="password">Password</label>
-                        <input type="password" id="password" required minlength="6" placeholder="Enter your password">
+                        <input type="password" id="password" required minlength="8" placeholder="Enter your password">
                     </div>
                     <p id="loginMessage"></p>
                     <button type="submit" class="submit-btn">Login</button>
@@ -183,7 +191,7 @@
                 </div>
                 <div class="form-group">
                     <label for="regPassword">Password</label>
-                    <input type="password" id="regPassword" required minlength="6" placeholder="Enter a strong password">
+                    <input type="password" id="regPassword" required minlength="8" placeholder="Enter a strong password">
                 </div>
                 <div class="form-group">
                     <label for="regEmail">Email</label>
@@ -193,6 +201,7 @@
                     <label for="regPhone">Phone</label>
                     <input type="tel" id="regPhone" placeholder="+353-85-456-7891">
                 </div>
+                <p id="registerMessage"></p>
                 <button class="submit-btn" onclick="submitRegister()">Create Account</button>
                 <button class="toggle-btn" onclick="showLogin()">Back to Login</button>
             </div>
