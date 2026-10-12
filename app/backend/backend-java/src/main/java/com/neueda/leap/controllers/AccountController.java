@@ -1,10 +1,10 @@
 package com.neueda.leap.controllers;
 
-import com.neueda.leap.dtos.PositionResponse;
 import com.neueda.leap.dtos.OrderHistoryEntry;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.models.Positions;
+import java.util.List;
 import com.neueda.leap.dtos.AccountInput;
 import com.neueda.leap.dtos.AccountResponse;
 import com.neueda.leap.exceptions.AccountNotFoundException;
@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
@@ -113,6 +114,7 @@ public class AccountController {
     }
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "List accounts", description = "Get all accounts (admin) or just your own account (regular user)")
     public ResponseEntity<?> getAllAccounts() {
         try {
@@ -168,15 +170,15 @@ public class AccountController {
 
     @GetMapping("/{id}/positions")
     @Operation(summary = "Get account positions", description = "Retrieve current positions held in an account. You can only access your own positions unless you are an admin.")
-    public ResponseEntity<PositionResponse> getPositions(@PathVariable Long id) {
+    public ResponseEntity<List<Positions>> getPositions(@PathVariable Long id) {
         try {
             Account account = accountService.getAccount(id);
             // Validate user owns this account (unless admin)
             if (!securityUtilsService.isAdmin()) {
                 securityUtilsService.validateAccountOwnership(account.getAccountId());
             }
-            Positions positions = accountService.getPositions(id);
-            return ResponseEntity.ok(PositionResponse.from(positions));
+            List<Positions> positions = accountService.getPositions(id);
+            return ResponseEntity.ok(positions);
         } catch (AuthorizationException e) {
             throw e;
         } catch (Exception e) {

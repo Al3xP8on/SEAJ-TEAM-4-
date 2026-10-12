@@ -45,10 +45,16 @@ class AccountTest {
     void rejectsInvalidInitialBalance(String initialBalance) {
         BigDecimal balance = initialBalance == null ? null : new BigDecimal(initialBalance);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> accountWithBalance(balance));
 
-        assertEquals("Initial balance must be zero or positive", exception.getMessage());
+        if (initialBalance == null) {
+            assertInstanceOf(NullPointerException.class, exception);
+            assertEquals("Initial balance cannot be null", exception.getMessage());
+        } else {
+            assertInstanceOf(IllegalArgumentException.class, exception);
+            assertEquals("Initial balance must be non-negative", exception.getMessage());
+        }
     }
 
     @Test
