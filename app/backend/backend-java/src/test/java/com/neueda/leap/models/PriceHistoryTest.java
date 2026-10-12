@@ -24,8 +24,8 @@ class PriceHistoryTest {
     @Test void identifiesHistoryByNormalizedSymbolAndDate() {
         PriceHistory first = history("10", "12");
         PriceHistory sameDay = history("10", "8");
-        assertEquals(first, first);
         assertEquals(first, sameDay);
+        assertEquals(sameDay, first);
         assertEquals(first.hashCode(), sameDay.hashCode());
         sameDay.setPriceDate(LocalDate.of(2026, 1, 2));
         assertNotEquals(first, sameDay);
@@ -33,7 +33,8 @@ class PriceHistoryTest {
         sameDay.setSymbol("MSFT");
         assertNotEquals(first, sameDay);
         assertNotEquals(first, null);
-        assertNotEquals(first, "AAPL");
+        Object differentType = "AAPL";
+        assertFalse(first.equals(differentType));
     }
     @Test void defaultConstructorSupportsValidatedUpdates() {
         PriceHistory history = new PriceHistory();

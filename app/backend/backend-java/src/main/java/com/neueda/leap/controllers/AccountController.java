@@ -1,5 +1,7 @@
 package com.neueda.leap.controllers;
 
+import com.neueda.leap.dtos.PositionResponse;
+import com.neueda.leap.dtos.OrderHistoryEntry;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.models.Positions;
@@ -55,13 +57,13 @@ public class AccountController {
             loginPayload.put("password", request.getPassword());
             
             ResponseEntity<?> response = restTemplate.postForEntity(authUrl, loginPayload, Object.class);
+            Object responseBody = response.getBody();
             
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> body = (Map<String, Object>) response.getBody();
+            if (response.getStatusCode().is2xxSuccessful() && responseBody instanceof Map<?, ?> body) {
                 String token = (String) body.get("access_token");
-                Long expiresIn = body.get("expiresIn") != null ? 
-                    Long.parseLong(body.get("expiresIn").toString()) : 1800L;
+                Object expiresInValue = body.get("expiresIn");
+                Long expiresIn = expiresInValue != null ?
+                    Long.parseLong(expiresInValue.toString()) : 1800L;
                 
                 // Fetch account to get accountId
                 Account account = accountService.getAccountByUsername(request.getUsername());
@@ -129,14 +131,14 @@ public class AccountController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get account details", description = "Retrieve details for a specific account. You can only access your own account unless you are an admin.")
-    public ResponseEntity<Account> getAccount(@PathVariable Long id) {
+    public ResponseEntity<AccountResponse> getAccount(@PathVariable Long id) {
         try {
             Account account = accountService.getAccount(id);
             // Validate user owns this account (unless admin)
             if (!securityUtilsService.isAdmin()) {
                 securityUtilsService.validateAccountOwnership(account.getAccountId());
             }
-            return ResponseEntity.ok(account);
+            return ResponseEntity.ok(AccountResponse.from(account));
         } catch (AuthorizationException e) {
             throw e;
         } catch (Exception e) {
@@ -166,7 +168,7 @@ public class AccountController {
 
     @GetMapping("/{id}/positions")
     @Operation(summary = "Get account positions", description = "Retrieve current positions held in an account. You can only access your own positions unless you are an admin.")
-    public ResponseEntity<Positions> getPositions(@PathVariable Long id) {
+    public ResponseEntity<PositionResponse> getPositions(@PathVariable Long id) {
         try {
             Account account = accountService.getAccount(id);
             // Validate user owns this account (unless admin)
@@ -174,7 +176,7 @@ public class AccountController {
                 securityUtilsService.validateAccountOwnership(account.getAccountId());
             }
             Positions positions = accountService.getPositions(id);
-            return ResponseEntity.ok(positions);
+            return ResponseEntity.ok(PositionResponse.from(positions));
         } catch (AuthorizationException e) {
             throw e;
         } catch (Exception e) {
@@ -185,7 +187,7 @@ public class AccountController {
 
     @GetMapping("/{id}/orders")
     @Operation(summary = "Get account order history", description = "Retrieve the order history for an account. You can only access your own order history unless you are an admin.")
-    public ResponseEntity<OrderHistory> getOrders(@PathVariable Long id) {
+    public ResponseEntity<OrderHistoryEntry> getOrders(@PathVariable Long id) {
         try {
             Account account = accountService.getAccount(id);
             // Validate user owns this account (unless admin)
@@ -193,7 +195,7 @@ public class AccountController {
                 securityUtilsService.validateAccountOwnership(account.getAccountId());
             }
             OrderHistory orderHistory = accountService.getOrders(id);
-            return ResponseEntity.ok(orderHistory);
+            return ResponseEntity.ok(OrderHistoryEntry.from(orderHistory));
         } catch (AuthorizationException e) {
             throw e;
         } catch (Exception e) {

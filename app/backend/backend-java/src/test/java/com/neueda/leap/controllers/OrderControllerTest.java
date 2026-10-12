@@ -13,6 +13,7 @@ import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.InstrumentsRepository;
 import com.neueda.leap.services.OrderService;
+import com.neueda.leap.security.SecurityUtilsService;
 import com.neueda.leap.config.TestSecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -50,6 +51,9 @@ public class OrderControllerTest {
     private OrderService orderService;
 
     @MockBean
+    private SecurityUtilsService securityUtilsService;
+
+    @MockBean
     private AccountRepository accountRepository;
 
     @MockBean
@@ -70,6 +74,7 @@ public class OrderControllerTest {
 
     @BeforeEach
     void setUp() {
+        when(securityUtilsService.isAdmin()).thenReturn(true);
         testAccount = new Account("ACC-001", "Test Account", "test@example.com", "123456789", new BigDecimal("50000.00"), AccountStatus.ACTIVE);
         testInstrument = new Instrument("AAPL", "Apple Inc.", "EQUITY", "USD", true);
         testOrderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
@@ -91,7 +96,7 @@ public class OrderControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", equalTo("550e8400-e29b-41d4-a716-446655440000")));
+                .andExpect(jsonPath("$[0].orderId", equalTo("550e8400-e29b-41d4-a716-446655440000")));
 
         verify(orderService, times(1)).getAllOrders();
     }
@@ -105,7 +110,7 @@ public class OrderControllerTest {
         mockMvc.perform(get("/v1/orders/550e8400-e29b-41d4-a716-446655440000")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", equalTo("550e8400-e29b-41d4-a716-446655440000")))
+                .andExpect(jsonPath("$.orderId", equalTo("550e8400-e29b-41d4-a716-446655440000")))
                 .andExpect(jsonPath("$.quantity", equalTo(100)))
                 .andExpect(jsonPath("$.status", equalTo("NEW")));
 
@@ -135,7 +140,7 @@ public class OrderControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", equalTo(testOrderId.toString())));
+                .andExpect(jsonPath("$[0].orderId", equalTo(testOrderId.toString())));
 
         verify(orderService, times(1)).getOrdersByAccount("ACC-001");
     }
@@ -216,7 +221,7 @@ public class OrderControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"accountId\":\"ACC-001\",\"symbol\":\"AAPL\",\"side\":\"BUY\",\"quantity\":100,\"price\":150.50}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", notNullValue()))
+                .andExpect(jsonPath("$.orderId", notNullValue()))
                 .andExpect(jsonPath("$.status", equalTo("NEW")));
 
         verify(accountRepository, times(1)).findByAccountId("ACC-001");

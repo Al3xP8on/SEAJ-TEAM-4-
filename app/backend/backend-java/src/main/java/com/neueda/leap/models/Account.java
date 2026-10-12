@@ -80,6 +80,9 @@ public class Account implements Closable {
     public Account(String accountId, String username, String rawPassword, String name, String email, String phone,
                    BigDecimal cashBalance, AccountStatus status) {
         AccountValidator.validateAccountId(accountId);
+        if (cashBalance == null || cashBalance.signum() < 0) {
+            throw new IllegalArgumentException("Initial balance must be zero or positive");
+        }
 
         this.accountId = accountId;
         this.username = username;
@@ -87,7 +90,7 @@ public class Account implements Closable {
         this.name = name;
         this.email = email;
         this.phone = phone;
-        this.cashBalance = cashBalance != null ? cashBalance : BigDecimal.ZERO;
+        this.cashBalance = cashBalance;
         this.status = status;
         this.version = 0;
         this.createdOn = LocalDateTime.now();
