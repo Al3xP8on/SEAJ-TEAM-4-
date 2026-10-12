@@ -76,6 +76,11 @@ public class TradeEventListener {
             
             logger.info("Received EventEnvelope - Event ID: {} | Event Type: {} | Partition: {} | Offset: {}",
                     LogMaskingUtil.maskId(envelope.eventId().toString()), envelope.eventType(), partition, offset);
+
+            if (envelope.eventType() == EventType.PRICE_UPDATE) {
+                logger.debug("Price update event received - not processed here");
+                return;
+            }
             
             // Extract TradeEvent from payload
             TradeEvent event = extractTradeEvent(envelope.payload());
@@ -95,9 +100,6 @@ public class TradeEventListener {
                     break;
                 case ORDER_CANCELLED:
                     handleCancelledTrade(event);
-                    break;
-                case PRICE_UPDATE:
-                    logger.debug("Price update event received - not processed here");
                     break;
                 default:
                     logger.warn("Unknown event type: {}", envelope.eventType());

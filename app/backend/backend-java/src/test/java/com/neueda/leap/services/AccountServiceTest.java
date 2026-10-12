@@ -78,19 +78,30 @@ public class AccountServiceTest {
         AccountInput inputNullBalance = new AccountInput("ACC-002", "user2", "pass2", "Account 2", 
                 "user2@example.com", "9876543210", null);
         
-        Account accountWithZeroBalance = new Account("ACC-002", "user2", "pass2", "Account 2", 
-                "user2@example.com", "9876543210", BigDecimal.ZERO, AccountStatus.ACTIVE);
-        ReflectionTestUtils.setField(accountWithZeroBalance, "id", 2L);
-
         when(accountRepository.findByAccountId("ACC-002")).thenReturn(Optional.empty());
         when(accountRepository.findByUsername("user2")).thenReturn(Optional.empty());
-        when(accountRepository.save(any(Account.class))).thenReturn(accountWithZeroBalance);
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
+            Account saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 2L);
+            return saved;
+        });
 
         AccountResponse response = accountService.createAccount(inputNullBalance);
 
         assertNotNull(response);
         assertEquals(BigDecimal.ZERO, response.cashBalance());
         verify(accountRepository).save(any(Account.class));
+    }
+
+    @Test
+    @DisplayName("Should reject a negative initial balance without saving the account")
+    void testCreateAccountWithNegativeBalance() {
+        AccountInput negativeInput = new AccountInput("ACC-002", "user2", "pass2", "Account 2",
+                "user2@example.com", "9876543210", new BigDecimal("-0.01"));
+
+        assertThrows(IllegalArgumentException.class, () -> accountService.createAccount(negativeInput));
+
+        verify(accountRepository, never()).save(any(Account.class));
     }
 
     @Test

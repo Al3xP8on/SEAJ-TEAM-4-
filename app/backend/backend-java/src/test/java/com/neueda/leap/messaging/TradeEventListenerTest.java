@@ -169,7 +169,7 @@ public class TradeEventListenerTest {
 
         tradeEventListener.handleTradeEvent(message, 0, 100L);
 
-        verify(orderRepository, never()).save(any(Order.class));
+        verifyNoInteractions(orderRepository, accountRepository, tradeEventPublisher);
     }
 
     @Test

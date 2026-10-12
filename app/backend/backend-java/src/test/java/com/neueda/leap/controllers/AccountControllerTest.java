@@ -3,6 +3,7 @@ package com.neueda.leap.controllers;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import com.neueda.leap.services.AccountService;
+import com.neueda.leap.security.SecurityUtilsService;
 import com.neueda.leap.dtos.*;
 import com.neueda.leap.models.*;
 import com.neueda.leap.enums.AccountStatus;
@@ -15,9 +16,12 @@ import static org.mockito.Mockito.*;
 
 class AccountControllerTest {
     private final AccountService service = mock(AccountService.class);
+    private final SecurityUtilsService securityUtilsService = mock(SecurityUtilsService.class);
     private AccountController controller() {
         AccountController controller = new AccountController();
         ReflectionTestUtils.setField(controller, "accountService", service);
+        ReflectionTestUtils.setField(controller, "securityUtilsService", securityUtilsService);
+        when(securityUtilsService.isAdmin()).thenReturn(true);
         return controller;
     }
     private final AccountInput input = new AccountInput("ACC-001", "alice", "password", "Alice", null, null, BigDecimal.ZERO);
