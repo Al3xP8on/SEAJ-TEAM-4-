@@ -1,10 +1,12 @@
 package com.neueda.leap.security;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -14,13 +16,21 @@ import com.nimbusds.jwt.SignedJWT;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.test.util.ReflectionTestUtils;
 import jakarta.servlet.Filter;
+import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -35,6 +45,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Base64;
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -60,6 +71,11 @@ class SecurityConfigTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(applicationContext)
                 .addFilters(applicationContext.getBean("springSecurityFilterChain", Filter.class))
                 .build();
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
 
     private SecurityConfig config() {
@@ -179,6 +195,100 @@ class SecurityConfigTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"access_token", "JSESSIONID"})
+    void rejectsCookieOnlyAuthenticationOnProtectedWrites(String cookieName) throws Exception {
+        String signedToken = token(SECRET, Instant.now().plusSeconds(3600));
+
+        mockMvc.perform(post("/v1/orders").cookie(new Cookie(cookieName, signedToken)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(result -> assertNull(result.getHandler()));
+    }
+
+    @Test
+    void ignoresAuthenticatedSecurityContextSavedInHttpSessionOnProtectedWrites() throws Exception {
+        var savedContext = SecurityContextHolder.createEmptyContext();
+        savedContext.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                "alice", "unused", List.of(new SimpleGrantedAuthority("ROLE_TRADER"))));
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, savedContext);
+
+        mockMvc.perform(post("/v1/orders").session(session))
+                .andExpect(status().isUnauthorized())
+                .andExpect(result -> assertNull(result.getHandler()));
+    }
+
+    @Test
+    void permitsBearerAuthenticatedWritesWithoutCsrfTokenOrCreatingSession() throws Exception {
+        String signedToken = token(SECRET, Instant.now().plusSeconds(3600));
+
+        mockMvc.perform(post("/v1/orders").header(HttpHeaders.AUTHORIZATION, "Bearer " + signedToken))
+                .andExpect(status().isOk())
+                .andExpect(content().string("alice:ROLE_TRADER"))
+                .andExpect(result -> assertNull(result.getRequest().getSession(false)))
+                .andExpect(result -> assertTrue(result.getResponse().getHeaders(HttpHeaders.SET_COOKIE).isEmpty()));
+
+        mockMvc.perform(post("/v1/orders"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(result -> assertNull(result.getHandler()));
+    }
+
+    @Test
+    void doesNotSaveBearerAuthenticationInExistingSessionOrReuseItForNextWrite() throws Exception {
+        String signedToken = token(SECRET, Instant.now().plusSeconds(3600));
+        MockHttpSession session = new MockHttpSession();
+
+        mockMvc.perform(post("/v1/orders")
+                        .session(session)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + signedToken))
+                .andExpect(status().isOk())
+                .andExpect(content().string("alice:ROLE_TRADER"))
+                .andExpect(result -> assertNull(session.getAttribute(
+                        HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)))
+                .andExpect(result -> assertTrue(result.getResponse().getHeaders(HttpHeaders.SET_COOKIE).isEmpty()));
+
+        mockMvc.perform(post("/v1/orders").session(session))
+                .andExpect(status().isUnauthorized())
+                .andExpect(result -> assertNull(result.getHandler()));
+    }
+
+    @Test
+    void rejectsBearerTokensInQueryOrFormParametersOnProtectedWrites() throws Exception {
+        String signedToken = token(SECRET, Instant.now().plusSeconds(3600));
+
+        mockMvc.perform(post("/v1/orders").queryParam("access_token", signedToken))
+                .andExpect(status().isUnauthorized())
+                .andExpect(result -> assertNull(result.getHandler()));
+
+        mockMvc.perform(post("/v1/orders")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("access_token", signedToken))
+                .andExpect(status().isUnauthorized())
+                .andExpect(result -> assertNull(result.getHandler()));
+    }
+
+    @Test
+    void rejectsHttpBasicAuthenticationOnProtectedWrites() throws Exception {
+        String basicCredentials = Base64.getEncoder().encodeToString("alice:password".getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(post("/v1/orders").header(HttpHeaders.AUTHORIZATION, "Basic " + basicCredentials))
+                .andExpect(status().isUnauthorized())
+                .andExpect(result -> assertNull(result.getHandler()));
+    }
+
+    @Test
+    void rejectsMalformedExpiredAndWronglySignedBearerTokensOnProtectedWrites() throws Exception {
+        String expired = token(SECRET, Instant.now().minusSeconds(3600));
+        String wrongSignature = token("different-test-only-secret-at-least-32-bytes",
+                Instant.now().plusSeconds(3600));
+
+        for (String invalidToken : List.of("not-a-jwt", expired, wrongSignature)) {
+            mockMvc.perform(post("/v1/orders").header(HttpHeaders.AUTHORIZATION, "Bearer " + invalidToken))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(result -> assertNull(result.getHandler()));
+        }
+    }
+
     @TestConfiguration
     @EnableWebSecurity
     @EnableWebMvc
@@ -209,6 +319,11 @@ class SecurityConfigTest {
                     .sorted()
                     .collect(java.util.stream.Collectors.joining(","));
             return authentication.getName() + ":" + roles;
+        }
+
+        @PostMapping("/v1/orders")
+        String protectedWriteEndpoint(Authentication authentication) {
+            return protectedEndpoint(authentication);
         }
     }
 }
