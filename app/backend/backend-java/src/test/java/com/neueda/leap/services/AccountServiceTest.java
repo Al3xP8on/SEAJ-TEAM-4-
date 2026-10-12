@@ -201,6 +201,53 @@ public class AccountServiceTest {
     }
 
     @Test
+    @DisplayName("Should retrieve the existing account for a login username")
+    void testGetAccountByUsername() throws AccountNotFoundException {
+        when(accountRepository.findByUsername("testuser")).thenReturn(Optional.of(testAccount));
+
+        assertSame(testAccount, accountService.getAccountByUsername("testuser"));
+
+        verify(accountRepository).findByUsername("testuser");
+    }
+
+    @Test
+    @DisplayName("Should report the missing username when no login account exists")
+    void testGetAccountByUsernameNotFound() {
+        when(accountRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+
+        AccountNotFoundException exception = assertThrows(AccountNotFoundException.class,
+                () -> accountService.getAccountByUsername("unknown"));
+
+        assertEquals("Account with username unknown not found", exception.getMessage());
+        verify(accountRepository).findByUsername("unknown");
+    }
+
+    @Test
+    @DisplayName("Should delete an account after verifying that it exists")
+    void testDeleteAccount() throws AccountNotFoundException {
+        when(accountRepository.existsById(1L)).thenReturn(true);
+
+        accountService.deleteAccount(1L);
+
+        var repositoryCalls = inOrder(accountRepository);
+        repositoryCalls.verify(accountRepository).existsById(1L);
+        repositoryCalls.verify(accountRepository).deleteById(1L);
+        repositoryCalls.verifyNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("Should reject deletion when the account does not exist")
+    void testDeleteAccountNotFound() {
+        when(accountRepository.existsById(999L)).thenReturn(false);
+
+        AccountNotFoundException exception = assertThrows(AccountNotFoundException.class,
+                () -> accountService.deleteAccount(999L));
+
+        assertEquals("Account with ID 999 not found", exception.getMessage());
+        verify(accountRepository, never()).deleteById(any());
+    }
+
+    @Test
     @DisplayName("Should retrieve account balance")
     void testGetBalance() throws AccountNotFoundException {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
@@ -235,6 +282,17 @@ public class AccountServiceTest {
     }
 
     @Test
+    @DisplayName("Should report a missing account before attempting positions retrieval")
+    void testGetPositionsAccountNotFound() {
+        when(accountRepository.findById(999L)).thenReturn(Optional.empty());
+
+        AccountNotFoundException exception = assertThrows(AccountNotFoundException.class,
+                () -> accountService.getPositions(999L));
+
+        assertEquals("Account with ID 999 not found", exception.getMessage());
+    }
+
+    @Test
     @DisplayName("Should retrieve empty OrderHistory for account")
     void testGetOrders() throws AccountNotFoundException {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
@@ -243,6 +301,17 @@ public class AccountServiceTest {
 
         assertNotNull(orderHistory);
         verify(accountRepository).findById(1L);
+    }
+
+    @Test
+    @DisplayName("Should reject order history retrieval for a missing account")
+    void testGetOrdersAccountNotFound() {
+        when(accountRepository.findById(999L)).thenReturn(Optional.empty());
+
+        AccountNotFoundException exception = assertThrows(AccountNotFoundException.class,
+                () -> accountService.getOrders(999L));
+
+        assertEquals("Account with ID 999 not found", exception.getMessage());
     }
 
     @Test
