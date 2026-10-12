@@ -1,5 +1,7 @@
 package com.neueda.leap.security;
 
+import com.neueda.leap.utils.LogMaskingUtil;
+
 import com.neueda.leap.models.Account;
 import com.neueda.leap.repositories.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,7 +84,8 @@ public class SecurityUtilsService {
         
         if (!userAccount.getAccountId().equals(targetAccountId)) {
             logger.warn("User '{}' (account: {}) attempted unauthorized access to account: {}",
-                    userAccount.getUsername(), userAccount.getAccountId(), targetAccountId);
+                    LogMaskingUtil.sanitize(userAccount.getUsername()), LogMaskingUtil.maskAccountId(userAccount.getAccountId()),
+                    LogMaskingUtil.maskAccountId(targetAccountId));
             throw new AuthorizationException(
                     String.format("User does not have permission to access account: %s", targetAccountId)
             );
@@ -105,7 +108,8 @@ public class SecurityUtilsService {
         
         if (!userAccount.getAccountId().equals(orderAccountId)) {
             logger.warn("User '{}' (account: {}) attempted unauthorized access to order: {} (account: {})",
-                    userAccount.getUsername(), userAccount.getAccountId(), order.getId(), orderAccountId);
+                    LogMaskingUtil.sanitize(userAccount.getUsername()), LogMaskingUtil.maskAccountId(userAccount.getAccountId()),
+                    LogMaskingUtil.maskId(order.getId()), LogMaskingUtil.maskAccountId(orderAccountId));
             throw new AuthorizationException(
                     String.format("User does not have permission to access this order")
             );

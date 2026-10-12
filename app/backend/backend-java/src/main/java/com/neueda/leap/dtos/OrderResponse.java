@@ -1,4 +1,6 @@
 package com.neueda.leap.dtos;
+
+import com.neueda.leap.models.Order;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -86,4 +88,24 @@ public record OrderResponse (
         this.createdAt = createdAt;
     }
 
+    /** Maps an order entity to the API response, without exposing the full account or instrument */
+    public static OrderResponse from(Order order) {
+        BigDecimal totalValue = order.getPrice() == null
+            ? null
+            : order.getPrice().multiply(BigDecimal.valueOf(order.getQuantity()));
+        return new OrderResponse(
+            order.getId() == null ? null : order.getId().toString(),
+            order.getAccount().getAccountId(),
+            order.getAccount().getName(),
+            order.getInstrument().getSymbol(),
+            order.getInstrument().getName(),
+            order.getQuantity(),
+            order.getPrice(),
+            totalValue,
+            order.getSide(),
+            order.getStatus(),
+            order.getIdempotencyKey(),
+            order.getCreatedAt()
+        );
+    }
 }

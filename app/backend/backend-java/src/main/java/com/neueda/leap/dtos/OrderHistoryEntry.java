@@ -1,5 +1,7 @@
 package com.neueda.leap.dtos;
 
+import com.neueda.leap.models.OrderHistory;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,5 +31,14 @@ public record OrderHistoryEntry (
         this.status = status;
         this.timestamp = timestamp;
         this.reason = reason;
+    }
+
+    public static OrderHistoryEntry from(OrderHistory history) {
+        return new OrderHistoryEntry(
+            history.getOrderId() == null ? null : history.getOrderId().toString(),
+            history.getStatus(),
+            history.getChangedOn(),
+            Optional.empty()
+        );
     }
 }

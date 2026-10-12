@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from app.backend.backend_python.data_analysis.constants import TRADING_DAYS, START_DATE, END_DATE
-from app.backend.backend_python.logger.logger import logger
+from data_analysis.constants import TRADING_DAYS, START_DATE, END_DATE
+from logger.logger import logger
 
 
 def instrument_summary(df: pd.DataFrame) -> pd.DataFrame:
@@ -48,8 +48,8 @@ def risk_return_summary(df: pd.DataFrame) -> pd.DataFrame:
         df.groupby(["symbol", "asset_class"])
         ["daily_return"]
         .agg(
-            daily_mean=("daily_return", "mean"),
-            daily_std=("daily_return", "std")
+            daily_mean="mean",
+            daily_std="std"
         )
         .reset_index()
     )
@@ -193,8 +193,9 @@ def asset_class_correlation(df: pd.DataFrame) -> pd.DataFrame:
     )
     
     # Calculate correlation between all pairs
-    symbol_corr = pivot_returns.corr().unstack().reset_index()
-    symbol_corr.columns = ["symbol1", "symbol2", "correlation"]
+    # Both axes are named "symbol" after the pivot; rename them so they don't clash on reset_index
+    corr = pivot_returns.corr().rename_axis(index="symbol1", columns="symbol2")
+    symbol_corr = corr.stack().reset_index(name="correlation")
     
     # Map asset classes
     symbol_corr = symbol_corr.merge(
