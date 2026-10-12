@@ -1,6 +1,7 @@
 package com.neueda.leap.services;
 
 import com.neueda.leap.models.Account;
+import com.neueda.leap.models.Positions;
 import com.neueda.leap.dtos.AccountInput;
 import com.neueda.leap.dtos.AccountResponse;
 import com.neueda.leap.enums.AccountStatus;
@@ -8,6 +9,7 @@ import com.neueda.leap.exceptions.AccountNotFoundException;
 import com.neueda.leap.exceptions.DuplicateAccountException;
 import com.neueda.leap.validators.AccountValidator;
 import com.neueda.leap.repositories.AccountRepository;
+import com.neueda.leap.repositories.PositionsRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,9 @@ public class AccountServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
+    @Mock
+    private PositionsRepository positionsRepository;
 
     @Mock
     private AccountValidator validator;
@@ -270,15 +275,17 @@ public class AccountServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw UnsupportedOperationException when getting positions")
-    void testGetPositions() {
+    @DisplayName("Should retrieve positions for account")
+    void testGetPositions() throws AccountNotFoundException {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
+        List<Positions> mockPositions = List.of(new Positions(1L, "AAPL", 100, BigDecimal.valueOf(150.50)));
+        when(positionsRepository.findByAccountId(1L)).thenReturn(mockPositions);
 
-        assertThrows(UnsupportedOperationException.class, () -> 
-            accountService.getPositions(1L)
-        );
+        List<Positions> result = accountService.getPositions(1L);
 
+        assertEquals(mockPositions, result);
         verify(accountRepository).findById(1L);
+        verify(positionsRepository).findByAccountId(1L);
     }
 
     @Test

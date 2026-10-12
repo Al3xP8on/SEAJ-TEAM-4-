@@ -164,6 +164,8 @@ class AccountControllerTest {
         verify(service).deleteAccount(1L);
     }
     @Test void listsAccountsAndHandlesRepositoryFailure() {
+        // Mock admin user
+        when(securityUtilsService.isAdmin()).thenReturn(true);
         List<Account> accounts = List.of(mock(Account.class));
         when(service.getAllAccounts()).thenReturn(accounts);
         assertSame(accounts, controller().getAllAccounts().getBody());
@@ -174,12 +176,14 @@ class AccountControllerTest {
     }
     @Test void returnsIndividualAccountResources() throws Exception {
         Account account = mock(Account.class);
-        Positions positions = mock(Positions.class);
+        List<Positions> positions = List.of(mock(Positions.class));
         OrderHistory orders = mock(OrderHistory.class);
+        when(account.getAccountId()).thenReturn("ACC-001");
         when(service.getAccount(1L)).thenReturn(account);
         when(service.getBalance(1L)).thenReturn(BigDecimal.TEN);
         when(service.getPositions(1L)).thenReturn(positions);
         when(service.getOrders(1L)).thenReturn(orders);
+        when(securityUtilsService.isAdmin()).thenReturn(true);  // Admin can access any account
         AccountController controller = controller();
         assertSame(account, controller.getAccount(1L).getBody());
         assertEquals(BigDecimal.TEN, controller.getBalance(1L).getBody());

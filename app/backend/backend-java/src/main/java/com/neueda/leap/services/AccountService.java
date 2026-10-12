@@ -10,6 +10,7 @@ import com.neueda.leap.exceptions.AccountNotFoundException;
 import com.neueda.leap.exceptions.DuplicateAccountException;
 import com.neueda.leap.validators.AccountValidator;
 import com.neueda.leap.repositories.AccountRepository;
+import com.neueda.leap.repositories.PositionsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -23,6 +24,9 @@ public class AccountService {
     
     @Autowired
     private AccountRepository accountRepository;
+    
+    @Autowired
+    private PositionsRepository positionsRepository;
     
     @Autowired
     private AccountValidator validator;
@@ -76,9 +80,11 @@ public class AccountService {
         return account.getCashBalance();
     }
 
-    public Positions getPositions(Long accountId) throws AccountNotFoundException {
+    public List<Positions> getPositions(Long accountId) throws AccountNotFoundException {
+        // Validate account exists
         Account account = getAccount(accountId);
-        throw new UnsupportedOperationException("Positions retrieval not yet implemented - requires database integration");
+        // Fetch and return all positions for this account
+        return positionsRepository.findByAccountId(accountId);
     }
 
     public OrderHistory getOrders(Long accountId) throws AccountNotFoundException {

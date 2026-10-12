@@ -65,9 +65,6 @@ public class OrderControllerTest {
     @MockBean
     private TradeEventPublisher tradeEventPublisher;
 
-    @MockBean
-    private SecurityUtilsService securityUtilsService;
-
     private Account testAccount;
     private Instrument testInstrument;
     private Order testOrder;
