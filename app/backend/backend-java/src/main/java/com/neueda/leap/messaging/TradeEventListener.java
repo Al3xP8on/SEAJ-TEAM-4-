@@ -78,18 +78,13 @@ public class TradeEventListener {
             logger.info("Received EventEnvelope - Event ID: {} | Event Type: {} | Partition: {} | Offset: {}",
                     LogMaskingUtil.maskId(envelope.eventId().toString()), envelope.eventType(), partition, offset);
 
+            // Price updates carry no trade fields, so skip them before extracting a TradeEvent
             if (envelope.eventType() == EventType.PRICE_UPDATE) {
                 logger.debug("Price update event received - not processed here");
                 return;
             }
-            
-            // For PRICE_UPDATE events, just log and skip further processing
-            if (envelope.eventType() == EventType.PRICE_UPDATE) {
-                logger.debug("Price update event received - not processed here");
-                return;
-            }
-            
-            // Extract TradeEvent from payload for other event types
+
+            // Extract TradeEvent from payload
             TradeEvent event = extractTradeEvent(envelope.payload());
             
             logger.info("Processing trade event - Account: {} | Trade ID: {} | Status: {} | Partition: {} | Offset: {}",

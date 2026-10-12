@@ -118,7 +118,7 @@ Once all containers are running, access them at:
 | **Swagger API** | http://localhost:8081/api/swagger-ui/index.html | N/A |
 | **Kafka UI** | http://localhost:8090 | N/A |
 | **SonarQube** | http://localhost:8088 | admin/admin |
-| **PostgreSQL** | localhost:5433 | postgres/n3u3d4! |
+| **PostgreSQL** | localhost:5433 | `POSTGRES_USER` / `POSTGRES_PASSWORD` from `.env` |
 
 ## Testing the Application
 

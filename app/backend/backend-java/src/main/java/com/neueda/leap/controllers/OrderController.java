@@ -1,5 +1,7 @@
 package com.neueda.leap.controllers;
 
+import com.neueda.leap.dtos.OrderResponse;
+import com.neueda.leap.dtos.OrderHistoryEntry;
 import com.neueda.leap.dtos.PlaceOrderRequest;
 import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.enums.OrderSide;
@@ -57,7 +59,7 @@ public class OrderController {
     private SecurityUtilsService securityUtilsService;
 
     @GetMapping
-    public ResponseEntity<List<Order>> getAllOrders() {
+    public ResponseEntity<List<OrderResponse>> getAllOrders() {
         logger.info("GET /v1/orders - Fetching orders");
         
         // If admin, return all orders; otherwise return only user's orders
@@ -72,25 +74,25 @@ public class OrderController {
         }
         
         logger.info("Found {} orders", orders.size());
-        return ResponseEntity.ok(orders);
+        return ResponseEntity.ok(orders.stream().map(OrderResponse::from).toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrder(@PathVariable UUID id) {
+    public ResponseEntity<OrderResponse> getOrder(@PathVariable UUID id) {
         logger.info("GET /v1/orders/{} - Fetching order by ID", LogMaskingUtil.maskId(id));
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
             // Validate user owns this order
             securityUtilsService.validateOrderOwnership(order.get());
             logger.info("Order found: {}", LogMaskingUtil.maskId(id));
-            return ResponseEntity.ok(order.get());
+            return ResponseEntity.ok(OrderResponse.from(order.get()));
         }
         logger.warn("Order not found: {}", LogMaskingUtil.maskId(id));
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
     @GetMapping("/account/{accountId}")
-    public ResponseEntity<List<Order>> getOrdersByAccount(
+    public ResponseEntity<List<OrderResponse>> getOrdersByAccount(
             @PathVariable String accountId,
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) String from,
@@ -106,18 +108,18 @@ public class OrderController {
         
         // Filter by status if provided
         if (status != null) {
-            logger.info("Filtering orders by status: {}", status);
+            logger.info("Filtering orders by status: {}", LogMaskingUtil.sanitize(status));
             orders = orders.stream()
                 .filter(o -> o.getStatus() == status)
                 .collect(java.util.stream.Collectors.toList());
         }
         
         logger.info("Found {} orders for account {}", orders.size(), LogMaskingUtil.maskAccountId(accountId));
-        return ResponseEntity.ok(orders);
+        return ResponseEntity.ok(orders.stream().map(OrderResponse::from).toList());
     }
 
     @PostMapping
-    public ResponseEntity<Order> createOrder(@Valid @RequestBody PlaceOrderRequest request) {
+    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody PlaceOrderRequest request) {
         logger.info("POST /v1/orders - Creating order for account {} with symbol {}", LogMaskingUtil.maskAccountId(request.getAccountId()), request.getSymbol());
         
         // SECURITY: Validate that user is authorized to create orders for the requested account
@@ -180,7 +182,7 @@ public class OrderController {
                 // Don't fail order creation, but log the error
             }
             
-            return ResponseEntity.status(HttpStatus.CREATED).body(order);
+            return ResponseEntity.status(HttpStatus.CREATED).body(OrderResponse.from(order));
         } catch (DuplicateOrderException e) {
             logger.error("Duplicate order: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
@@ -194,14 +196,14 @@ public class OrderController {
     }
 
     @PutMapping("/{id}/execute")
-    public ResponseEntity<Order> executeOrder(@PathVariable UUID id) {
+    public ResponseEntity<OrderResponse> executeOrder(@PathVariable UUID id) {
         logger.info("PUT /v1/orders/{}/execute - Executing order", LogMaskingUtil.maskId(id));
         try {
             Order order = orderService.executeOrder(id);
             // Validate user owns this order
             securityUtilsService.validateOrderOwnership(order);
             logger.info("Order executed: {}", LogMaskingUtil.maskId(id));
-            return ResponseEntity.ok(order);
+            return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
             logger.error("Failed to execute order {}: {}", LogMaskingUtil.maskId(id), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -209,7 +211,7 @@ public class OrderController {
     }
 
     @PutMapping("/{id}/cancel")
-    public ResponseEntity<Order> cancelOrder(@PathVariable UUID id) {
+    public ResponseEntity<OrderResponse> cancelOrder(@PathVariable UUID id) {
         logger.info("PUT /v1/orders/{}/cancel - Cancelling order", LogMaskingUtil.maskId(id));
         try {
             Order order = orderService.cancelOrder(id);
@@ -233,11 +235,11 @@ public class OrderController {
                 tradeEventPublisher.publishTradeEvent(cancelledEvent);
                 logger.info("Cancellation event published for order: {}", LogMaskingUtil.maskId(id));
             } catch (Exception e) {
-                logger.error("Failed to publish cancellation event for order {}: {}", LogMaskingUtil.maskId(id), e.getMessage(), e);
+                logger.error("Failed to publish cancellation event for order {}: {}", LogMaskingUtil.maskId(id), LogMaskingUtil.sanitize(e));
                 // Don't fail the cancellation if Kafka publishing fails
             }
             
-            return ResponseEntity.ok(order);
+            return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
             logger.error("Failed to cancel order {}: {}", LogMaskingUtil.maskId(id), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -245,10 +247,10 @@ public class OrderController {
     }
 
     @PutMapping("/{id}/reject")
-    public ResponseEntity<Order> rejectOrder(
+    public ResponseEntity<OrderResponse> rejectOrder(
             @PathVariable UUID id,
             @RequestParam String reason) {
-        logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", LogMaskingUtil.maskId(id), reason);
+        logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", LogMaskingUtil.maskId(id), LogMaskingUtil.sanitize(reason));
         try {
             Order order = orderService.rejectOrder(id, reason);
             // Validate user owns this order (or is admin)
@@ -256,7 +258,7 @@ public class OrderController {
                 securityUtilsService.validateOrderOwnership(order);
             }
             logger.info("Order rejected: {}", LogMaskingUtil.maskId(id));
-            return ResponseEntity.ok(order);
+            return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
             logger.error("Failed to reject order {}: {}", LogMaskingUtil.maskId(id), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -264,17 +266,17 @@ public class OrderController {
     }
 
     @GetMapping("/{id}/history")
-    public ResponseEntity<List<OrderHistory>> getOrderHistory(@PathVariable UUID id) {
-        logger.info("GET /v1/orders/{}/history - Fetching order history", id);
+    public ResponseEntity<List<OrderHistoryEntry>> getOrderHistory(@PathVariable UUID id) {
+        logger.info("GET /v1/orders/{}/history - Fetching order history", LogMaskingUtil.sanitize(id));
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
             // Validate user owns this order
             securityUtilsService.validateOrderOwnership(order.get());
             List<OrderHistory> history = orderService.getOrderHistory(id);
-            logger.info("Found {} history records for order {}", history.size(), id);
-            return ResponseEntity.ok(history);
+            logger.info("Found {} history records for order {}", history.size(), LogMaskingUtil.sanitize(id));
+            return ResponseEntity.ok(history.stream().map(OrderHistoryEntry::from).toList());
         }
-        logger.warn("Order not found for history: {}", id);
+        logger.warn("Order not found for history: {}", LogMaskingUtil.sanitize(id));
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 }

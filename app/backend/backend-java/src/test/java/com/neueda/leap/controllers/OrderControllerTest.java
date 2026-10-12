@@ -102,7 +102,7 @@ public class OrderControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", equalTo("550e8400-e29b-41d4-a716-446655440000")));
+                .andExpect(jsonPath("$[0].orderId", equalTo("550e8400-e29b-41d4-a716-446655440000")));
 
         verify(orderService, times(1)).getAllOrders();
     }
@@ -116,7 +116,7 @@ public class OrderControllerTest {
         mockMvc.perform(get("/v1/orders/550e8400-e29b-41d4-a716-446655440000")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", equalTo("550e8400-e29b-41d4-a716-446655440000")))
+                .andExpect(jsonPath("$.orderId", equalTo("550e8400-e29b-41d4-a716-446655440000")))
                 .andExpect(jsonPath("$.quantity", equalTo(100)))
                 .andExpect(jsonPath("$.status", equalTo("NEW")));
 
@@ -146,7 +146,7 @@ public class OrderControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", equalTo(testOrderId.toString())));
+                .andExpect(jsonPath("$[0].orderId", equalTo(testOrderId.toString())));
 
         verify(orderService, times(1)).getOrdersByAccount("ACC-001");
     }
@@ -227,7 +227,7 @@ public class OrderControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"accountId\":\"ACC-001\",\"symbol\":\"AAPL\",\"side\":\"BUY\",\"quantity\":100,\"price\":150.50}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", notNullValue()))
+                .andExpect(jsonPath("$.orderId", notNullValue()))
                 .andExpect(jsonPath("$.status", equalTo("NEW")));
 
         verify(accountRepository, times(1)).findByAccountId("ACC-001");
