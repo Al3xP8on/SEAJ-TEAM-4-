@@ -1,5 +1,7 @@
 package com.neueda.leap.dtos;
 
+import com.neueda.leap.models.Positions;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import com.neueda.leap.enums.PositionStatus;
@@ -32,4 +34,19 @@ public record PositionResponse(
 
     @Schema(description="Realised profit or loss", example="500.00")
     BigDecimal realisedPnL
-) {}
+) {
+
+    public static PositionResponse from(Positions position) {
+        return new PositionResponse(
+            position.getPositionId(),
+            position.getAccountId(),
+            position.getSymbol(),
+            position.getQuantity(),
+            position.getAverageCost(),
+            position.getStatus(),
+            position.getOpenedAt(),
+            position.getClosedAt(),
+            position.getRealisedPnL()
+        );
+    }
+}
