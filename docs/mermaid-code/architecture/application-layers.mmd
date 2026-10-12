@@ -1,0 +1,13 @@
+flowchart TB
+    c[Controllers<br/>REST endpoints]
+    s[Services<br/>business logic]
+    v[Validators<br/>business rules]
+    r[Repositories<br/>data access]
+    db[(PostgreSQL)]
+    m{{Messaging<br/>Kafka}}
+
+    c --> s
+    s --> v
+    s --> r
+    r --> db
+    s <--> m
