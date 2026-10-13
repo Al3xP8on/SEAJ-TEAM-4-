@@ -1,0 +1,28 @@
+// Runs authentication contract validation, code checks, coverage, database tests and builds in Jenkins.
+// Also runs browser session tests; the agent needs Node.js 20+ and PostgreSQL tools.
+pipeline {
+    agent any
+    options { timestamps() }
+    stages {
+        stage('Checkout') { steps { checkout scm } }
+        stage('Auth contract and tests') {
+            steps {
+                dir('app/backend/backend-nestjs') {
+                    sh 'npm ci --legacy-peer-deps'
+                    sh 'npm run validate:openapi'
+                    sh 'npm run lint'
+                    sh 'npm run typecheck'
+                    sh 'npm run test:cov -- --runInBand'
+                    sh 'bash scripts/test-postgres.sh'
+                    sh 'npm run build'
+                }
+                sh 'node app/frontend/test/auth-service.test.js'
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'app/backend/backend-nestjs/coverage/**', allowEmptyArchive: true
+        }
+    }
+}
