@@ -1,23 +1,9 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
+import { AuthService } from '../auth/auth.service';
 import { Account, Position } from './dashboard.models';
-
-// Sample data for the UI mockup; replaced by the account API once the session work is in
-const SAMPLE_ACCOUNT: Account = {
-  id: 1,
-  accountId: 'ACC-0001',
-  holderName: 'Alice Johnson',
-  cashBalance: 10000,
-  status: 'ACTIVE',
-};
-
-const SAMPLE_POSITIONS: Position[] = [
-  { positionId: 1, symbol: 'AAPL', quantity: 50, averageCost: 182.4, status: 'OPEN' },
-  { positionId: 2, symbol: 'MSFT', quantity: 20, averageCost: 415.1, status: 'OPEN' },
-  { positionId: 3, symbol: 'NVDA', quantity: 15, averageCost: 118.75, status: 'PARTIALLY_CLOSED' },
-  { positionId: 4, symbol: 'TSLA', quantity: 0, averageCost: 240, status: 'CLOSED' },
-];
+import { DashboardService } from './dashboard.service';
 
 // Holdings the user still owns; closed and liquidated positions are left out
 const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
@@ -28,9 +14,15 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
-export class DashboardComponent {
-  readonly account = signal<Account>(SAMPLE_ACCOUNT);
-  readonly positions = signal<Position[]>(SAMPLE_POSITIONS);
+export class DashboardComponent implements OnInit {
+  private readonly dashboard = inject(DashboardService);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
+  readonly account = signal<Account | null>(null);
+  readonly positions = signal<Position[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal('');
 
   readonly holdings = computed(() =>
     this.positions()
@@ -40,7 +32,25 @@ export class DashboardComponent {
 
   readonly holdingsValue = computed(() => this.holdings().reduce((total, h) => total + h.value, 0));
 
-  constructor(private router: Router) {}
+  ngOnInit(): void {
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.error.set('');
+    this.dashboard.load().subscribe({
+      next: ({ account, positions }) => {
+        this.account.set(account);
+        this.positions.set(positions);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('We couldn’t load your account. Please try again.');
+        this.loading.set(false);
+      },
+    });
+  }
 
   goToOrderTicket(): void {
     this.router.navigate(['/order']);
@@ -51,7 +61,7 @@ export class DashboardComponent {
   }
 
   logout(): void {
-    // Session clearing is wired in with the auth work; for now just return to login
+    this.auth.logout();
     this.router.navigate(['/login']);
   }
 }

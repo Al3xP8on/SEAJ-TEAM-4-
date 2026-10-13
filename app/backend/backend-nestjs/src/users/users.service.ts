@@ -39,6 +39,7 @@ export class UsersService {
   }
   async prepareRegistration(dto: RegisterDto): Promise<RegistrationPayload> {
     const email = dto.email.toLowerCase();
+    const phone = dto.phone?.trim() || null;
     const duplicate = await this.users
       .createQueryBuilder('user')
       .where('user.username = :username OR LOWER(user.email) = :email', {
@@ -48,11 +49,14 @@ export class UsersService {
       .getExists();
     if (duplicate)
       throw new ConflictException('Email or username already exists');
+    if (phone && (await this.users.existsBy({ phone })))
+      throw new ConflictException('Phone number already in use');
     return {
       username: dto.username,
       email,
       name: dto.name ?? dto.username,
       passwordHash: await this.passwords.hash(dto.password),
+      phone,
     };
   }
   async registerVerified(
@@ -67,6 +71,7 @@ export class UsersService {
           accountId: `ACC-${randomUUID().slice(0, 8).toUpperCase()}`,
           username: payload.username,
           email: payload.email,
+          phone: payload.phone ?? null,
           name: payload.name,
           password: payload.passwordHash,
           // Shared accounts tables created by Hibernate may have no SQL defaults.

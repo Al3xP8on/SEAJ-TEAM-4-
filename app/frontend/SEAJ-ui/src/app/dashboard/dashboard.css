@@ -140,6 +140,29 @@ main {
   font-style: italic;
 }
 
+.status {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 300;
+  margin-bottom: 1.5rem;
+}
+
+.error-card {
+  margin-bottom: 1.5rem;
+}
+
+.error-card p {
+  color: #e74c3c;
+  margin-bottom: 1rem;
+}
+
+.retry-btn {
+  flex: none;
+  background: linear-gradient(135deg, #316442 0%, #316442 100%);
+  color: white;
+  padding: 0.6rem 1.25rem;
+}
+
 .actions {
   display: flex;
   gap: 1rem;

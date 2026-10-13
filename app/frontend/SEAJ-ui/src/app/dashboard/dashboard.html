@@ -5,50 +5,59 @@
 
 <main>
   <div class="dashboard">
-    <h2 class="welcome">Welcome, {{ account().holderName }}</h2>
+    @if (loading()) {
+      <p class="status">Loading your account…</p>
+    } @else if (error()) {
+      <div class="card error-card" role="alert">
+        <p>{{ error() }}</p>
+        <button type="button" class="submit-btn retry-btn" (click)="load()">Try again</button>
+      </div>
+    } @else if (account(); as account) {
+      <h2 class="welcome">Welcome, {{ account.holderName }}</h2>
 
-    <div class="cards">
-      <section class="card balance-card" aria-labelledby="balance-title">
-        <h3 id="balance-title">Cash Balance</h3>
-        <p class="balance">{{ account().cashBalance | currency: 'USD' }}</p>
-        <p class="caption">Account {{ account().accountId }}</p>
-      </section>
+      <div class="cards">
+        <section class="card balance-card" aria-labelledby="balance-title">
+          <h3 id="balance-title">Cash Balance</h3>
+          <p class="balance">{{ account.cashBalance | currency: 'USD' }}</p>
+          <p class="caption">Account {{ account.accountId }}</p>
+        </section>
 
-      <section class="card positions-card" aria-labelledby="positions-title">
-        <h3 id="positions-title">Positions</h3>
+        <section class="card positions-card" aria-labelledby="positions-title">
+          <h3 id="positions-title">Positions</h3>
 
-        @if (holdings().length > 0) {
-          <table class="positions-table">
-            <thead>
-              <tr>
-                <th scope="col">Symbol</th>
-                <th scope="col" class="num">Quantity</th>
-                <th scope="col" class="num">Avg Cost</th>
-                <th scope="col" class="num">Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (holding of holdings(); track holding.positionId) {
+          @if (holdings().length > 0) {
+            <table class="positions-table">
+              <thead>
                 <tr>
-                  <td class="symbol">{{ holding.symbol }}</td>
-                  <td class="num">{{ holding.quantity | number }}</td>
-                  <td class="num">{{ holding.averageCost | currency: 'USD' }}</td>
-                  <td class="num">{{ holding.value | currency: 'USD' }}</td>
+                  <th scope="col">Symbol</th>
+                  <th scope="col" class="num">Quantity</th>
+                  <th scope="col" class="num">Avg Cost</th>
+                  <th scope="col" class="num">Value</th>
                 </tr>
-              }
-            </tbody>
-            <tfoot>
-              <tr>
-                <th scope="row" colspan="3">Total</th>
-                <td class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
-              </tr>
-            </tfoot>
-          </table>
-        } @else {
-          <p class="empty">You don't hold any positions yet.</p>
-        }
-      </section>
-    </div>
+              </thead>
+              <tbody>
+                @for (holding of holdings(); track holding.positionId) {
+                  <tr>
+                    <td class="symbol">{{ holding.symbol }}</td>
+                    <td class="num">{{ holding.quantity | number }}</td>
+                    <td class="num">{{ holding.averageCost | currency: 'USD' }}</td>
+                    <td class="num">{{ holding.value | currency: 'USD' }}</td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th scope="row" colspan="3">Total</th>
+                  <td class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          } @else {
+            <p class="empty">You don't hold any positions yet.</p>
+          }
+        </section>
+      </div>
+    }
 
     <div class="actions">
       <button type="button" class="submit-btn" (click)="goToOrderTicket()">Place Order</button>

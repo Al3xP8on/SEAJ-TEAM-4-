@@ -43,6 +43,11 @@
         <input id="regEmail" type="email" [(ngModel)]="regEmail" name="regEmail" required
           placeholder="your@email.com" />
       </div>
+      <div class="form-group">
+        <label for="regPhone">Phone (optional)</label>
+        <input id="regPhone" type="tel" [(ngModel)]="regPhone" name="regPhone"
+          placeholder="+353-85-456-7891" />
+      </div>
       <p class="message" [class]="registerMessageType()">{{ registerMessage() }}</p>
       <button class="submit-btn" (click)="onRegister()" [disabled]="registerLoading()">Create Account</button>
       <button class="toggle-btn" (click)="showView('login')" [disabled]="registerLoading()">Back to Login</button>

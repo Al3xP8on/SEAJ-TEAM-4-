@@ -2,6 +2,7 @@ import {
   IsEmail,
   IsString,
   Length,
+  Matches,
   MaxLength,
   ValidateIf,
   Validate,
@@ -17,4 +18,11 @@ export class RegisterDto {
   @IsString()
   @Length(1, 255)
   name?: string;
+  // Optional contact number stored on the account; not used for verification
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @Matches(/^(?=.{7,20}$)\+?[0-9 ()-]+$/, {
+    message: 'phone must be 7-20 characters: digits, spaces, dashes or brackets, with an optional leading +',
+  })
+  phone?: string;
 }
