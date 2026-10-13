@@ -14,6 +14,9 @@ export class User {
   @Column({ name: 'password_hash' })
   password: string;
 
+  @Column({ default: 'USER' })
+  roles: string;
+
   @Column()
   name: string;
 

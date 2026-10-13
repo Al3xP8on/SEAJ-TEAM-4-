@@ -17,5 +17,12 @@ public record AccountInput(
     String email,
 
     @Schema(description = "Phone number", example = "+44-1234-567895")
-    String phone
-) {}
+    String phone,
+
+    @Schema(description = "Comma-separated account roles", example = "USER")
+    String roles
+) {
+    public AccountInput(String username, String password, String email, String phone) {
+        this(username, password, email, phone, null);
+    }
+}

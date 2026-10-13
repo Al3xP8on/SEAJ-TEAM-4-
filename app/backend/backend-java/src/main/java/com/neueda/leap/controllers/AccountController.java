@@ -106,9 +106,10 @@ public class AccountController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteAccount(@PathVariable Long id) {
+    public ResponseEntity<?> deleteAccount(@PathVariable String id) {
         try {
-            accountService.deleteAccount(id);
+            Account account = accountService.getAccountByIdentifier(id);
+            accountService.deleteAccount(account.getId());
             return ResponseEntity.noContent().build();
         } catch (AccountNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -137,9 +138,9 @@ public class AccountController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get account details", description = "Retrieve details for a specific account. You can only access your own account unless you are an admin.")
-    public ResponseEntity<AccountResponse> getAccount(@PathVariable Long id) {
+    public ResponseEntity<AccountResponse> getAccount(@PathVariable String id) {
         try {
-            Account account = accountService.getAccount(id);
+            Account account = accountService.getAccountByIdentifier(id);
             // Validate user owns this account (unless admin)
             if (!securityUtilsService.isAdmin()) {
                 securityUtilsService.validateAccountOwnership(account.getAccountId());
@@ -155,14 +156,14 @@ public class AccountController {
 
     @GetMapping("/{id}/balance")
     @Operation(summary = "Get account balance", description = "Retrieve the current balance for an account. You can only access your own account balance unless you are an admin.")
-    public ResponseEntity<BigDecimal> getBalance(@PathVariable Long id) {
+    public ResponseEntity<BigDecimal> getBalance(@PathVariable String id) {
         try {
-            Account account = accountService.getAccount(id);
+            Account account = accountService.getAccountByIdentifier(id);
             // Validate user owns this account (unless admin)
             if (!securityUtilsService.isAdmin()) {
                 securityUtilsService.validateAccountOwnership(account.getAccountId());
             }
-            BigDecimal balance = accountService.getBalance(id);
+            BigDecimal balance = accountService.getBalance(account.getId());
             return ResponseEntity.ok(balance);
         } catch (AuthorizationException e) {
             throw e;
@@ -176,7 +177,7 @@ public class AccountController {
     @Operation(summary = "Get account positions", description = "Retrieve current positions held in an account. You can only access your own positions unless you are an admin.")
     public ResponseEntity<List<PositionResponse>> getPositions(@PathVariable Long id) {
         try {
-            Account account = accountService.getAccount(id);
+            Account account = accountService.getAccountByIdentifier(id);
             // Validate user owns this account (unless admin)
             if (!securityUtilsService.isAdmin()) {
                 securityUtilsService.validateAccountOwnership(account.getAccountId());
@@ -193,14 +194,14 @@ public class AccountController {
 
     @GetMapping("/{id}/orders")
     @Operation(summary = "Get account order history", description = "Retrieve the order history for an account. You can only access your own order history unless you are an admin.")
-    public ResponseEntity<OrderHistoryEntry> getOrders(@PathVariable Long id) {
+    public ResponseEntity<OrderHistoryEntry> getOrders(@PathVariable String id) {
         try {
-            Account account = accountService.getAccount(id);
+            Account account = accountService.getAccountByIdentifier(id);
             // Validate user owns this account (unless admin)
             if (!securityUtilsService.isAdmin()) {
                 securityUtilsService.validateAccountOwnership(account.getAccountId());
             }
-            OrderHistory orderHistory = accountService.getOrders(id);
+            OrderHistory orderHistory = accountService.getOrders(account.getId());
             return ResponseEntity.ok(OrderHistoryEntry.from(orderHistory));
         } catch (AuthorizationException e) {
             throw e;

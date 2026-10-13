@@ -46,14 +46,15 @@ public class AccountService {
         }
 
         String accountId = "ACC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String roles = AccountValidator.normalizeRoles(input.roles());
         Account account = new Account(
-            accountId, input.username(), input.password(),
+            accountId, input.username(), input.password(), roles,
             input.email(), input.phone(), AccountStatus.ACTIVE
         );
         Account saved = accountRepository.save(account);
         return new AccountResponse(
             saved.getId(), saved.getAccountId(), saved.getName(),
-            saved.getCashBalance(), saved.getStatus(),
+            saved.getCashBalance(), saved.getStatus(), saved.getRoles(),
             Optional.of(saved.getLastUpdated())
         );
     }
@@ -95,6 +96,23 @@ public class AccountService {
         Account account = accountRepository.findById(accountId).orElse(null);
         if (account == null) {
             throw new AccountNotFoundException("Account with ID " + accountId + " not found");
+        }
+        return account;
+    }
+
+    public Account getAccountByIdentifier(String identifier) throws AccountNotFoundException {
+        if (identifier == null || identifier.trim().isEmpty()) {
+            throw new AccountNotFoundException("Account identifier is required");
+        }
+
+        String trimmed = identifier.trim();
+        if (trimmed.matches("\\d+")) {
+            return getAccount(Long.valueOf(trimmed));
+        }
+
+        Account account = accountRepository.findByAccountId(trimmed).orElse(null);
+        if (account == null) {
+            throw new AccountNotFoundException("Account with accountId " + trimmed + " not found");
         }
         return account;
     }
