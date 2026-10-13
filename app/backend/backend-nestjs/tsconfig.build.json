@@ -1,7 +1,10 @@
+// Configures production TypeScript compilation for application sources, excluding tests.
+// Disables incremental caching so repeated clean builds always recreate the complete runtime output.
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "incremental": false
   },
   "include": ["src"],
   "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]

@@ -1,3 +1,5 @@
+// Tests protected-route access, JWT validation and authentication through the Spring security filters.
+// Covers email-factor claims, invalid tokens and anonymous access to public authentication endpoints.
 package com.neueda.leap.security;
 
 import org.junit.jupiter.api.Test;
@@ -50,6 +52,7 @@ import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -91,6 +94,7 @@ class SecurityConfigTest {
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .subject("alice")
                 .claim("roles", roles)
+                .claim("amr", List.of("pwd", "email_otp"))
                 .expirationTime(Date.from(expiresAt))
                 .build();
         SignedJWT token = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claims);
@@ -101,6 +105,12 @@ class SecurityConfigTest {
         var jwt = config().jwtDecoder().decode(token(SECRET, Instant.now().plusSeconds(3600)));
         assertEquals("alice", jwt.getSubject());
         assertEquals(List.of("TRADER"), jwt.getClaimAsStringList("roles"));
+    }
+    @Test void rejectsSignedTokenWithoutEmailSecondFactor() throws Exception {
+        JWTClaimsSet claims = new JWTClaimsSet.Builder().subject("alice").expirationTime(Date.from(Instant.now().plusSeconds(3600))).build();
+        SignedJWT signed = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claims);
+        signed.sign(new MACSigner(SECRET.getBytes(StandardCharsets.UTF_8)));
+        assertThrows(JwtException.class, () -> config().jwtDecoder().decode(signed.serialize()));
     }
     @Test void rejectsTokenSignedWithDifferentSecret() throws Exception {
         String token = token("different-test-only-secret-at-least-32-bytes", Instant.now().plusSeconds(3600));
@@ -123,7 +133,7 @@ class SecurityConfigTest {
 
     @Test
     void permitsAnonymousSignupAndLoginWithoutACsrfToken() throws Exception {
-        for (String path : List.of("/v1/accounts", "/v1/accounts/login")) {
+        for (String path : List.of("/v1/accounts", "/v1/accounts/login", "/v1/accounts/login/verify", "/v1/accounts/register/verify")) {
             mockMvc.perform(post(path))
                     .andExpect(status().isOk())
                     .andExpect(content().string("public"));
@@ -141,7 +151,9 @@ class SecurityConfigTest {
             "PUT, /v1/accounts/login",
             "PATCH, /v1/accounts/login",
             "DELETE, /v1/accounts/login",
-            "HEAD, /v1/accounts/login"
+            "HEAD, /v1/accounts/login",
+            "GET, /v1/accounts/login/verify",
+            "GET, /v1/accounts/register/verify"
     })
     void rejectsAnonymousNonPostRequestsToSignupAndLogin(String method, String path) throws Exception {
         mockMvc.perform(request(HttpMethod.valueOf(method), path))
@@ -155,6 +167,14 @@ class SecurityConfigTest {
     void permitsAnonymousCorsPreflightRequests(String path) throws Exception {
         mockMvc.perform(request(HttpMethod.OPTIONS, path))
                 .andExpect(result -> assertNotEquals(401, result.getResponse().getStatus()));
+    }
+
+    @Test
+    void permitsCorsPreflightForAnonymousAuthenticationRequests() throws Exception {
+        mockMvc.perform(options("/v1/accounts")
+                .header("Origin", "http://localhost:8000")
+                .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -313,7 +333,7 @@ class SecurityConfigTest {
             return "public";
         }
 
-        @PostMapping({"/v1/accounts", "/v1/accounts/login"})
+        @PostMapping({"/v1/accounts", "/v1/accounts/login", "/v1/accounts/login/verify", "/v1/accounts/register/verify"})
         String authenticationEndpoint() {
             return "public";
         }

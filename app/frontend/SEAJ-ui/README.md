@@ -1,59 +1,101 @@
-# SEAJUi
+<!-- Explains how to run, package and test the Angular authentication interface.
+     Records the preserved email verification/session flow and the API proxy setup. -->
+# SEAJ Angular authentication UI
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.2.
+Use Node.js 24 and install dependencies with `npm ci` in this directory.
 
-## Development server
+## Development
 
-To start a local development server, run:
-
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Start PostgreSQL and the configured NestJS authentication service first. Then:
 
 ```bash
-ng generate component component-name
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+On the Linux VM, open http://10.9.71.121:8085/login from your browser. The dev
+server listens on all VM interfaces on port 8085 and automatically reloads
+the browser when frontend files change. Keep `npm start` running.
+`proxy.conf.json` forwards `/auth/**` to the
+local NestJS service on port 3000 and `/api/**` to the Java API on port 8081.
+The browser uses relative API URLs, so remote development does not require
+hardcoded server addresses. Your computer must have a route to the VM's private
+network (for example, through the work VPN), and inbound TCP 8085 must be allowed
+from your network. Alternatively, forward port 8085 through SSH or your IDE and
+open http://localhost:8085/login. Change proxy targets only if the backend
+services run on another host; `127.0.0.1` here refers to the VM running Angular.
+
+## Preserved authentication behavior
+
+- Required unique username/email registration starts an email challenge (`202`).
+- Only a correct registration code creates the account (`201`) with the backend's
+  existing UUID-based ACC identifier. Registration does not issue login tokens.
+- Username/password login starts a fresh email challenge (`202`). Only a correct
+  login code returns tokens (`200`). Tokens are never displayed in the page.
+- Access and rotating refresh tokens use the same `sessionStorage` keys:
+  `seaj.access_token` and `seaj.refresh_token`.
+- Access tokens renew automatically before expiry, including after reload and
+  browser wake-up. Rejected refresh tokens clear the session and prompt login.
+- Logout remains local: it clears tokens, pending challenges and timers. The
+  separate API logout endpoint retains its existing server revocation behavior.
+- Cancellation prevents late responses from restoring authentication.
+
+`src/app/auth/session-client.mjs` is the previous session client relocated as an
+ES module; its business logic is unchanged. The adjacent declaration file types
+its interface for Angular. `auth.service.ts` adapts its requests to HttpClient;
+`login/` provides Angular forms and status messages. The old standalone HTML/JS
+screens have been removed.
+
+## Build and deployment
 
 ```bash
-ng generate --help
+npm run build
 ```
 
-## Building
-
-To build the project run:
+The production UI is emitted to `dist/seaj-ui/browser`. The auth Dockerfile builds
+Angular first, then packages it with NestJS and `docs/auth-service.yml`. From the
+repository root:
 
 ```bash
-ng build
+docker-compose up -d --build db auth-service
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Open http://10.9.71.121:3000/login (Swagger is at
+http://10.9.71.121:3000/api/docs). NestJS listens on all interfaces and Docker
+publishes port 3000. Access requires a route to the VM's private network and
+inbound TCP 3000 allowed from your network. Existing `/login/Login.html`
+bookmarks redirect through the Angular router. Alternatively, forward port
+3000 through SSH or your IDE and open http://localhost:3000/login.
+The packaged UI requires a rebuild for frontend changes; use port 8085 during
+development for automatic browser refresh. An API-only local NestJS build can run
+without UI artifacts; use the Angular dev server in that case.
 
-## Running unit tests
+The additive `align-account-roles.migration.ts` startup migration supports older
+accounts tables that lack the merged Java `roles` column. It copies legacy primary
+roles only when adding the column and preserves existing merged role lists.
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Tests
+
+From this directory:
 
 ```bash
-ng test
+npm test -- --watch=false
+npm run build
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+From repository root, run the preserved browser-session regression tests:
 
 ```bash
-ng e2e
+node app/frontend/test/auth-service.test.mjs
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+The Angular tests use HttpClient's test backend and fake tokens. NestJS HTTP tests
+use disposable PostgreSQL and fake email delivery. Verify real Gmail delivery
+manually using private SMTP credentials: register, enter the registration code,
+log in and enter the second code. Neither the server nor client should expose a
+code or password in API responses.
 
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+To check automatic renewal quickly, temporarily configure `JWT_EXPIRY=60` and
+`JWT_REFRESH_EXPIRY=180`, recreate auth-service and log in again. Network should
+show `/auth/refresh` around 48 seconds later and both stored tokens should rotate.
+When the absolute refresh session expires, the next renewal prompts login.
+Restore the normal lifetimes after testing.
