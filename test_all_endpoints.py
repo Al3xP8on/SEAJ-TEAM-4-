@@ -2,6 +2,8 @@
 
 import time
 import uuid
+import json
+import base64
 import requests
 import urllib3
 from typing import Optional, Sequence, Union
@@ -43,6 +45,46 @@ def status_matches(actual: int, expected: ExpectedStatus) -> bool:
     if isinstance(expected, int):
         return actual == expected
     return actual in expected
+
+
+def json_body(resp: Optional[requests.Response]):
+    if resp is None:
+        return None
+    try:
+        return resp.json()
+    except Exception:
+        return None
+
+
+def jwt_roles(token: Optional[str]) -> list[str]:
+    if not token:
+        return []
+    try:
+        parts = token.split(".")
+        if len(parts) != 3:
+            return []
+        payload = parts[1]
+        payload += "=" * (-len(payload) % 4)
+        decoded = base64.urlsafe_b64decode(payload.encode("utf-8")).decode("utf-8")
+        claims = json.loads(decoded)
+        roles = claims.get("roles", [])
+        if isinstance(roles, list):
+            return [str(r).upper() for r in roles]
+    except Exception:
+        return []
+    return []
+
+
+def check_assertion(description: str, condition: bool, details: str = "") -> None:
+    global PASS_COUNT, FAIL_COUNT
+    print(f"  {description} ... ", end="", flush=True)
+    if condition:
+        print(f"{GREEN}OK{NC}")
+        PASS_COUNT += 1
+    else:
+        suffix = f" ({details})" if details else ""
+        print(f"{RED}FAIL{NC}{suffix}")
+        FAIL_COUNT += 1
 
 
 def login(username: str, password: str) -> Optional[str]:
@@ -155,6 +197,25 @@ if not ALICE_TOKEN or not BRIAN_TOKEN or not CARLA_TOKEN:
 print(f"{GREEN}OK{NC} Tokens obtained\n")
 
 # ================================
+# ROLE MATRIX VALIDATION
+# ================================
+print_section("ROLE MATRIX VALIDATION")
+alice_roles = jwt_roles(ALICE_TOKEN)
+brian_roles = jwt_roles(BRIAN_TOKEN)
+
+check_assertion(
+    "Alice token carries ADMIN role",
+    "ADMIN" in alice_roles,
+    f"roles={alice_roles}",
+)
+check_assertion(
+    "Brian token is normal user",
+    "ADMIN" not in brian_roles,
+    f"roles={brian_roles}",
+)
+print()
+
+# ================================
 # ACCOUNT AUTH + CREATE
 # ================================
 print_section("ACCOUNT AUTH + CREATE")
@@ -198,7 +259,7 @@ test_endpoint(
     "/v1/accounts/999999",
     ALICE_TOKEN,
     None,
-    (404, 403),
+    404,
     "Delete non-existent account",
 )
 print()
@@ -207,37 +268,51 @@ print()
 # ACCOUNTS - READ
 # ================================
 print_section("ACCOUNTS - READ")
-test_endpoint("GET", "/v1/accounts", ALICE_TOKEN, None, 200, "Alice: list accounts")
-test_endpoint("GET", "/v1/accounts", BRIAN_TOKEN, None, 200, "Brian: list accounts")
-test_endpoint("GET", "/v1/accounts/1", ALICE_TOKEN, None, 200, "Alice: view own (ID=1)")
-test_endpoint("GET", "/v1/accounts/2", ALICE_TOKEN, None, 403, "Block: Alice -> Brian (ID=2)")
-test_endpoint("GET", "/v1/accounts/2", BRIAN_TOKEN, None, 200, "Brian: view own (ID=2)")
-test_endpoint("GET", "/v1/accounts/1", BRIAN_TOKEN, None, 403, "Block: Brian -> Alice (ID=1)")
+alice_accounts = test_endpoint("GET", "/v1/accounts", ALICE_TOKEN, None, 200, "Alice(admin): list accounts")
+brian_accounts = test_endpoint("GET", "/v1/accounts", BRIAN_TOKEN, None, 200, "Brian(user): list accounts")
+
+alice_accounts_json = json_body(alice_accounts)
+brian_accounts_json = json_body(brian_accounts)
+check_assertion(
+    "Admin sees more than one account",
+    isinstance(alice_accounts_json, list) and len(alice_accounts_json) > 1,
+    "expected admin account list size > 1",
+)
+check_assertion(
+    "Normal user sees exactly one account",
+    isinstance(brian_accounts_json, list) and len(brian_accounts_json) == 1,
+    "expected user account list size == 1",
+)
+
+test_endpoint("GET", "/v1/accounts/ACC-0001", ALICE_TOKEN, None, 200, "Alice(admin): view own account")
+test_endpoint("GET", "/v1/accounts/ACC-0002", ALICE_TOKEN, None, 200, "Alice(admin): view Brian account")
+test_endpoint("GET", "/v1/accounts/ACC-0002", BRIAN_TOKEN, None, 200, "Brian(user): view own account")
+test_endpoint("GET", "/v1/accounts/ACC-0001", BRIAN_TOKEN, None, 403, "Block: Brian(user) -> Alice account")
 print()
 
 # ================================
 # ACCOUNT BALANCE
 # ================================
 print_section("ACCOUNT BALANCE")
-test_endpoint("GET", "/v1/accounts/1/balance", ALICE_TOKEN, None, 200, "Alice: own balance")
-test_endpoint("GET", "/v1/accounts/2/balance", ALICE_TOKEN, None, 403, "Block: Alice -> Brian balance")
-test_endpoint("GET", "/v1/accounts/2/balance", BRIAN_TOKEN, None, 200, "Brian: own balance")
-test_endpoint("GET", "/v1/accounts/1/balance", BRIAN_TOKEN, None, 403, "Block: Brian -> Alice balance")
+test_endpoint("GET", "/v1/accounts/ACC-0001/balance", ALICE_TOKEN, None, 200, "Alice(admin): own balance")
+test_endpoint("GET", "/v1/accounts/ACC-0002/balance", ALICE_TOKEN, None, 200, "Alice(admin): Brian balance")
+test_endpoint("GET", "/v1/accounts/ACC-0002/balance", BRIAN_TOKEN, None, 200, "Brian(user): own balance")
+test_endpoint("GET", "/v1/accounts/ACC-0001/balance", BRIAN_TOKEN, None, 403, "Block: Brian(user) -> Alice balance")
 print()
 
 # ================================
 # ACCOUNT POSITIONS/ORDERS VIEW
 # ================================
 print_section("ACCOUNT POSITIONS + ORDERS")
-test_endpoint("GET", "/v1/accounts/1/positions", ALICE_TOKEN, None, 200, "Alice: own positions")
-test_endpoint("GET", "/v1/accounts/2/positions", ALICE_TOKEN, None, 403, "Block: Alice -> Brian positions")
-test_endpoint("GET", "/v1/accounts/2/positions", BRIAN_TOKEN, None, 200, "Brian: own positions")
-test_endpoint("GET", "/v1/accounts/1/positions", BRIAN_TOKEN, None, 403, "Block: Brian -> Alice positions")
+test_endpoint("GET", "/v1/accounts/ACC-0001/positions", ALICE_TOKEN, None, 200, "Alice(admin): own positions")
+test_endpoint("GET", "/v1/accounts/ACC-0002/positions", ALICE_TOKEN, None, 200, "Alice(admin): Brian positions")
+test_endpoint("GET", "/v1/accounts/ACC-0002/positions", BRIAN_TOKEN, None, 200, "Brian(user): own positions")
+test_endpoint("GET", "/v1/accounts/ACC-0001/positions", BRIAN_TOKEN, None, 403, "Block: Brian(user) -> Alice positions")
 
-test_endpoint("GET", "/v1/accounts/1/orders", ALICE_TOKEN, None, 200, "Alice: own account orders")
-test_endpoint("GET", "/v1/accounts/2/orders", ALICE_TOKEN, None, 403, "Block: Alice -> Brian account orders")
-test_endpoint("GET", "/v1/accounts/2/orders", BRIAN_TOKEN, None, 200, "Brian: own account orders")
-test_endpoint("GET", "/v1/accounts/3/orders", CARLA_TOKEN, None, 200, "Carla: own account orders")
+test_endpoint("GET", "/v1/accounts/ACC-0001/orders", ALICE_TOKEN, None, 200, "Alice(admin): own account orders")
+test_endpoint("GET", "/v1/accounts/ACC-0002/orders", ALICE_TOKEN, None, 200, "Alice(admin): Brian account orders")
+test_endpoint("GET", "/v1/accounts/ACC-0002/orders", BRIAN_TOKEN, None, 200, "Brian(user): own account orders")
+test_endpoint("GET", "/v1/accounts/ACC-0003/orders", CARLA_TOKEN, None, 200, "Carla(user): own account orders")
 print()
 
 # ================================
@@ -264,7 +339,7 @@ test_endpoint("GET", "/v1/orders", BRIAN_TOKEN, None, 200, "Brian: list visible 
 test_endpoint("GET", "/v1/orders", CARLA_TOKEN, None, 200, "Carla: list visible orders")
 
 test_endpoint("GET", "/v1/orders/account/ACC-0001", ALICE_TOKEN, None, 200, "Alice: own account orders")
-test_endpoint("GET", "/v1/orders/account/ACC-0002", ALICE_TOKEN, None, 403, "Block: Alice -> Brian account orders")
+test_endpoint("GET", "/v1/orders/account/ACC-0002", ALICE_TOKEN, None, 200, "Alice(admin): Brian account orders")
 test_endpoint("GET", "/v1/orders/account/ACC-0002", BRIAN_TOKEN, None, 200, "Brian: own account orders")
 test_endpoint("GET", "/v1/orders/account/ACC-0001", BRIAN_TOKEN, None, 403, "Block: Brian -> Alice account orders")
 test_endpoint("GET", "/v1/orders/account/ACC-0003", CARLA_TOKEN, None, 200, "Carla: own account orders")
@@ -316,7 +391,9 @@ print()
 # ================================
 print_section("INSTRUMENTS")
 test_endpoint("GET", "/v1/instruments", ALICE_TOKEN, None, 200, "List instruments")
+test_endpoint("GET", "/v1/instruments", BRIAN_TOKEN, None, 200, "List instruments (normal user)")
 test_endpoint("GET", "/v1/instruments?tradable=true", ALICE_TOKEN, None, 200, "List tradable instruments")
+test_endpoint("GET", "/v1/instruments?tradable=true", BRIAN_TOKEN, None, 200, "List tradable instruments (normal user)")
 test_endpoint("GET", "/v1/instruments?assetClass=EQUITY", ALICE_TOKEN, None, 200, "Filter by asset class")
 test_endpoint("GET", "/v1/instruments?currency=USD", ALICE_TOKEN, None, 200, "Filter by currency")
 test_endpoint("GET", "/v1/instruments/AAPL", ALICE_TOKEN, None, (200, 404), "Get instrument by symbol")
@@ -328,7 +405,9 @@ print()
 # ================================
 print_section("POSITIONS CONTROLLER")
 test_endpoint("GET", "/v1/positions", ALICE_TOKEN, None, 200, "Positions root guidance endpoint")
+test_endpoint("GET", "/v1/positions", BRIAN_TOKEN, None, 200, "Positions root guidance endpoint (normal user)")
 test_endpoint("GET", "/v1/positions/1/positions", ALICE_TOKEN, None, (200, 404), "Get positions by account id")
+test_endpoint("GET", "/v1/positions/1/positions", BRIAN_TOKEN, None, (200, 404), "Get positions by account id (normal user)")
 test_endpoint("GET", "/v1/positions/1/positions/1", ALICE_TOKEN, None, (200, 404), "Get one position by id")
 test_endpoint("GET", "/v1/positions/1/positions/symbol/AAPL", ALICE_TOKEN, None, (200, 204, 404), "Get position by symbol")
 
@@ -348,6 +427,7 @@ print()
 # ================================
 print_section("PRICE HISTORY")
 test_endpoint("GET", "/v1/price-history/AAPL", ALICE_TOKEN, None, 200, "Get price history by symbol")
+test_endpoint("GET", "/v1/price-history/AAPL", BRIAN_TOKEN, None, 200, "Get price history by symbol (normal user)")
 test_endpoint("GET", "/v1/price-history/AAPL/latest", ALICE_TOKEN, None, (200, 404), "Get latest price point")
 test_endpoint(
     "GET",

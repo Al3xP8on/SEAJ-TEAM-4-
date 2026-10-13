@@ -1,6 +1,8 @@
 package com.neueda.leap.validators;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import java.util.Objects;
 import org.springframework.stereotype.Component;
 
@@ -41,5 +43,24 @@ public class AccountValidator {
         if (cashBalance.compareTo(BigDecimal.ZERO) != 0) {
             throw new IllegalArgumentException("Account cannot be closed with non-zero balance");
         }
+    }
+
+    public static String normalizeRoles(String roles) {
+        if (roles == null || roles.trim().isEmpty()) {
+            return "USER";
+        }
+
+        String normalized = Arrays.stream(roles.split(","))
+                .map(String::trim)
+                .filter(role -> !role.isEmpty())
+                .map(String::toUpperCase)
+                .distinct()
+                .collect(Collectors.joining(","));
+
+        if (normalized.isEmpty()) {
+            return "USER";
+        }
+
+        return normalized;
     }
 }
