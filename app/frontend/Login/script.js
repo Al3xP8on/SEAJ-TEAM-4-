@@ -1,9 +1,16 @@
+// Connects the registration, username login and email-code forms to the authentication service.
+// Displays validation, verification and session-expiry messages while handling cancellation and retries.
 const form = document.getElementById('loginForm');
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
 const message = document.getElementById('loginMessage');
 const authService = new AuthService({
     loginUrl: form.dataset.loginUrl || (['8000', '5500'].includes(window.location.port) || window.location.protocol === 'file:' ? 'http://localhost:3000/auth/login' : '/auth/login'),
+    onSessionExpired: () => {
+        showLogin();
+        message.textContent = 'Your session has expired. Please log in again.';
+        message.className = 'error';
+    },
 });
 let verificationState = null;
 let viewGeneration = 0;
