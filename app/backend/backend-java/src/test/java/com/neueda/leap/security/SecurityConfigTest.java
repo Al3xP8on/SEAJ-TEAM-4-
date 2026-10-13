@@ -137,18 +137,24 @@ class SecurityConfigTest {
             "PATCH, /v1/accounts",
             "DELETE, /v1/accounts",
             "HEAD, /v1/accounts",
-            "OPTIONS, /v1/accounts",
             "GET, /v1/accounts/login",
             "PUT, /v1/accounts/login",
             "PATCH, /v1/accounts/login",
             "DELETE, /v1/accounts/login",
-            "HEAD, /v1/accounts/login",
-            "OPTIONS, /v1/accounts/login"
+            "HEAD, /v1/accounts/login"
     })
     void rejectsAnonymousNonPostRequestsToSignupAndLogin(String method, String path) throws Exception {
         mockMvc.perform(request(HttpMethod.valueOf(method), path))
                 .andExpect(status().isUnauthorized())
                 .andExpect(result -> assertNull(result.getHandler()));
+    }
+
+    // Browsers send an unauthenticated OPTIONS preflight before cross-origin calls, so it must not get 401
+    @ParameterizedTest
+    @CsvSource({"/v1/accounts", "/v1/accounts/login", "/v1/orders"})
+    void permitsAnonymousCorsPreflightRequests(String path) throws Exception {
+        mockMvc.perform(request(HttpMethod.OPTIONS, path))
+                .andExpect(result -> assertNotEquals(401, result.getResponse().getStatus()));
     }
 
     @Test
