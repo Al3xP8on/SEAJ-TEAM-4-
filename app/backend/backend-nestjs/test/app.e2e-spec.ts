@@ -22,6 +22,7 @@ import { EmailChallenge } from '../src/auth/email-challenge.entity';
 import { EmailVerification1791849600000 } from '../src/migrations/add-email-verification.migration';
 import { AuthSession } from '../src/auth/auth-session.entity';
 import { AuthSessions1791763200000 } from '../src/migrations/create-auth-sessions.migration';
+import { AccountRoles1791896400000 } from '../src/migrations/align-account-roles.migration';
 import { configureHttp } from '../src/http.config';
 
 // Each run uses an isolated schema; never import AppModule's application DB config.
@@ -87,6 +88,7 @@ describe('Authentication HTTP contract (PostgreSQL)', () => {
           migrations: [
             AuthSessions1791763200000,
             EmailVerification1791849600000,
+            AccountRoles1791896400000,
           ],
           migrationsRun: true,
         }),
@@ -202,9 +204,32 @@ describe('Authentication HTTP contract (PostgreSQL)', () => {
     expect(stored.password_hash).not.toBe(registration.password);
     await post('register/verify', verification).expect(401);
   });
+  it('preserves merged role lists and upgrades old schemas without losing primary roles', async () => {
+    const runner = db.createQueryRunner();
+    await runner.connect();
+    await runner.startTransaction();
+    try {
+      const migration = new AccountRoles1791896400000();
+      const before = await runner.query('SELECT id, roles FROM accounts ORDER BY id');
+      await migration.up(runner);
+      expect(await runner.query('SELECT id, roles FROM accounts ORDER BY id')).toEqual(before);
+      await runner.query("UPDATE accounts SET role = 'ADMIN' WHERE username = 'alice'");
+      await runner.query('ALTER TABLE accounts DROP COLUMN roles');
+      await migration.up(runner);
+      expect(await runner.query("SELECT role, roles FROM accounts WHERE username = 'alice'"))
+        .toEqual([{ role: 'ADMIN', roles: 'ADMIN' }]);
+      await migration.up(runner);
+      expect(await runner.query("SELECT roles FROM accounts WHERE username = 'alice'"))
+        .toEqual([{ roles: 'ADMIN' }]);
+    } finally {
+      await runner.rollbackTransaction();
+      await runner.release();
+    }
+  });
   it('initializes required account fields when the shared table has no defaults', async () => {
     // Hibernate-created tables rely on Java constructors rather than SQL defaults.
     await db.query(`ALTER TABLE accounts
+      ALTER COLUMN roles DROP DEFAULT,
       ALTER COLUMN cash_balance DROP DEFAULT,
       ALTER COLUMN version DROP DEFAULT,
       ALTER COLUMN created_on DROP DEFAULT,
@@ -225,9 +250,10 @@ describe('Authentication HTTP contract (PostgreSQL)', () => {
       expect(response.body.account_id).toMatch(/^ACC-[0-9A-F]{8}$/);
       expect(response.body.email_verified).toBe(true);
       const [stored] = await db.query(
-        'SELECT cash_balance, version, created_on, last_updated FROM accounts WHERE username = $1',
+        'SELECT roles, cash_balance, version, created_on, last_updated FROM accounts WHERE username = $1',
         [details.username],
       );
+      expect(stored.roles).toBe('USER');
       expect(stored.cash_balance).toBe('0.00');
       expect(stored.version).toBe(0);
       expect(stored.created_on.getTime()).toBeGreaterThanOrEqual(startedAt);
@@ -239,6 +265,7 @@ describe('Authentication HTTP contract (PostgreSQL)', () => {
       }).expect(202);
     } finally {
       await db.query(`ALTER TABLE accounts
+        ALTER COLUMN roles SET DEFAULT 'USER',
         ALTER COLUMN cash_balance SET DEFAULT 0,
         ALTER COLUMN version SET DEFAULT 0,
         ALTER COLUMN created_on SET DEFAULT NOW(),

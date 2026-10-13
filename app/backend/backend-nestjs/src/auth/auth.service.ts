@@ -107,6 +107,10 @@ export class AuthService {
   private fingerprint(hash: string): string {
     return createHash('sha256').update(hash).digest('hex');
   }
+  private accountRoles(user: User): string[] {
+    const roles = user.roles?.split(',').map(role => role.trim().toUpperCase()).filter(Boolean);
+    return roles?.length ? roles : [user.role];
+  }
   private tokens(
     user: User,
     sessionId: string,
@@ -118,7 +122,7 @@ export class AuthService {
           sub: String(user.id),
           username: user.username,
           role: user.role,
-          roles: [user.role],
+          roles: this.accountRoles(user),
           sid: sessionId,
           amr: ['pwd', 'email_otp'],
         },

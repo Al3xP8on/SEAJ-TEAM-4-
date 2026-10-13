@@ -9,6 +9,7 @@ import { EmailChallenge } from './auth/email-challenge.entity';
 import { EmailVerification1791849600000 } from './migrations/add-email-verification.migration';
 import { AuthSession } from './auth/auth-session.entity';
 import { AuthSessions1791763200000 } from './migrations/create-auth-sessions.migration';
+import { AccountRoles1791896400000 } from './migrations/align-account-roles.migration';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AuthSessions1791763200000 } from './migrations/create-auth-sessions.mig
         migrations: [
           AuthSessions1791763200000,
           EmailVerification1791849600000,
+          AccountRoles1791896400000,
         ],
         migrationsRun: true,
         synchronize: false,

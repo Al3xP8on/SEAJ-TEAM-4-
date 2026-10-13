@@ -176,6 +176,13 @@ describe('AuthService: username/password plus email code', () => {
     });
     expect(sessions.create).toHaveBeenCalledWith('42', manager);
   });
+  it('retains merged comma-separated roles after verifying the email factor', async () => {
+    users.findCredentialsById.mockResolvedValue({ ...user, roles: 'ADMIN, USER' });
+    const result = await service.verifyLogin(dto);
+    expect(jwt.verify(result.access_token)).toMatchObject({
+      role: 'USER', roles: ['ADMIN', 'USER'], amr: ['pwd', 'email_otp'],
+    });
+  });
   it.each([
     'unknown user',
     'wrong password',

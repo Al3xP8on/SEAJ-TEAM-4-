@@ -12,10 +12,14 @@ import { configureHttp } from './http.config';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   configureHttp(app);
-  const publicPath = existsSync(join(__dirname, 'public'))
-    ? join(__dirname, 'public')
-    : join(process.cwd(), '..', '..', 'frontend', 'Login');
-  app.useStaticAssets(publicPath, { prefix: '/login/' });
+  const publicPath = join(__dirname, 'public');
+  if (existsSync(join(publicPath, 'index.html'))) {
+    app.useStaticAssets(publicPath, { index: false });
+    app.getHttpAdapter().getInstance().get(
+      ['/', '/login', '/login/', '/login/Login.html'],
+      (_request: unknown, response: import('express').Response) => response.sendFile(join(publicPath, 'index.html')),
+    );
+  }
   const origins = (
     process.env.FRONTEND_ORIGINS ||
     'http://localhost:4200,http://127.0.0.1:4200,http://localhost:8085,http://127.0.0.1:8085,http://10.9.69.224:8085,http://localhost:8000,http://127.0.0.1:8000,http://localhost:5500,http://127.0.0.1:5500'

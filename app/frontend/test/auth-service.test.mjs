@@ -1,8 +1,8 @@
 // Tests browser authentication, token storage, email verification and automatic session renewal.
 // Covers expiry, rotating tokens, reload recovery, network failures and logout races with mocked requests.
-const { test } = require('node:test');
-const assert = require('node:assert/strict');
-const { AuthService } = require('../Login/auth-service');
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { AuthService } from '../SEAJ-ui/src/app/auth/session-client.mjs';
 const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
 const token = payload => `${encode({ alg: 'HS256' })}.${encode({ amr: ['pwd', 'email_otp'], ...payload })}.signature`;
 const challenge = { challenge_id: '00000000-0000-4000-8000-000000000001', expires_in: 300, message: 'Enter code' };
