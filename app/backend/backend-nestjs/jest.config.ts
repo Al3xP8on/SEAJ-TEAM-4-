@@ -1,3 +1,5 @@
+// Configures TypeScript transformation, module resolution and coverage for NestJS unit tests.
+// Excludes database integration tests so they run separately with their dedicated configuration.
 import type { Config } from 'jest';
 import { pathsToModuleNameMapper } from 'ts-jest';
 import ts from 'typescript';
@@ -14,6 +16,7 @@ const config: Config = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '.',
   testRegex: '.*\\.spec\\.ts$',
+  testPathIgnorePatterns: ['/node_modules/', '/test/'],
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
