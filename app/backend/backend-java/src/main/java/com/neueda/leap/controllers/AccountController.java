@@ -1,12 +1,16 @@
 package com.neueda.leap.controllers;
 
 import com.neueda.leap.dtos.OrderHistoryEntry;
+import com.neueda.leap.dtos.PositionResponse;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.models.Positions;
 import java.util.List;
 import com.neueda.leap.dtos.AccountInput;
 import com.neueda.leap.dtos.AccountResponse;
+import com.neueda.leap.dtos.CashTransactionRequest;
+import com.neueda.leap.exceptions.AccountNotActiveException;
+import com.neueda.leap.exceptions.InsufficientFundsException;
 import com.neueda.leap.exceptions.AccountNotFoundException;
 import com.neueda.leap.dtos.LoginRequest;
 import com.neueda.leap.dtos.LoginResponse;
@@ -171,7 +175,7 @@ public class AccountController {
 
     @GetMapping("/{id}/positions")
     @Operation(summary = "Get account positions", description = "Retrieve current positions held in an account. You can only access your own positions unless you are an admin.")
-    public ResponseEntity<List<Positions>> getPositions(@PathVariable String id) {
+    public ResponseEntity<List<PositionResponse>> getPositions(@PathVariable String id) {
         try {
             Account account = accountService.getAccountByIdentifier(id);
             // Validate user owns this account (unless admin)
@@ -179,7 +183,7 @@ public class AccountController {
                 securityUtilsService.validateAccountOwnership(account.getAccountId());
             }
             List<Positions> positions = accountService.getPositions(account.getId());
-            return ResponseEntity.ok(positions);
+            return ResponseEntity.ok(positions.stream().map(PositionResponse::from).toList());
         } catch (AuthorizationException e) {
             throw e;
         } catch (Exception e) {
@@ -205,5 +209,23 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .build();
         }
+    }
+
+    @PostMapping("/{id}/deposit")
+    @Operation(summary = "Deposit cash", description = "Add cash to your account. Returns the account with its updated balance.")
+    public ResponseEntity<AccountResponse> deposit(@PathVariable String id, @Valid @RequestBody CashTransactionRequest request)
+            throws AccountNotFoundException, AccountNotActiveException {
+        Account account = accountService.getAccountByIdentifier(id);
+        securityUtilsService.validateAccountOwnership(account.getAccountId());
+        return ResponseEntity.ok(accountService.deposit(account.getId(), request.amount()));
+    }
+
+    @PostMapping("/{id}/withdraw")
+    @Operation(summary = "Withdraw cash", description = "Take cash out of your account. Fails with 400 if the balance is too low.")
+    public ResponseEntity<AccountResponse> withdraw(@PathVariable String id, @Valid @RequestBody CashTransactionRequest request)
+            throws AccountNotFoundException, AccountNotActiveException, InsufficientFundsException {
+        Account account = accountService.getAccountByIdentifier(id);
+        securityUtilsService.validateAccountOwnership(account.getAccountId());
+        return ResponseEntity.ok(accountService.withdraw(account.getId(), request.amount()));
     }
 }

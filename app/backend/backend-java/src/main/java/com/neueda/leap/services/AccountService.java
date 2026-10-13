@@ -7,6 +7,9 @@ import com.neueda.leap.dtos.AccountInput;
 import com.neueda.leap.dtos.AccountResponse;
 import com.neueda.leap.enums.AccountStatus;
 import com.neueda.leap.exceptions.AccountNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
+import com.neueda.leap.exceptions.InsufficientFundsException;
+import com.neueda.leap.exceptions.AccountNotActiveException;
 import com.neueda.leap.exceptions.DuplicateAccountException;
 import com.neueda.leap.validators.AccountValidator;
 import com.neueda.leap.repositories.AccountRepository;
@@ -54,6 +57,35 @@ public class AccountService {
             saved.getCashBalance(), saved.getStatus(), saved.getRoles(),
             Optional.of(saved.getLastUpdated())
         );
+    }
+
+    @Transactional
+    public AccountResponse deposit(Long accountId, BigDecimal amount)
+            throws AccountNotFoundException, AccountNotActiveException {
+        Account account = getActiveAccountForUpdate(accountId);
+        account.deposit(amount);
+        return AccountResponse.from(accountRepository.save(account));
+    }
+
+    @Transactional
+    public AccountResponse withdraw(Long accountId, BigDecimal amount)
+            throws AccountNotFoundException, AccountNotActiveException, InsufficientFundsException {
+        Account account = getActiveAccountForUpdate(accountId);
+        if (!account.canAfford(amount)) {
+            throw new InsufficientFundsException("Insufficient funds: balance is " + account.getCashBalance());
+        }
+        account.withdraw(amount);
+        return AccountResponse.from(accountRepository.save(account));
+    }
+
+    private Account getActiveAccountForUpdate(Long accountId)
+            throws AccountNotFoundException, AccountNotActiveException {
+        Account account = accountRepository.findByIdForUpdate(accountId)
+                .orElseThrow(() -> new AccountNotFoundException("Account with ID " + accountId + " not found"));
+        if (!account.isActive()) {
+            throw new AccountNotActiveException("Account is " + account.getStatus() + " and cannot move cash");
+        }
+        return account;
     }
 
     public List<Account> getAllAccounts() {

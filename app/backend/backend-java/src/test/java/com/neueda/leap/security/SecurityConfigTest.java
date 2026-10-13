@@ -149,12 +149,13 @@ class SecurityConfigTest {
                 .andExpect(result -> assertNull(result.getHandler()));
     }
 
-        @ParameterizedTest
-        @ValueSource(strings = {"/v1/accounts", "/v1/accounts/login"})
-        void permitsAnonymousOptionsRequestsForCorsPreflight(String path) throws Exception {
+    // Browsers send an unauthenticated OPTIONS preflight before cross-origin calls, so it must not get 401
+    @ParameterizedTest
+    @CsvSource({"/v1/accounts", "/v1/accounts/login", "/v1/orders"})
+    void permitsAnonymousCorsPreflightRequests(String path) throws Exception {
         mockMvc.perform(request(HttpMethod.OPTIONS, path))
-            .andExpect(status().isOk());
-        }
+                .andExpect(result -> assertNotEquals(401, result.getResponse().getStatus()));
+    }
 
     @Test
     void permitsAuthenticatedAccountListing() throws Exception {

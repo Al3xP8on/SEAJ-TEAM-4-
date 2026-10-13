@@ -202,7 +202,7 @@ class AccountControllerTest {
         assertEquals("ACC-001", accountBody.accountId());
         assertEquals("Alice", accountBody.holderName());
         assertEquals(BigDecimal.TEN, controller.getBalance("ACC-001").getBody());
-        assertEquals("AAPL", controller.getPositions("ACC-001").getBody().get(0).getSymbol());
+        assertEquals("AAPL", controller.getPositions("ACC-001").getBody().get(0).symbol());
         assertEquals(OrderStatus.FILLED, controller.getOrders("ACC-001").getBody().status());
     }
     @Test void returnsNotFoundForMissingAccountResources() throws Exception {
