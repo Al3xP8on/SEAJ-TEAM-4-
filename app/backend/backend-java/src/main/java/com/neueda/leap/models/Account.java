@@ -1,6 +1,9 @@
+// Maps platform accounts and their identity, credentials, balances and status to the database.
+// Excludes the password hash from JSON responses while supporting existing account operations.
 package com.neueda.leap.models;
 
 import java.math.BigDecimal;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 import jakarta.persistence.*;
 import com.neueda.leap.interfaces.Closable;
@@ -22,6 +25,7 @@ public class Account implements Closable {
     private String username;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String passwordHash;
 
     @Column(nullable = false)

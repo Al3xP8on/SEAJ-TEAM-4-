@@ -1,3 +1,5 @@
+// Exposes account operations and forwards signup, login and email verification to the auth service.
+// Preserves account access checks and returns safe errors without bypassing the email challenge flow.
 package com.neueda.leap.controllers;
 
 import com.neueda.leap.dtos.OrderHistoryEntry;
@@ -13,12 +15,11 @@ import com.neueda.leap.exceptions.AccountNotActiveException;
 import com.neueda.leap.exceptions.InsufficientFundsException;
 import com.neueda.leap.exceptions.AccountNotFoundException;
 import com.neueda.leap.dtos.LoginRequest;
-import com.neueda.leap.dtos.LoginResponse;
-import com.neueda.leap.exceptions.DuplicateAccountException;
 import com.neueda.leap.services.AccountService;
 import com.neueda.leap.security.SecurityUtilsService;
 import com.neueda.leap.security.AuthorizationException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,60 +50,68 @@ public class AccountController {
     @Value("${auth.service.url:http://auth-service:3000}")
     private String authServiceUrl;
 
+    @ApiResponse(responseCode = "202", description = "Email verification challenge; no tokens issued")
     @PostMapping("/login")
-    @Operation(summary = "Get authentication token", 
-               description = "Authenticate with username and password to receive a JWT token for API access. Use this token in the Authorization header: 'Bearer <token>'")
+    @Operation(summary = "Start username/password login", description = "Returns an email verification challenge. Verify the code before receiving tokens.")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("username", request.getUsername());
+        payload.put("password", request.getPassword());
+        return authPost("/auth/login", payload, 202);
+    }
+
+    @ApiResponse(responseCode = "200", description = "Access and refresh tokens after email verification")
+    @PostMapping("/login/verify")
+    @Operation(summary = "Complete email second factor and receive tokens")
+    public ResponseEntity<?> verifyLogin(@Valid @RequestBody com.neueda.leap.dtos.EmailVerificationRequest request) {
+        return authPost("/auth/login/verify", Map.of("challenge_id", request.challenge_id(), "code", request.code()), 200);
+    }
+
+    @ApiResponse(responseCode = "202", description = "Pending registration email verification")
+    @PostMapping
+    @Operation(summary = "Start account registration", description = "Requires unique username and email; returns an email verification challenge.")
+    public ResponseEntity<?> createAccount(@Valid @RequestBody AccountInput input) {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("username", input.username());
+        payload.put("email", input.email());
+        payload.put("password", input.password());
+        return authPost("/auth/register", payload, 202);
+    }
+
+    @ApiResponse(responseCode = "201", description = "Verified account with generated ACC account ID")
+    @PostMapping("/register/verify")
+    @Operation(summary = "Verify registration email and create account")
+    public ResponseEntity<?> verifyRegistration(@Valid @RequestBody com.neueda.leap.dtos.EmailVerificationRequest request) {
+        return authPost("/auth/register/verify", Map.of("challenge_id", request.challenge_id(), "code", request.code()), 201);
+    }
+
+    private ResponseEntity<?> authPost(String path, Map<String, String> payload, int expectedStatus) {
         try {
-            // Call the NestJS auth service to get token
-            String authUrl = authServiceUrl + "/auth/login";
-            
-            Map<String, String> loginPayload = new HashMap<>();
-            loginPayload.put("username", request.getUsername());
-            loginPayload.put("password", request.getPassword());
-            
-            ResponseEntity<?> response = restTemplate.postForEntity(authUrl, loginPayload, Object.class);
-            Object responseBody = response.getBody();
-            
-            if (response.getStatusCode().is2xxSuccessful() && responseBody instanceof Map<?, ?> body) {
-                String token = (String) body.get("access_token");
-                Object expiresInValue = body.get("expiresIn");
-                Long expiresIn = expiresInValue != null ?
-                    Long.parseLong(expiresInValue.toString()) : 1800L;
-                
-                // Fetch account to get accountId
-                Account account = accountService.getAccountByUsername(request.getUsername());
-                
-                LoginResponse loginResponse = new LoginResponse(
-                    token,
-                    request.getUsername(),
-                    account.getAccountId(),
-                    expiresIn
-                );
-                
-                return ResponseEntity.ok(loginResponse);
-            } else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Authentication failed");
+            ResponseEntity<?> response = restTemplate.postForEntity(authServiceUrl + path, payload, Object.class);
+            if (response.getStatusCode().value() != expectedStatus || !(response.getBody() instanceof Map<?, ?> body)) {
+                return authError(503);
             }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body("Authentication failed: " + e.getMessage());
+            if (expectedStatus == 202 && (!(body.get("challenge_id") instanceof String) || body.containsKey("access_token"))) {
+                return authError(503);
+            }
+            return ResponseEntity.status(expectedStatus).body(body);
+        } catch (org.springframework.web.client.HttpStatusCodeException exception) {
+            int status = exception.getStatusCode().value();
+            return authError(java.util.Set.of(400, 401, 409, 429, 503).contains(status) ? status : 503);
+        } catch (Exception exception) {
+            return authError(503);
         }
     }
 
-    @PostMapping
-    @Operation(summary = "Create a new account", 
-               description = "Register a new user account. After creating an account, use /v1/accounts/login to get an authentication token.")
-    public ResponseEntity<?> createAccount(@Valid @RequestBody AccountInput input) {
-        try {
-            AccountResponse response = accountService.createAccount(input);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (DuplicateAccountException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        }
+    private ResponseEntity<?> authError(int status) {
+        String message = switch (status) {
+            case 400 -> "Invalid request";
+            case 401 -> "Invalid credentials or verification code";
+            case 409 -> "Email or username already exists";
+            case 429 -> "Please wait before requesting another verification code";
+            default -> "Authentication service is unavailable";
+        };
+        return ResponseEntity.status(status).body(Map.of("statusCode", status, "message", message, "error", HttpStatus.valueOf(status).getReasonPhrase()));
     }
 
     @DeleteMapping("/{id}")
