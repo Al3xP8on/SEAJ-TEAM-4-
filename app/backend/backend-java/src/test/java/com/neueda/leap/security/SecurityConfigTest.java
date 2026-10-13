@@ -142,7 +142,6 @@ class SecurityConfigTest {
             "PATCH, /v1/accounts/login",
             "DELETE, /v1/accounts/login",
             "HEAD, /v1/accounts/login"
-            "HEAD, /v1/accounts/login"
     })
     void rejectsAnonymousNonPostRequestsToSignupAndLogin(String method, String path) throws Exception {
         mockMvc.perform(request(HttpMethod.valueOf(method), path))

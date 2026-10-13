@@ -201,9 +201,9 @@ class AccountControllerTest {
         assertEquals(1L, accountBody.id());
         assertEquals("ACC-001", accountBody.accountId());
         assertEquals("Alice", accountBody.holderName());
-        assertEquals(BigDecimal.TEN, controller.getBalance(1L).getBody());
-        assertEquals("AAPL", controller.getPositions(1L).getBody().get(0).symbol());
-        assertEquals(OrderStatus.FILLED, controller.getOrders(1L).getBody().status());
+        assertEquals(BigDecimal.TEN, controller.getBalance("ACC-001").getBody());
+        assertEquals("AAPL", controller.getPositions("ACC-001").getBody().get(0).symbol());
+        assertEquals(OrderStatus.FILLED, controller.getOrders("ACC-001").getBody().status());
     }
     @Test void returnsNotFoundForMissingAccountResources() throws Exception {
         when(service.getAccountByIdentifier("ACC-001")).thenThrow(new AccountNotFoundException("missing"));

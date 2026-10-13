@@ -52,8 +52,11 @@ class AccountCashControllerTest {
     @BeforeEach
     void setUp() throws Exception {
         Account account = mock(Account.class);
+        when(account.getId()).thenReturn(1L);
         when(account.getAccountId()).thenReturn("ACC-001");
-        when(accountService.getAccount(1L)).thenReturn(account);
+        // The URL can use either the numeric id or the ACC- account ID
+        when(accountService.getAccountByIdentifier("1")).thenReturn(account);
+        when(accountService.getAccountByIdentifier("ACC-001")).thenReturn(account);
     }
 
     private static AccountResponse responseWithBalance(String balance) {
@@ -74,6 +77,16 @@ class AccountCashControllerTest {
                 .andExpect(jsonPath("$.cashBalance").value(150.00));
 
         verify(securityUtilsService).validateAccountOwnership("ACC-001");
+    }
+
+    @Test
+    @DisplayName("Deposit also accepts the ACC- account ID in the URL")
+    void depositByAccountId() throws Exception {
+        when(accountService.deposit(1L, new BigDecimal("50.00"))).thenReturn(responseWithBalance("150.00"));
+
+        mockMvc.perform(post("/v1/accounts/ACC-001/deposit").contentType(MediaType.APPLICATION_JSON).content(body("50.00")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cashBalance").value(150.00));
     }
 
     @Test

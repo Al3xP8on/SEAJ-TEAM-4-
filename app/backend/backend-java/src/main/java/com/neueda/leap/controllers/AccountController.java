@@ -175,14 +175,14 @@ public class AccountController {
 
     @GetMapping("/{id}/positions")
     @Operation(summary = "Get account positions", description = "Retrieve current positions held in an account. You can only access your own positions unless you are an admin.")
-    public ResponseEntity<List<PositionResponse>> getPositions(@PathVariable Long id) {
+    public ResponseEntity<List<PositionResponse>> getPositions(@PathVariable String id) {
         try {
             Account account = accountService.getAccountByIdentifier(id);
             // Validate user owns this account (unless admin)
             if (!securityUtilsService.isAdmin()) {
                 securityUtilsService.validateAccountOwnership(account.getAccountId());
             }
-            List<Positions> positions = accountService.getPositions(id);
+            List<Positions> positions = accountService.getPositions(account.getId());
             return ResponseEntity.ok(positions.stream().map(PositionResponse::from).toList());
         } catch (AuthorizationException e) {
             throw e;
@@ -213,17 +213,19 @@ public class AccountController {
 
     @PostMapping("/{id}/deposit")
     @Operation(summary = "Deposit cash", description = "Add cash to your account. Returns the account with its updated balance.")
-    public ResponseEntity<AccountResponse> deposit(@PathVariable Long id, @Valid @RequestBody CashTransactionRequest request)
+    public ResponseEntity<AccountResponse> deposit(@PathVariable String id, @Valid @RequestBody CashTransactionRequest request)
             throws AccountNotFoundException, AccountNotActiveException {
-        securityUtilsService.validateAccountOwnership(accountService.getAccount(id).getAccountId());
-        return ResponseEntity.ok(accountService.deposit(id, request.amount()));
+        Account account = accountService.getAccountByIdentifier(id);
+        securityUtilsService.validateAccountOwnership(account.getAccountId());
+        return ResponseEntity.ok(accountService.deposit(account.getId(), request.amount()));
     }
 
     @PostMapping("/{id}/withdraw")
     @Operation(summary = "Withdraw cash", description = "Take cash out of your account. Fails with 400 if the balance is too low.")
-    public ResponseEntity<AccountResponse> withdraw(@PathVariable Long id, @Valid @RequestBody CashTransactionRequest request)
+    public ResponseEntity<AccountResponse> withdraw(@PathVariable String id, @Valid @RequestBody CashTransactionRequest request)
             throws AccountNotFoundException, AccountNotActiveException, InsufficientFundsException {
-        securityUtilsService.validateAccountOwnership(accountService.getAccount(id).getAccountId());
-        return ResponseEntity.ok(accountService.withdraw(id, request.amount()));
+        Account account = accountService.getAccountByIdentifier(id);
+        securityUtilsService.validateAccountOwnership(account.getAccountId());
+        return ResponseEntity.ok(accountService.withdraw(account.getId(), request.amount()));
     }
 }
