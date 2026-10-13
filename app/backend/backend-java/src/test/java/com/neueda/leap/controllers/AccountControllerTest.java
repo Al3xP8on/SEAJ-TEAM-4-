@@ -140,25 +140,32 @@ class AccountControllerTest {
         assertEquals("offline", failed.getBody());
     }
     @Test void returnsNoContentAfterDeletingAccount() throws Exception {
-        var response = controller().deleteAccount(1L);
+        Account account = mock(Account.class);
+        when(account.getId()).thenReturn(1L);
+        when(service.getAccountByIdentifier("ACC-001")).thenReturn(account);
+
+        var response = controller().deleteAccount("ACC-001");
 
         assertEquals(204, response.getStatusCode().value());
         assertNull(response.getBody());
         verify(service).deleteAccount(1L);
     }
     @Test void returnsNotFoundWhenDeletingMissingAccount() throws Exception {
-        doThrow(new AccountNotFoundException("missing")).when(service).deleteAccount(1L);
+        when(service.getAccountByIdentifier("ACC-001")).thenThrow(new AccountNotFoundException("missing"));
 
-        var response = controller().deleteAccount(1L);
+        var response = controller().deleteAccount("ACC-001");
 
         assertEquals(404, response.getStatusCode().value());
         assertEquals("missing", response.getBody());
-        verify(service).deleteAccount(1L);
+        verify(service, never()).deleteAccount(anyLong());
     }
     @Test void reportsUnexpectedDeletionFailure() throws Exception {
+        Account account = mock(Account.class);
+        when(account.getId()).thenReturn(1L);
+        when(service.getAccountByIdentifier("ACC-001")).thenReturn(account);
         doThrow(new IllegalStateException("offline")).when(service).deleteAccount(1L);
 
-        var response = controller().deleteAccount(1L);
+        var response = controller().deleteAccount("ACC-001");
 
         assertEquals(500, response.getStatusCode().value());
         assertEquals("offline", response.getBody());
@@ -184,27 +191,24 @@ class AccountControllerTest {
         when(positions.get(0).getSymbol()).thenReturn("AAPL");
         OrderHistory orders = mock(OrderHistory.class);
         when(orders.getStatus()).thenReturn(OrderStatus.FILLED);
-        when(service.getAccount(1L)).thenReturn(account);
+        when(service.getAccountByIdentifier("ACC-001")).thenReturn(account);
         when(service.getBalance(1L)).thenReturn(BigDecimal.TEN);
         when(service.getPositions(1L)).thenReturn(positions);
         when(service.getOrders(1L)).thenReturn(orders);
         when(securityUtilsService.isAdmin()).thenReturn(true);  // Admin can access any account
         AccountController controller = controller();
-        AccountResponse accountBody = controller.getAccount(1L).getBody();
+        AccountResponse accountBody = controller.getAccount("ACC-001").getBody();
         assertEquals(1L, accountBody.id());
         assertEquals("ACC-001", accountBody.accountId());
         assertEquals("Alice", accountBody.holderName());
-        assertEquals(BigDecimal.TEN, controller.getBalance(1L).getBody());
-        assertEquals("AAPL", controller.getPositions(1L).getBody().get(0).getSymbol());
-        assertEquals(OrderStatus.FILLED, controller.getOrders(1L).getBody().status());
+        assertEquals(BigDecimal.TEN, controller.getBalance("ACC-001").getBody());
+        assertEquals("AAPL", controller.getPositions("ACC-001").getBody().get(0).getSymbol());
+        assertEquals(OrderStatus.FILLED, controller.getOrders("ACC-001").getBody().status());
     }
     @Test void returnsNotFoundForMissingAccountResources() throws Exception {
-        when(service.getAccount(1L)).thenThrow(new AccountNotFoundException("missing"));
-        when(service.getBalance(1L)).thenThrow(new AccountNotFoundException("missing"));
-        when(service.getPositions(1L)).thenThrow(new AccountNotFoundException("missing"));
-        when(service.getOrders(1L)).thenThrow(new AccountNotFoundException("missing"));
+        when(service.getAccountByIdentifier("ACC-001")).thenThrow(new AccountNotFoundException("missing"));
         AccountController controller = controller();
-        for (var response : List.of(controller.getAccount(1L), controller.getBalance(1L), controller.getPositions(1L), controller.getOrders(1L))) {
+        for (var response : List.of(controller.getAccount("ACC-001"), controller.getBalance("ACC-001"), controller.getPositions("ACC-001"), controller.getOrders("ACC-001"))) {
             assertEquals(404, response.getStatusCode().value());
             assertNull(response.getBody());
         }

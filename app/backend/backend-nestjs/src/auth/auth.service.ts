@@ -29,8 +29,9 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 3. Generate JWT
-    const payload = { sub: user.id, username: user.username };
+    // 3. Generate JWT including role claims used by the Java API
+    const roles = this.parseRoles(user.roles);
+    const payload = { sub: user.id, username: user.username, roles };
     const access_token = this.jwt.sign(payload);
 
     // 4. Return token with expiry
@@ -42,5 +43,18 @@ export class AuthService {
 
   issueToken(sub: string, roles: string[]): string {
     return this.jwt.sign({ sub, roles });
+  }
+
+  private parseRoles(rawRoles?: string): string[] {
+    if (!rawRoles || !rawRoles.trim()) {
+      return ['USER'];
+    }
+
+    const parsed = rawRoles
+      .split(',')
+      .map((role) => role.trim().toUpperCase())
+      .filter((role) => role.length > 0);
+
+    return parsed.length > 0 ? parsed : ['USER'];
   }
 }

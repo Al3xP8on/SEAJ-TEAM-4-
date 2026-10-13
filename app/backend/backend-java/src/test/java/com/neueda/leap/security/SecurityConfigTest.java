@@ -137,19 +137,24 @@ class SecurityConfigTest {
             "PATCH, /v1/accounts",
             "DELETE, /v1/accounts",
             "HEAD, /v1/accounts",
-            "OPTIONS, /v1/accounts",
             "GET, /v1/accounts/login",
             "PUT, /v1/accounts/login",
             "PATCH, /v1/accounts/login",
             "DELETE, /v1/accounts/login",
-            "HEAD, /v1/accounts/login",
-            "OPTIONS, /v1/accounts/login"
+            "HEAD, /v1/accounts/login"
     })
     void rejectsAnonymousNonPostRequestsToSignupAndLogin(String method, String path) throws Exception {
         mockMvc.perform(request(HttpMethod.valueOf(method), path))
                 .andExpect(status().isUnauthorized())
                 .andExpect(result -> assertNull(result.getHandler()));
     }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"/v1/accounts", "/v1/accounts/login"})
+        void permitsAnonymousOptionsRequestsForCorsPreflight(String path) throws Exception {
+        mockMvc.perform(request(HttpMethod.OPTIONS, path))
+            .andExpect(status().isOk());
+        }
 
     @Test
     void permitsAuthenticatedAccountListing() throws Exception {
