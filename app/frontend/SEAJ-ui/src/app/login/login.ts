@@ -1,111 +1,128 @@
-import { Component, signal } from '@angular/core';
+// Connects Angular forms to username/password authentication and both email verification steps.
+// Preserves validation, password clearing, retry feedback and cancellation of late UI responses.
+import { Component, effect, signal, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../auth/auth.service';
+import type { Challenge } from '../auth/session-client.mjs';
 
 type MessageType = 'success' | 'error' | '';
-
 @Component({
-  selector: 'app-login',
-  imports: [FormsModule],
-  templateUrl: './login.html',
-  styleUrl: './login.css',
+  selector: 'app-login', imports: [FormsModule], templateUrl: './login.html', styleUrl: './login.css',
 })
-export class LoginComponent {
-  view = signal<'login' | 'register'>('login');
-
-  username = '';
-  password = '';
-  loginMessage = signal('');
-  loginMessageType = signal<MessageType>('');
-  loginLoading = signal(false);
-
-  regUsername = '';
-  regPassword = '';
-  regEmail = '';
-  regPhone = '';
-  registerMessage = signal('');
-  registerMessageType = signal<MessageType>('');
-  registerLoading = signal(false);
-
-  constructor(private auth: AuthService) {}
-
-  onLogin() {
-    if (!this.username || this.username.length < 3) {
-      this.loginMessage.set('Username must be at least 3 characters.');
-      this.loginMessageType.set('error');
-      return;
-    }
-    if (!this.password || this.password.length < 8) {
-      this.loginMessage.set('Password must be at least 8 characters.');
-      this.loginMessageType.set('error');
-      return;
-    }
-
-    this.loginLoading.set(true);
-    this.loginMessage.set('');
-
-    this.auth.login(this.username, this.password).subscribe({
-      next: (data) => {
-        const token = this.auth.extractToken(data);
-        if (!token) {
-          this.loginMessage.set('Login succeeded but no token was returned.');
-          this.loginMessageType.set('error');
-        } else {
-          this.loginMessage.set(`Logged in. Token starts: ${token.slice(0, 20)}...`);
-          this.loginMessageType.set('success');
-        }
-        this.loginLoading.set(false);
-      },
-      error: (err: HttpErrorResponse) => {
-        const msg = err.error?.message ?? `Login failed with status ${err.status}`;
-        this.loginMessage.set(`Login failed: ${msg}`);
+export class LoginComponent implements OnDestroy {
+  view = signal<'login' | 'register' | 'verify'>('login');
+  username = ''; password = ''; regUsername = ''; regPassword = ''; regEmail = ''; code = '';
+  loginMessage = signal(''); loginMessageType = signal<MessageType>(''); loginLoading = signal(false);
+  registerMessage = signal(''); registerMessageType = signal<MessageType>(''); registerLoading = signal(false);
+  verificationMessage = signal(''); verificationLoading = signal(false);
+  private verification: { purpose: 'LOGIN' | 'REGISTER'; id: string } | null = null;
+  private generation = 0;
+  constructor(private auth: AuthService) {
+    effect(() => {
+      if (this.auth.sessionExpired()) {
+        this.showView('login');
+        this.loginMessage.set('Your session has expired. Please log in again.');
         this.loginMessageType.set('error');
+      }
+    });
+  }
+  showView(view: 'login' | 'register') {
+    this.generation++;
+    this.verification = null;
+    this.code = ''; this.password = ''; this.regPassword = '';
+    this.view.set(view);
+  }
+  cancelVerification() { this.auth.logout(); this.showView('login'); }
+  private showVerification(purpose: 'LOGIN' | 'REGISTER', challenge: Challenge) {
+    this.verification = { purpose, id: challenge.challenge_id };
+    this.code = '';
+    this.verificationMessage.set(challenge.message || 'Enter the six-digit code from your email.');
+    this.view.set('verify');
+  }
+  private message(error: unknown) {
+    return error instanceof Error ? error.message : 'Authentication failed. Please try again.';
+  }
+  onLogin() {
+    if (this.loginLoading()) return;
+    const username = this.username.trim();
+    if (username.length < 3 || username.length > 100 || !this.password) {
+      this.loginMessage.set('Enter your username (3–100 characters) and password.');
+      this.loginMessageType.set('error'); return;
+    }
+    const generation = this.generation;
+    this.loginLoading.set(true); this.loginMessage.set('Sending verification code…'); this.loginMessageType.set('');
+    this.auth.login(username, this.password).subscribe({
+      next: challenge => {
+        this.password = ''; this.loginLoading.set(false);
+        if (generation === this.generation) this.showVerification('LOGIN', challenge);
+      },
+      error: error => {
         this.loginLoading.set(false);
+        if (generation === this.generation) {
+          this.loginMessage.set(this.message(error)); this.loginMessageType.set('error');
+        }
       },
     });
   }
-
   onRegister() {
-    if (!this.regUsername || this.regUsername.length < 3) {
-      this.registerMessage.set('Username must be at least 3 characters.');
-      this.registerMessageType.set('error');
-      return;
+    if (this.registerLoading()) return;
+    const username = this.regUsername.trim(); const email = this.regEmail.trim();
+    if (username.length < 3 || username.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+      || this.regPassword.length < 8 || new TextEncoder().encode(this.regPassword).length > 72) {
+      this.registerMessage.set('Enter a unique username (3–100 characters), a valid email and a password of at least 8 characters (maximum 72 bytes).');
+      this.registerMessageType.set('error'); return;
     }
-    if (!this.regPassword || this.regPassword.length < 8) {
-      this.registerMessage.set('Password must be at least 8 characters.');
-      this.registerMessageType.set('error');
-      return;
+    const generation = this.generation;
+    this.registerLoading.set(true); this.registerMessage.set('Sending verification code…'); this.registerMessageType.set('');
+    this.auth.register({ username, email, password: this.regPassword }).subscribe({
+      next: challenge => {
+        this.regPassword = ''; this.registerLoading.set(false);
+        if (generation === this.generation) this.showVerification('REGISTER', challenge);
+      },
+      error: error => {
+        this.registerLoading.set(false);
+        if (generation === this.generation) {
+          this.registerMessage.set(this.message(error)); this.registerMessageType.set('error');
+        }
+      },
+    });
+  }
+  onVerify() {
+    if (this.verificationLoading()) return;
+    const state = this.verification; const code = this.code.trim();
+    if (!state || !/^\d{6}$/.test(code)) {
+      this.verificationMessage.set('Enter the six-digit code from your email.'); return;
     }
-    if (this.regEmail && !this.regEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      this.registerMessage.set('Please enter a valid email address.');
-      this.registerMessageType.set('error');
-      return;
-    }
-
-    this.registerLoading.set(true);
-    this.registerMessage.set('');
-
-    this.auth
-      .register({
-        username: this.regUsername,
-        password: this.regPassword,
-        email: this.regEmail || null,
-        phone: this.regPhone || null,
-      })
-      .subscribe({
-        next: (data) => {
-          const id = data?.accountId ? ` (${data.accountId})` : '';
-          this.registerMessage.set(`Account created successfully${id}. You can log in now.`);
-          this.registerMessageType.set('success');
-          this.registerLoading.set(false);
-        },
-        error: (err: HttpErrorResponse) => {
-          const msg = err.error?.message ?? `Account creation failed with status ${err.status}`;
-          this.registerMessage.set(msg);
-          this.registerMessageType.set('error');
-          this.registerLoading.set(false);
-        },
+    const generation = this.generation;
+    this.verificationLoading.set(true);
+    const error = (error: unknown) => {
+      this.verificationLoading.set(false);
+      if (generation === this.generation) this.verificationMessage.set(this.message(error));
+    };
+    if (state.purpose === 'LOGIN') {
+      this.auth.verifyLogin(code).subscribe({
+        next: () => {
+          this.verificationLoading.set(false);
+          if (generation === this.generation) {
+            this.showView('login'); this.loginMessage.set('Login successful.'); this.loginMessageType.set('success');
+          }
+        }, error,
       });
+    } else {
+      this.auth.verifyRegistration(state.id, code).subscribe({
+        next: user => {
+          this.verificationLoading.set(false);
+          if (generation === this.generation) {
+            this.username = user.username; this.showView('login');
+            this.loginMessage.set(`Account ${user.account_id} created. Please log in with your username and password.`);
+            this.loginMessageType.set('success');
+          }
+        }, error,
+      });
+    }
+  }
+  ngOnDestroy() {
+    this.generation++;
+    if (this.loginLoading() || this.verification?.purpose === 'LOGIN') this.auth.logout();
   }
 }
