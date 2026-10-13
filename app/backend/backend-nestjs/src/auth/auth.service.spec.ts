@@ -1,3 +1,5 @@
+// Tests authentication orchestration using mocked users, sessions and email verification.
+// Checks token issuance, credential failures and refresh rules with isolated configuration values.
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -48,11 +50,12 @@ describe('AuthService: username/password plus email code', () => {
     getRepository: () => ({ update }),
   } as unknown as EntityManager;
   beforeEach(() => {
-    const config = new ConfigService({
+    const values: Record<string, string> = {
       JWT_SECRET: 'test-only-secret-with-at-least-32-bytes',
       JWT_EXPIRY: '120',
-    });
-    config.skipProcessEnv = true;
+    };
+    const config = new ConfigService(values);
+    jest.spyOn(config, 'get').mockImplementation((key: string) => values[key]);
     const settings = new AuthSettings(config);
     jwt = new JwtService({
       secret: settings.secret,

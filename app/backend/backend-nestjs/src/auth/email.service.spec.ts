@@ -1,3 +1,5 @@
+// Tests SMTP configuration, secure transport and verification-email delivery handling.
+// Uses mocked mail transport to check success and failure without sending real emails.
 import { ConfigService } from '@nestjs/config';
 import { createTransport } from 'nodemailer';
 import { EmailService } from './email.service';
@@ -23,7 +25,7 @@ describe('SMTP EmailService', () => {
   });
   function service(values: Record<string, string>) {
     const config = new ConfigService(values);
-    config.skipProcessEnv = true;
+    jest.spyOn(config, 'get').mockImplementation((key: string) => values[key]);
     return new EmailService(config);
   }
   it('sends the code to the configured recipient over mandatory STARTTLS', async () => {

@@ -1,8 +1,10 @@
+// Tests JWT secret validation and configurable access, refresh and email-code lifetimes.
+// Checks defaults and invalid settings without relying on the machine environment.
 import { ConfigService } from '@nestjs/config';
 import { AuthSettings } from './auth.settings';
 function settings(values: Record<string, string>) {
   const config = new ConfigService(values);
-  config.skipProcessEnv = true;
+  jest.spyOn(config, 'get').mockImplementation((key: string) => values[key]);
   return new AuthSettings(config);
 }
 describe('AuthSettings', () => {

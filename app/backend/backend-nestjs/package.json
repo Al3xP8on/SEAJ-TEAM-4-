@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && node scripts/copy-assets.cjs",
     "deploy": "nest deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -14,11 +14,13 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "oxlint --type-aware src/ test/",
+    "typecheck": "tsc --noEmit --incremental false -p tsconfig.json",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
     "test:cov": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage",
     "test:debug": "node --inspect-brk --experimental-vm-modules -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./test/jest-e2e.json"
+    "test:e2e": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
+    "validate:openapi": "node scripts/validate-openapi.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -32,6 +34,8 @@
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.4",
+    "js-yaml": "^5.4.3",
+    "nodemailer": "^10.1.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.11.0",
@@ -41,6 +45,7 @@
     "typeorm": "^0.3.31"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^13.1.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/mau": "^0.2.6",
     "@nestjs/schematics": "^11.0.0",
@@ -48,9 +53,13 @@
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.0",
+    "@types/nodemailer": "^8.0.2",
     "@types/passport-jwt": "^4.0.0",
     "@types/supertest": "^7.0.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "jest": "^30.0.0",
     "oxlint": "^1.58.0",
     "oxlint-tsgolint": "^7.0.2001",

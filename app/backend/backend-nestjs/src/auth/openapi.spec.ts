@@ -1,3 +1,5 @@
+// Validates the shared authentication OpenAPI contract and compares it with controller metadata.
+// Checks endpoint paths, methods, success statuses and protected-route declarations.
 import 'reflect-metadata';
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { readFileSync } from 'node:fs';
@@ -9,13 +11,15 @@ import {
   GUARDS_METADATA,
 } from '@nestjs/common/constants';
 import { RequestMethod } from '@nestjs/common';
-import type { OpenAPIObject, OperationObject } from '@nestjs/swagger';
+import type { OpenAPIObject } from '@nestjs/swagger';
 import { AuthController } from './auth.controller';
 
+type OperationObject = NonNullable<OpenAPIObject['paths'][string]['get']>;
+
 describe('Canonical OpenAPI contract', () => {
-  const contract = load(readFileSync('openapi.yaml', 'utf8')) as OpenAPIObject;
+  const contract = load(readFileSync('../../../docs/auth-service.yml', 'utf8')) as OpenAPIObject;
   it('passes OpenAPI validation', async () => {
-    await expect(SwaggerParser.validate('openapi.yaml')).resolves.toBeDefined();
+    await expect(SwaggerParser.validate('../../../docs/auth-service.yml')).resolves.toBeDefined();
   });
   it('matches every controller path, HTTP method, success status and protection', () => {
     const actual: string[] = [];
