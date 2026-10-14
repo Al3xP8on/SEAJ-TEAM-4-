@@ -1,39 +1,52 @@
 <main>
-  <div class="dashboard">
-    @if (loading()) {
-      <p class="status">Loading your account…</p>
-    } @else if (error()) {
-      <div class="card error-card" role="alert">
-        <p>{{ error() }}</p>
-        <button type="button" class="submit-btn retry-btn" (click)="load()">Try again</button>
+  @if (loading()) {
+    <p class="status" role="status">Loading your account…</p>
+  } @else if (error()) {
+    <div class="panel error-panel" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" class="primary" (click)="load()">Try again</button>
+    </div>
+  } @else if (account(); as account) {
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">YOUR ACCOUNT</p>
+        <h1 class="welcome">Welcome, {{ account.holderName }}</h1>
+        <p class="muted">Account {{ account.accountId }}</p>
       </div>
-    } @else if (account(); as account) {
-      <h2 class="welcome">Welcome, {{ account.holderName }}</h2>
+      <div class="actions">
+        <button type="button" class="primary" (click)="goToOrderTicket()">Place Order</button>
+        <button type="button" class="quiet" (click)="goToBlotter()">Order History</button>
+      </div>
+    </div>
 
-      <div class="cards">
-        <section class="card balance-card" aria-labelledby="balance-title">
-          <h3 id="balance-title">Cash Balance</h3>
-          <p class="balance">{{ account.cashBalance | currency: 'USD' }}</p>
-          <p class="caption">Account {{ account.accountId }}</p>
-        </section>
+    <div class="overview">
+      <section class="panel balance-panel" aria-labelledby="balance-title">
+        <h2 id="balance-title" class="eyebrow">CASH BALANCE</h2>
+        <p class="balance">{{ account.cashBalance | currency: 'USD' }}</p>
+        <p class="muted">Available to trade</p>
+      </section>
 
-        <section class="card positions-card" aria-labelledby="positions-title">
-          <h3 id="positions-title">Positions</h3>
+      <section class="panel positions-panel" aria-labelledby="positions-title">
+        <div class="section-heading">
+          <h2 id="positions-title">Positions</h2>
+          <span class="tag">{{ holdings().length }} {{ holdings().length === 1 ? 'holding' : 'holdings' }}</span>
+        </div>
 
-          @if (holdings().length > 0) {
+        @if (holdings().length > 0) {
+          <div class="table-scroll">
             <table class="positions-table">
               <thead>
                 <tr>
                   <th scope="col">Symbol</th>
                   <th scope="col" class="num">Quantity</th>
-                  <th scope="col" class="num">Avg Cost</th>
+                  <th scope="col" class="num">Avg cost</th>
                   <th scope="col" class="num">Value</th>
                 </tr>
               </thead>
               <tbody>
                 @for (holding of holdings(); track holding.positionId) {
                   <tr>
-                    <td class="symbol">{{ holding.symbol }}</td>
+                    <th scope="row" class="symbol">{{ holding.symbol }}</th>
                     <td class="num">{{ holding.quantity | number }}</td>
                     <td class="num">{{ holding.averageCost | currency: 'USD' }}</td>
                     <td class="num">{{ holding.value | currency: 'USD' }}</td>
@@ -47,20 +60,13 @@
                 </tr>
               </tfoot>
             </table>
-          } @else {
-            <p class="empty">You don't hold any positions yet.</p>
-          }
-        </section>
-      </div>
-    }
-
-    <div class="actions">
-      <button type="button" class="submit-btn" (click)="goToOrderTicket()">Place Order</button>
-      <button type="button" class="secondary-btn" (click)="goToBlotter()">Order History</button>
+          </div>
+        } @else {
+          <p class="empty">You don't hold any positions yet.</p>
+        }
+      </section>
     </div>
-  </div>
+  }
 </main>
 
-<footer>
-  <p>© 2026 SEAJ Capital. All rights reserved.</p>
-</footer>
+<footer>© 2026 SEAJ Capital <span>Trade with a clearer view.</span></footer>
