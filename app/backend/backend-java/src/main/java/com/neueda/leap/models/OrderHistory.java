@@ -24,6 +24,12 @@ public class OrderHistory {
     @Column(name = "changed_on", nullable = false)
     private LocalDateTime changedOn;
 
+    @Column(name = "reason", length = 500)
+    private String reason;
+
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
+
     // No-arg constructor for ORM/serialization frameworks.
     public OrderHistory() {
         this.id = null;
