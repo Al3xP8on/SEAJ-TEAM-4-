@@ -4,19 +4,13 @@ import com.neueda.leap.dtos.OrderResponse;
 import com.neueda.leap.dtos.OrderHistoryEntry;
 import com.neueda.leap.dtos.PlaceOrderRequest;
 import com.neueda.leap.enums.OrderStatus;
-import com.neueda.leap.enums.OrderSide;
 import com.neueda.leap.exceptions.OrderException;
 import com.neueda.leap.exceptions.DuplicateOrderException;
-import com.neueda.leap.messaging.OrderEvent;
-import com.neueda.leap.messaging.OrderEventPublisher;
 import com.neueda.leap.messaging.TradeEvent;
 import com.neueda.leap.messaging.TradeEventPublisher;
 import com.neueda.leap.models.Account;
-import com.neueda.leap.models.Instrument;
 import com.neueda.leap.models.Order;
 import com.neueda.leap.models.OrderHistory;
-import com.neueda.leap.repositories.AccountRepository;
-import com.neueda.leap.repositories.InstrumentsRepository;
 import com.neueda.leap.services.OrderService;
 import com.neueda.leap.utils.LogMaskingUtil;
 import com.neueda.leap.security.SecurityUtilsService;
@@ -27,7 +21,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -42,15 +35,6 @@ public class OrderController {
     
     @Autowired
     private OrderService orderService;
-
-    @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
-    private InstrumentsRepository instrumentsRepository;
-
-    @Autowired
-    private OrderEventPublisher orderEventPublisher;
 
     @Autowired
     private TradeEventPublisher tradeEventPublisher;
@@ -119,89 +103,25 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody PlaceOrderRequest request) {
+    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody PlaceOrderRequest request) throws DuplicateOrderException {
         logger.info("POST /v1/orders - Creating order for account {} with symbol {}", LogMaskingUtil.maskAccountId(request.getAccountId()), request.getSymbol());
         
         // SECURITY: Validate that user is authorized to create orders for the requested account
         securityUtilsService.validateAccountOwnership(request.getAccountId());
         
-        try {
-            // Fetch Account
-            Optional<Account> account = accountRepository.findByAccountId(request.getAccountId());
-            if (account.isEmpty()) {
-                logger.warn("Account not found: {}", LogMaskingUtil.maskAccountId(request.getAccountId()));
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-            }
-
-            // Fetch Instrument
-            Optional<Instrument> instrument = instrumentsRepository.findBySymbol(request.getSymbol());
-            if (instrument.isEmpty()) {
-                logger.warn("Instrument not found: {}", request.getSymbol());
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-            }
-
-            // Check if instrument is tradable
-            if (!instrument.get().isTradable()) {
-                logger.warn("Instrument is not tradable: {}", request.getSymbol());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-            }
-
-            // Generate idempotency key
-            String idempotencyKey = UUID.randomUUID().toString();
-
-            // Use side from request (BUY or SELL)
-            OrderSide side = request.getSide();
-
-            // Create the order
-            Order order = orderService.createOrder(
-                account.get(),
-                instrument.get(),
-                request.getQuantity(),
-                request.getPrice(),
-                side,
-                idempotencyKey
-            );
-
-            logger.info("Order created successfully: {} - Side: {}", LogMaskingUtil.maskId(order.getId()), side);
-            
-            // Publish order to orders topic and trades topic (ORDER_PLACED event)
-            try {
-                OrderEvent orderEvent = new OrderEvent(
-                    order.getId(),
-                    request.getAccountId(),
-                    request.getSymbol(),
-                    side,
-                    request.getQuantity(),
-                    request.getPrice(),
-                    Instant.now()
-                );
-                orderEventPublisher.publish(orderEvent);
-                logger.info("Order published to orders topic and ORDER_PLACED to trades topic: {}", LogMaskingUtil.maskId(order.getId()));
-            } catch (Exception e) {
-                logger.error("Failed to publish order to Kafka: {}", LogMaskingUtil.maskId(order.getId()), e);
-                // Don't fail order creation, but log the error
-            }
-            
-            return ResponseEntity.status(HttpStatus.CREATED).body(OrderResponse.from(order));
-        } catch (DuplicateOrderException e) {
-            logger.error("Duplicate order: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        } catch (OrderException e) {
-            logger.error("Failed to create order: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        } catch (Exception e) {
-            logger.error("Unexpected error creating order: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Order order = orderService.placeOrder(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(OrderResponse.from(order));
     }
 
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/execute")
     public ResponseEntity<OrderResponse> executeOrder(@PathVariable UUID id) {
         logger.info("PUT /v1/orders/{}/execute - Executing order", LogMaskingUtil.maskId(id));
+        Optional<Order> existing = orderService.getOrderById(id);
+        if (existing.isEmpty()) return ResponseEntity.notFound().build();
+        securityUtilsService.validateOrderOwnership(existing.get());
         try {
             Order order = orderService.executeOrder(id);
-            // Validate user owns this order
-            securityUtilsService.validateOrderOwnership(order);
             logger.info("Order executed: {}", LogMaskingUtil.maskId(id));
             return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
@@ -213,10 +133,11 @@ public class OrderController {
     @PutMapping("/{id}/cancel")
     public ResponseEntity<OrderResponse> cancelOrder(@PathVariable UUID id) {
         logger.info("PUT /v1/orders/{}/cancel - Cancelling order", LogMaskingUtil.maskId(id));
+        Optional<Order> existing = orderService.getOrderById(id);
+        if (existing.isEmpty()) return ResponseEntity.notFound().build();
+        securityUtilsService.validateOrderOwnership(existing.get());
         try {
             Order order = orderService.cancelOrder(id);
-            // Validate user owns this order
-            securityUtilsService.validateOrderOwnership(order);
             logger.info("Order cancelled: {}", LogMaskingUtil.maskId(id));
             
             // Publish CANCELLED trade event to Kafka
@@ -246,17 +167,17 @@ public class OrderController {
         }
     }
 
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/reject")
     public ResponseEntity<OrderResponse> rejectOrder(
             @PathVariable UUID id,
             @RequestParam String reason) {
         logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", LogMaskingUtil.maskId(id), LogMaskingUtil.sanitize(reason));
+        Optional<Order> existing = orderService.getOrderById(id);
+        if (existing.isEmpty()) return ResponseEntity.notFound().build();
+        securityUtilsService.validateOrderOwnership(existing.get());
         try {
             Order order = orderService.rejectOrder(id, reason);
-            // Validate user owns this order (or is admin)
-            if (!securityUtilsService.isAdmin()) {
-                securityUtilsService.validateOrderOwnership(order);
-            }
             logger.info("Order rejected: {}", LogMaskingUtil.maskId(id));
             return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
