@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" role="img" aria-labelledby="title desc">
+  <title id="title">Live market board</title>
+  <desc id="desc">A dark market board with financial quotes and green and red trend lines.</desc>
+  <rect width="600" height="400" fill="#071a34"/>
+  <g stroke="#173454" stroke-width="1" opacity=".8">
+    <path d="M0 72H600M0 144H600M0 216H600M0 288H600M0 360H600"/>
+    <path d="M110 0V400M220 0V400M330 0V400M440 0V400M550 0V400"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="15" fill="#9badc1" opacity=".9">
+    <text x="18" y="38">MARKET</text><text x="130" y="38">BID</text><text x="235" y="38">ASK</text><text x="345" y="38">VOLUME</text><text x="490" y="38">CHANGE</text>
+    <text x="18" y="92">SEAJ</text><text x="130" y="92">114.82</text><text x="235" y="92">115.04</text><text x="345" y="92">1.84M</text><text x="490" y="92" fill="#4ce38f">+12.41</text>
+    <text x="18" y="128">TRDX</text><text x="130" y="128">82.17</text><text x="235" y="128">82.42</text><text x="345" y="128">940K</text><text x="490" y="128" fill="#4ce38f">+8.72</text>
+    <text x="18" y="164">NOVA</text><text x="130" y="164">64.32</text><text x="235" y="164">64.57</text><text x="345" y="164">2.20M</text><text x="490" y="164" fill="#f15a62">-3.18</text>
+    <text x="18" y="200">VANT</text><text x="130" y="200">47.91</text><text x="235" y="200">48.20</text><text x="345" y="200">712K</text><text x="490" y="200" fill="#4ce38f">+5.36</text>
+    <text x="18" y="236">AXIS</text><text x="130" y="236">129.08</text><text x="235" y="236">129.44</text><text x="345" y="236">1.32M</text><text x="490" y="236" fill="#f15a62">-1.82</text>
+    <text x="18" y="272">ORBT</text><text x="130" y="272">91.63</text><text x="235" y="272">91.88</text><text x="345" y="272">2.76M</text><text x="490" y="272" fill="#4ce38f">+14.07</text>
+    <text x="18" y="308">MTRX</text><text x="130" y="308">38.45</text><text x="235" y="308">38.74</text><text x="345" y="308">806K</text><text x="490" y="308" fill="#f15a62">-4.61</text>
+    <text x="18" y="344">KITE</text><text x="130" y="344">73.52</text><text x="235" y="344">73.80</text><text x="345" y="344">1.11M</text><text x="490" y="344" fill="#4ce38f">+9.88</text>
+  </g>
+  <path d="M0 315 L52 292 L92 305 L136 270 L175 284 L215 238 L254 248 L295 205 L335 220 L378 166 L421 180 L460 122 L505 145 L552 72 L600 48" fill="none" stroke="#38e77f" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M0 245 L50 260 L96 244 L138 271 L180 253 L225 278 L270 260 L315 289 L360 275 L410 302 L460 285 L510 320 L560 300 L600 324" fill="none" stroke="#ed4f59" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
+  <path d="M540 74 L600 48 L572 104" fill="#38e77f"/>
+</svg>
