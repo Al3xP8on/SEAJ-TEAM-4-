@@ -45,10 +45,9 @@ class LatestPriceStoreTest {
         assertEquals(0, store.getSize());
         assertTrue(store.getPriceIfNotStale("AAPL").isEmpty());
     }
-    @Test void currentlyReturnsStoredPricesEvenWhenStale() {
-        // Staleness filtering is explicitly disabled in the production store.
+    @Test void doesNotUseStalePricesForOrders() {
         MarketPrice stale = price(Instant.now().minusSeconds(120));
         store.updatePrice(stale);
-        assertSame(stale, store.getPriceIfNotStale("AAPL").orElseThrow());
+        assertTrue(store.getPriceIfNotStale("AAPL").isEmpty());
     }
 }

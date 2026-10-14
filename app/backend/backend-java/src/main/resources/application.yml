@@ -38,7 +38,7 @@ trading:
 market:
   data:
     poll:
-      symbols: AAPL,GOOGL,MSFT,TSLA,META
+      symbols: "*"
       interval: 5000
     staleness:
       threshold-seconds: 60

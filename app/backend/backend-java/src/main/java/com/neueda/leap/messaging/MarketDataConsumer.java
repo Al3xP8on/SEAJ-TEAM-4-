@@ -100,10 +100,15 @@ public class MarketDataConsumer {
     private Instant toInstant(Object value) {
         if (value instanceof Instant instant) {
             return instant;
-        } else if (value instanceof Long timestamp) {
-            return Instant.ofEpochMilli(timestamp);
-        } else if (value instanceof Double dbl) {
-            return Instant.ofEpochMilli(dbl.longValue());
+        } else if (value instanceof Number number) {
+            java.math.BigDecimal timestamp = new java.math.BigDecimal(number.toString());
+            // Legacy feeds use epoch milliseconds; Jackson's Instant serializer uses decimal seconds.
+            if (timestamp.abs().compareTo(new java.math.BigDecimal("100000000000")) >= 0) {
+                return Instant.ofEpochMilli(timestamp.longValue());
+            }
+            long seconds = timestamp.longValue();
+            long nanos = timestamp.subtract(java.math.BigDecimal.valueOf(seconds)).movePointRight(9).longValue();
+            return Instant.ofEpochSecond(seconds, nanos);
         } else if (value instanceof String str) {
             return Instant.parse(str);
         }

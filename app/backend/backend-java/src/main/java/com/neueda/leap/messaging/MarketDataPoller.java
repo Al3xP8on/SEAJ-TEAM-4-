@@ -19,7 +19,10 @@ public class MarketDataPoller {
     private final MarketDataProducer marketDataProducer;
     private final EventType eventType = EventType.PRICE_UPDATE;
     
-    @Value("${market.data.poll.symbols:AAPL,GOOGL,MSFT}")
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.neueda.leap.repositories.InstrumentsRepository instruments;
+
+    @Value("${market.data.poll.symbols:*}")
     private String symbols;
     
     public MarketDataPoller(ExternalMarketDataClient marketDataClient, 
@@ -35,7 +38,9 @@ public class MarketDataPoller {
             return;
         }
         
-        String[] symbolArray = symbols.split(",");
+        String[] symbolArray = symbols.trim().equals("*")
+            ? instruments.findByTradable(true).stream().map(com.neueda.leap.models.Instrument::getSymbol).toArray(String[]::new)
+            : symbols.split(",");
         
         for (String symbol : symbolArray) {
             try {
@@ -70,7 +75,7 @@ public class MarketDataPoller {
         payloadMap.put("bidPrice", payload.bidPrice());
         payloadMap.put("askPrice", payload.askPrice());
         payloadMap.put("lastPrice", payload.lastPrice());
-        payloadMap.put("priceTimeStamp", payload.priceTimeStamp());
+        payloadMap.put("priceTimeStamp", payload.priceTimeStamp().toString());
         
         return new EventEnvelope(
             UUID.randomUUID(),
