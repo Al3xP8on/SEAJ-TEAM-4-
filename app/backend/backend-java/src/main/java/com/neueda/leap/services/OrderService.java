@@ -13,6 +13,8 @@ import com.neueda.leap.repositories.OrderRepository;
 import com.neueda.leap.repositories.OrderHistoryRepository;
 import com.neueda.leap.validators.OrderValidator;
 import com.neueda.leap.validators.AccountValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ import java.util.UUID;
 @Service
 @Transactional
 public class OrderService {
+    private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
     @Autowired
     private OrderRepository orderRepository;
@@ -36,8 +39,15 @@ public class OrderService {
     // Creates a new order with idempotency protection.
     // Checks if an order with the same idempotency key already exists to prevent duplicates.
     public Order createOrder(Account account, Instrument instrument, long quantity, BigDecimal price, OrderSide side, String idempotencyKey) throws DuplicateOrderException {
+        logger.info("OrderService.createOrder - Validating account: {} (Status: {}, Balance: {})", 
+            account.getAccountId(), account.getStatus(), account.getCashBalance());
         OrderValidator.validateAccount(account);
+        logger.debug("Account validation passed for: {}", account.getAccountId());
+        
+        logger.info("OrderService.createOrder - Validating instrument: {}", instrument.getSymbol());
         OrderValidator.validateInstrument(instrument);
+        logger.debug("Instrument validation passed for: {}", instrument.getSymbol());
+        
         OrderValidator.validateQuantity(quantity);
         OrderValidator.validatePrice(price);
         OrderValidator.validateIdempotencyKey(idempotencyKey);

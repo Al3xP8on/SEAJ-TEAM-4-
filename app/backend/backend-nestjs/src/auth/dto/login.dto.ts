@@ -1,19 +1,20 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, MinLength } from 'class-validator';
-
+import {
+  IsString,
+  Length,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
+@ValidatorConstraint({ name: 'passwordBytes' })
+export class PasswordBytes implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    return typeof value === 'string' && Buffer.byteLength(value, 'utf8') <= 72;
+  }
+  defaultMessage(): string {
+    return 'password must not exceed 72 UTF-8 bytes';
+  }
+}
 export class LoginDto {
-  @ApiProperty({
-    example: 'alice',
-    description: 'Username',
-  })
-  @IsNotEmpty()
-  username: string;
-
-  @ApiProperty({
-    example: 'SecurePass123!',
-    description: 'User password (minimum 8 characters)',
-  })
-  @IsNotEmpty()
-  @MinLength(8)
-  password: string;
+  @IsString() @Length(3, 100) username: string;
+  @IsString() @Length(1, 72) @Validate(PasswordBytes) password: string;
 }

@@ -1,3 +1,5 @@
+# Defines the platform containers, networking, storage and runtime configuration.
+# Builds the authentication service with its login page and shared API contract.
 services:
   db:
     build:
@@ -5,6 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: seaj_postgres_db
     environment:
+      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_DB: "${POSTGRES_DB}"
     ports:
@@ -30,8 +33,8 @@ services:
 
   auth-service:
     build:
-      context: app/backend/backend-nestjs
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: app/backend/backend-nestjs/Dockerfile
     container_name: seaj_auth_service
     ports:
       - "3000:3000"
@@ -39,7 +42,16 @@ services:
       - db
     environment:
       JWT_SECRET: "${JWT_SECRET}"
-      JWT_EXPIRY: "${JWT_EXPIRY}"
+      JWT_EXPIRY: "${JWT_EXPIRY:-1800}"
+      JWT_REFRESH_EXPIRY: "${JWT_REFRESH_EXPIRY:-604800}"
+      EMAIL_CODE_EXPIRY: "${EMAIL_CODE_EXPIRY:-300}"
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_SECURE: "${SMTP_SECURE:-false}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
+      SMTP_FROM: "${SMTP_FROM:-}"
+      FRONTEND_ORIGINS: "${FRONTEND_ORIGINS:-}"
       DB_HOST: db
       DB_PORT: "5432"
       DB_USER: "${POSTGRES_USER}"

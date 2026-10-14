@@ -7,9 +7,13 @@ import com.neueda.leap.dtos.AccountInput;
 import com.neueda.leap.dtos.AccountResponse;
 import com.neueda.leap.enums.AccountStatus;
 import com.neueda.leap.exceptions.AccountNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
+import com.neueda.leap.exceptions.InsufficientFundsException;
+import com.neueda.leap.exceptions.AccountNotActiveException;
 import com.neueda.leap.exceptions.DuplicateAccountException;
 import com.neueda.leap.validators.AccountValidator;
 import com.neueda.leap.repositories.AccountRepository;
+import com.neueda.leap.repositories.PositionsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -23,6 +27,9 @@ public class AccountService {
     
     @Autowired
     private AccountRepository accountRepository;
+    
+    @Autowired
+    private PositionsRepository positionsRepository;
     
     @Autowired
     private AccountValidator validator;
@@ -39,16 +46,46 @@ public class AccountService {
         }
 
         String accountId = "ACC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String roles = AccountValidator.normalizeRoles(input.roles());
         Account account = new Account(
-            accountId, input.username(), input.password(),
+            accountId, input.username(), input.password(), roles,
             input.email(), input.phone(), AccountStatus.ACTIVE
         );
         Account saved = accountRepository.save(account);
         return new AccountResponse(
             saved.getId(), saved.getAccountId(), saved.getName(),
-            saved.getCashBalance(), saved.getStatus(),
+            saved.getCashBalance(), saved.getStatus(), saved.getRoles(),
             Optional.of(saved.getLastUpdated())
         );
+    }
+
+    @Transactional
+    public AccountResponse deposit(Long accountId, BigDecimal amount)
+            throws AccountNotFoundException, AccountNotActiveException {
+        Account account = getActiveAccountForUpdate(accountId);
+        account.deposit(amount);
+        return AccountResponse.from(accountRepository.save(account));
+    }
+
+    @Transactional
+    public AccountResponse withdraw(Long accountId, BigDecimal amount)
+            throws AccountNotFoundException, AccountNotActiveException, InsufficientFundsException {
+        Account account = getActiveAccountForUpdate(accountId);
+        if (!account.canAfford(amount)) {
+            throw new InsufficientFundsException("Insufficient funds: balance is " + account.getCashBalance());
+        }
+        account.withdraw(amount);
+        return AccountResponse.from(accountRepository.save(account));
+    }
+
+    private Account getActiveAccountForUpdate(Long accountId)
+            throws AccountNotFoundException, AccountNotActiveException {
+        Account account = accountRepository.findByIdForUpdate(accountId)
+                .orElseThrow(() -> new AccountNotFoundException("Account with ID " + accountId + " not found"));
+        if (!account.isActive()) {
+            throw new AccountNotActiveException("Account is " + account.getStatus() + " and cannot move cash");
+        }
+        return account;
     }
 
     public List<Account> getAllAccounts() {
@@ -59,6 +96,23 @@ public class AccountService {
         Account account = accountRepository.findById(accountId).orElse(null);
         if (account == null) {
             throw new AccountNotFoundException("Account with ID " + accountId + " not found");
+        }
+        return account;
+    }
+
+    public Account getAccountByIdentifier(String identifier) throws AccountNotFoundException {
+        if (identifier == null || identifier.trim().isEmpty()) {
+            throw new AccountNotFoundException("Account identifier is required");
+        }
+
+        String trimmed = identifier.trim();
+        if (trimmed.matches("\\d+")) {
+            return getAccount(Long.valueOf(trimmed));
+        }
+
+        Account account = accountRepository.findByAccountId(trimmed).orElse(null);
+        if (account == null) {
+            throw new AccountNotFoundException("Account with accountId " + trimmed + " not found");
         }
         return account;
     }
@@ -76,9 +130,11 @@ public class AccountService {
         return account.getCashBalance();
     }
 
-    public Positions getPositions(Long accountId) throws AccountNotFoundException {
+    public List<Positions> getPositions(Long accountId) throws AccountNotFoundException {
+        // Validate account exists
         Account account = getAccount(accountId);
-        throw new UnsupportedOperationException("Positions retrieval not yet implemented - requires database integration");
+        // Fetch and return all positions for this account
+        return positionsRepository.findByAccountId(accountId);
     }
 
     public OrderHistory getOrders(Long accountId) throws AccountNotFoundException {

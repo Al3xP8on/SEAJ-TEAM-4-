@@ -14,8 +14,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -43,6 +45,9 @@ public class AccountControllerAuthorizationTest {
 
         brianAccount = new Account("ACC-0002", "brian", "SecurePass123!", "Brian Smith",
                 "brian@example.com", null, new BigDecimal("5000.00"), AccountStatus.ACTIVE);
+
+        ReflectionTestUtils.setField(aliceAccount, "id", 1L);
+        ReflectionTestUtils.setField(brianAccount, "id", 2L);
     }
 
     @Test
@@ -72,11 +77,11 @@ public class AccountControllerAuthorizationTest {
     @Test
     @DisplayName("Should validate account ownership when getting account")
     void testGetAccountValidatesOwnership() throws Exception {
-        when(accountService.getAccount(1L)).thenReturn(aliceAccount);
+        when(accountService.getAccountByIdentifier("ACC-0001")).thenReturn(aliceAccount);
         when(securityUtilsService.isAdmin()).thenReturn(false);
         doNothing().when(securityUtilsService).validateAccountOwnership("ACC-0001");
 
-        accountController.getAccount(1L);
+        accountController.getAccount("ACC-0001");
 
         verify(securityUtilsService).validateAccountOwnership("ACC-0001");
     }
@@ -84,14 +89,14 @@ public class AccountControllerAuthorizationTest {
     @Test
     @DisplayName("Should throw AuthorizationException when accessing unauthorized account")
     void testGetAccountThrowsAuthorizationException() throws Exception {
-        when(accountService.getAccount(2L)).thenReturn(brianAccount);
+        when(accountService.getAccountByIdentifier("ACC-0002")).thenReturn(brianAccount);
         when(securityUtilsService.isAdmin()).thenReturn(false);
         doThrow(new AuthorizationException("User does not have permission to access account: ACC-0002"))
                 .when(securityUtilsService)
                 .validateAccountOwnership("ACC-0002");
 
         assertThrows(AuthorizationException.class, () -> {
-            accountController.getAccount(2L);
+            accountController.getAccount("ACC-0002");
         });
 
         verify(securityUtilsService).validateAccountOwnership("ACC-0002");
@@ -100,10 +105,10 @@ public class AccountControllerAuthorizationTest {
     @Test
     @DisplayName("Should skip authorization check for admin accessing any account")
     void testGetAccountSkipsAuthorizationForAdmin() throws Exception {
-        when(accountService.getAccount(2L)).thenReturn(brianAccount);
+        when(accountService.getAccountByIdentifier("ACC-0002")).thenReturn(brianAccount);
         when(securityUtilsService.isAdmin()).thenReturn(true);
 
-        accountController.getAccount(2L);
+        accountController.getAccount("ACC-0002");
 
         verify(securityUtilsService, never()).validateAccountOwnership("ACC-0002");
     }
@@ -111,12 +116,12 @@ public class AccountControllerAuthorizationTest {
     @Test
     @DisplayName("Should validate account ownership when getting balance")
     void testGetBalanceValidatesOwnership() throws Exception {
-        when(accountService.getAccount(1L)).thenReturn(aliceAccount);
+        when(accountService.getAccountByIdentifier("ACC-0001")).thenReturn(aliceAccount);
         when(securityUtilsService.isAdmin()).thenReturn(false);
         doNothing().when(securityUtilsService).validateAccountOwnership("ACC-0001");
         when(accountService.getBalance(1L)).thenReturn(new BigDecimal("10000.00"));
 
-        accountController.getBalance(1L);
+        accountController.getBalance("ACC-0001");
 
         verify(securityUtilsService).validateAccountOwnership("ACC-0001");
     }
@@ -124,14 +129,14 @@ public class AccountControllerAuthorizationTest {
     @Test
     @DisplayName("Should throw AuthorizationException when accessing unauthorized balance")
     void testGetBalanceThrowsAuthorizationException() throws Exception {
-        when(accountService.getAccount(2L)).thenReturn(brianAccount);
+        when(accountService.getAccountByIdentifier("ACC-0002")).thenReturn(brianAccount);
         when(securityUtilsService.isAdmin()).thenReturn(false);
         doThrow(new AuthorizationException("User does not have permission to access account: ACC-0002"))
                 .when(securityUtilsService)
                 .validateAccountOwnership("ACC-0002");
 
         assertThrows(AuthorizationException.class, () -> {
-            accountController.getBalance(2L);
+            accountController.getBalance("ACC-0002");
         });
 
         verify(securityUtilsService).validateAccountOwnership("ACC-0002");
@@ -140,12 +145,12 @@ public class AccountControllerAuthorizationTest {
     @Test
     @DisplayName("Should validate account ownership when getting positions")
     void testGetPositionsValidatesOwnership() throws Exception {
-        when(accountService.getAccount(1L)).thenReturn(aliceAccount);
+        when(accountService.getAccountByIdentifier("ACC-0001")).thenReturn(aliceAccount);
         when(securityUtilsService.isAdmin()).thenReturn(false);
         doNothing().when(securityUtilsService).validateAccountOwnership("ACC-0001");
-        when(accountService.getPositions(1L)).thenReturn(new Positions());
+        when(accountService.getPositions(1L)).thenReturn(List.of(new Positions()));
 
-        accountController.getPositions(1L);
+        accountController.getPositions("ACC-0001");
 
         verify(securityUtilsService).validateAccountOwnership("ACC-0001");
     }
@@ -153,14 +158,14 @@ public class AccountControllerAuthorizationTest {
     @Test
     @DisplayName("Should throw AuthorizationException when accessing unauthorized positions")
     void testGetPositionsThrowsAuthorizationException() throws Exception {
-        when(accountService.getAccount(2L)).thenReturn(brianAccount);
+        when(accountService.getAccountByIdentifier("ACC-0002")).thenReturn(brianAccount);
         when(securityUtilsService.isAdmin()).thenReturn(false);
         doThrow(new AuthorizationException("User does not have permission to access account: ACC-0002"))
                 .when(securityUtilsService)
                 .validateAccountOwnership("ACC-0002");
 
         assertThrows(AuthorizationException.class, () -> {
-            accountController.getPositions(2L);
+            accountController.getPositions("ACC-0002");
         });
 
         verify(securityUtilsService).validateAccountOwnership("ACC-0002");
@@ -169,12 +174,12 @@ public class AccountControllerAuthorizationTest {
     @Test
     @DisplayName("Should validate account ownership when getting orders")
     void testGetOrdersValidatesOwnership() throws Exception {
-        when(accountService.getAccount(1L)).thenReturn(aliceAccount);
+        when(accountService.getAccountByIdentifier("ACC-0001")).thenReturn(aliceAccount);
         when(securityUtilsService.isAdmin()).thenReturn(false);
         doNothing().when(securityUtilsService).validateAccountOwnership("ACC-0001");
         when(accountService.getOrders(1L)).thenReturn(new OrderHistory());
 
-        accountController.getOrders(1L);
+        accountController.getOrders("ACC-0001");
 
         verify(securityUtilsService).validateAccountOwnership("ACC-0001");
     }
@@ -182,14 +187,14 @@ public class AccountControllerAuthorizationTest {
     @Test
     @DisplayName("Should throw AuthorizationException when accessing unauthorized orders")
     void testGetOrdersThrowsAuthorizationException() throws Exception {
-        when(accountService.getAccount(2L)).thenReturn(brianAccount);
+        when(accountService.getAccountByIdentifier("ACC-0002")).thenReturn(brianAccount);
         when(securityUtilsService.isAdmin()).thenReturn(false);
         doThrow(new AuthorizationException("User does not have permission to access account: ACC-0002"))
                 .when(securityUtilsService)
                 .validateAccountOwnership("ACC-0002");
 
         assertThrows(AuthorizationException.class, () -> {
-            accountController.getOrders(2L);
+            accountController.getOrders("ACC-0002");
         });
 
         verify(securityUtilsService).validateAccountOwnership("ACC-0002");

@@ -169,7 +169,7 @@ public class TradeEventListenerTest {
 
         tradeEventListener.handleTradeEvent(message, 0, 100L);
 
-        verify(orderRepository, never()).save(any(Order.class));
+        verifyNoInteractions(orderRepository, accountRepository, tradeEventPublisher);
     }
 
     @Test
@@ -242,7 +242,7 @@ public class TradeEventListenerTest {
     }
 
     @Test
-    @DisplayName("Should handle numeric price values")
+    @DisplayName("Should preserve decimal precision for numeric price values")
     void testHandleTradeEventWithNumericPrice() throws Exception {
         EventType eventType = EventType.ORDER_CANCELLED;
         
@@ -251,12 +251,16 @@ public class TradeEventListenerTest {
         payload.put("accountId", "ACC-001");
         payload.put("symbol", "AAPL");
         payload.put("side", "BUY");
-        payload.put("price", 150.50);  // Double price
+        payload.put("price", 150.1);  // Double price with a non-exact binary representation
         payload.put("quantity", 100);
         payload.put("status", "CANCELLED");
         payload.put("timeInForce", "GTC");
         payload.put("timestamp", LocalDateTime.now());
         payload.put("reason", "User requested cancellation");
+
+        TradeEvent extractedEvent = ReflectionTestUtils.invokeMethod(tradeEventListener, "extractTradeEvent", payload);
+        assertNotNull(extractedEvent);
+        assertEquals(new BigDecimal("150.1"), extractedEvent.getPrice());
 
         EventEnvelope envelope = new EventEnvelope(eventId, eventType, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
