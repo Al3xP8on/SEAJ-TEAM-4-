@@ -9,6 +9,7 @@ export class User {
   accountId: string;
   @Column({ unique: true }) username: string;
   @Column({ nullable: true }) email: string;
+  @Column({ type: 'varchar', length: 20, nullable: true }) phone: string | null;
   @Exclude() @Column({ name: 'password_hash', select: false }) password: string;
   @Column() name: string;
   @Column({ name: 'cash_balance', type: 'numeric', precision: 18, scale: 2 })

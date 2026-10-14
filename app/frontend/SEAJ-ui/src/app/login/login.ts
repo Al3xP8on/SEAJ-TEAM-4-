@@ -2,22 +2,26 @@
 // Preserves validation, password clearing, retry feedback and cancellation of late UI responses.
 import { Component, effect, signal, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import type { Challenge } from '../auth/session-client.mjs';
 
 type MessageType = 'success' | 'error' | '';
+// Optional phone: same rule as the auth service (fits the accounts.phone VARCHAR(20) column)
+export const PHONE_PATTERN = /^(?=.{7,20}$)\+?[0-9 ()-]+$/;
+
 @Component({
   selector: 'app-login', imports: [FormsModule], templateUrl: './login.html', styleUrl: './login.css',
 })
 export class LoginComponent implements OnDestroy {
   view = signal<'login' | 'register' | 'verify'>('login');
-  username = ''; password = ''; regUsername = ''; regPassword = ''; regEmail = ''; code = '';
+  username = ''; password = ''; regUsername = ''; regPassword = ''; regEmail = ''; regPhone = ''; code = '';
   loginMessage = signal(''); loginMessageType = signal<MessageType>(''); loginLoading = signal(false);
   registerMessage = signal(''); registerMessageType = signal<MessageType>(''); registerLoading = signal(false);
   verificationMessage = signal(''); verificationLoading = signal(false);
   private verification: { purpose: 'LOGIN' | 'REGISTER'; id: string } | null = null;
   private generation = 0;
-  constructor(private auth: AuthService) {
+  constructor(private auth: AuthService, private router: Router) {
     effect(() => {
       if (this.auth.sessionExpired()) {
         this.showView('login');
@@ -72,9 +76,14 @@ export class LoginComponent implements OnDestroy {
       this.registerMessage.set('Enter a unique username (3–100 characters), a valid email and a password of at least 8 characters (maximum 72 bytes).');
       this.registerMessageType.set('error'); return;
     }
+    const phone = this.regPhone.trim();
+    if (phone && !PHONE_PATTERN.test(phone)) {
+      this.registerMessage.set('Enter a valid phone number (7–20 digits, spaces, dashes or brackets, optional leading +), or leave it blank.');
+      this.registerMessageType.set('error'); return;
+    }
     const generation = this.generation;
     this.registerLoading.set(true); this.registerMessage.set('Sending verification code…'); this.registerMessageType.set('');
-    this.auth.register({ username, email, password: this.regPassword }).subscribe({
+    this.auth.register({ username, email, password: this.regPassword, ...(phone ? { phone } : {}) }).subscribe({
       next: challenge => {
         this.regPassword = ''; this.registerLoading.set(false);
         if (generation === this.generation) this.showVerification('REGISTER', challenge);
@@ -105,6 +114,7 @@ export class LoginComponent implements OnDestroy {
           this.verificationLoading.set(false);
           if (generation === this.generation) {
             this.showView('login'); this.loginMessage.set('Login successful.'); this.loginMessageType.set('success');
+            this.router.navigate(['/dashboard']);
           }
         }, error,
       });

@@ -282,6 +282,29 @@ describe('Authentication HTTP contract (PostgreSQL)', () => {
       email: 'other@example.com',
     }).expect(409);
   });
+  it('stores an optional phone number on the verified account and keeps it unique', async () => {
+    const withPhone = {
+      username: 'phoneuser',
+      email: 'phone@example.com',
+      password: 'SecurePass123!',
+      phone: '+353-85-456-7891',
+    };
+    const challenge = (await post('register', withPhone).expect(202)).body;
+    await post('register/verify', {
+      challenge_id: challenge.challenge_id,
+      code: latestCode(withPhone.email, 'REGISTER'),
+    }).expect(201);
+    const [stored] = await db.query('SELECT phone FROM accounts WHERE email = $1', [withPhone.email]);
+    expect(stored.phone).toBe('+353-85-456-7891');
+
+    await post('register', {
+      ...withPhone,
+      username: 'phoneuser2',
+      email: 'phone2@example.com',
+    }).expect(409);
+    for (const phone of ['123', 'call me', '+1234567890123456789012'])
+      await post('register', { ...withPhone, username: 'phoneuser3', email: 'phone3@example.com', phone }).expect(400);
+  });
   it('validates required username/email/password and rejects email-only login', async () => {
     for (const body of [
       { email: 'valid@example.com', password: registration.password },

@@ -238,6 +238,13 @@ components:
           type: string
           minLength: 1
           maxLength: 255
+        phone:
+          type: string
+          minLength: 7
+          maxLength: 20
+          pattern: '^(?=.{7,20}$)\+?[0-9 ()-]+$'
+          example: '+353-85-456-7891'
+          description: Optional contact number stored on the account; must be unique. Not used for verification.
     LoginRequest:
       type: object
       additionalProperties: false

@@ -8,7 +8,7 @@ import { AuthService as SessionClient, Challenge } from './session-client.mjs';
 export const AUTH_API_URL = new InjectionToken<string>('AUTH_API_URL', {
   providedIn: 'root', factory: () => '/auth',
 });
-export interface RegisterPayload { username: string; password: string; email: string; }
+export interface RegisterPayload { username: string; password: string; email: string; phone?: string; }
 export interface RegisteredUser { username: string; account_id: string; email_verified: boolean; }
 
 @Injectable({ providedIn: 'root' })

@@ -4,6 +4,7 @@ export interface RegistrationPayload {
   email: string;
   name: string;
   passwordHash: string;
+  phone?: string | null;
 }
 export interface LoginPayload {
   userId: string;

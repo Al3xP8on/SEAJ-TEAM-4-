@@ -4,6 +4,7 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { firstValueFrom } from 'rxjs';
+import { Router } from '@angular/router';
 import { LoginComponent } from './login';
 import { AuthService } from '../auth/auth.service';
 
@@ -13,13 +14,15 @@ const pair = (refresh = 'refresh-1') => ({
   refresh_token: refresh, expires_in: 120, token_type: 'Bearer',
 });
 describe('Angular email authentication', () => {
+  const router = { navigate: vi.fn() };
   let fixture: ComponentFixture<LoginComponent>;
   let component: LoginComponent;
   let auth: AuthService;
   let http: HttpTestingController;
   beforeEach(() => {
     sessionStorage.clear();
-    TestBed.configureTestingModule({ imports: [LoginComponent], providers: [provideHttpClient(), provideHttpClientTesting()] });
+    router.navigate.mockReset();
+    TestBed.configureTestingModule({ imports: [LoginComponent], providers: [provideHttpClient(), provideHttpClientTesting(), { provide: Router, useValue: router }] });
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
     auth = TestBed.inject(AuthService);
@@ -67,6 +70,22 @@ describe('Angular email authentication', () => {
     http.expectOne('/auth/login').flush(pair()); await assertion;
     expect(auth.getToken()).toBeNull();
   });
+  it('sends an optional phone number with the registration when one is entered', () => {
+    component.showView('register'); component.regUsername = 'alice'; component.regPassword = 'SecurePass123!';
+    component.regEmail = 'alice@example.com'; component.regPhone = ' +353-85-456-7891 ';
+    component.onRegister();
+    expect(http.expectOne('/auth/register').request.body).toEqual({
+      username: 'alice', password: 'SecurePass123!', email: 'alice@example.com', phone: '+353-85-456-7891',
+    });
+  });
+  it('blocks registration with an invalid phone number', () => {
+    component.showView('register'); component.regUsername = 'alice'; component.regPassword = 'SecurePass123!';
+    component.regEmail = 'alice@example.com'; component.regPhone = 'call me';
+    component.onRegister();
+    http.expectNone('/auth/register');
+    expect(component.registerMessage()).toContain('valid phone number');
+    expect(component.registerMessageType()).toBe('error');
+  });
   it('requires email at signup and shows account creation only after verification', async () => {
     component.showView('register'); component.regUsername = 'alice'; component.regPassword = 'SecurePass123!';
     component.onRegister(); http.expectNone('/auth/register');
@@ -94,6 +113,7 @@ describe('Angular email authentication', () => {
     component.code = '123456'; component.onVerify();
     const tokens = pair(); http.expectOne('/auth/login/verify').flush(tokens);
     await vi.waitFor(() => expect(component.loginMessage()).toBe('Login successful.'));
+    expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
     fixture.detectChanges(); expect(fixture.nativeElement.textContent).not.toContain(tokens.access_token);
   });
   it('keeps cancelled verification from restoring a session or updating the view', async () => {
@@ -105,6 +125,7 @@ describe('Angular email authentication', () => {
     await vi.waitFor(() => expect(component.verificationLoading()).toBe(false));
     expect(component.view()).toBe('login'); expect(auth.getToken()).toBeNull();
     expect(component.loginMessage()).not.toBe('Login successful.');
+    expect(router.navigate).not.toHaveBeenCalled();
   });
   it('displays the generic credentials error without storing tokens', async () => {
     component.username = 'unknown'; component.password = 'password'; component.onLogin();
