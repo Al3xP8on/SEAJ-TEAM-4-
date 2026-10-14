@@ -177,8 +177,9 @@ public class TradeEventListener {
         logger.info("Processing CANCELLED trade: {} for account {} - Reason: {}", 
                 event.getTradeId(), event.getAccountId(), event.getReason());
         
-        Order order = orderRepository.findById(event.getTradeId())
+        Order order = orderRepository.findByIdForUpdate(event.getTradeId())
                 .orElseThrow(() -> new PoisonMessageException("Order not found: " + event.getTradeId()));
+        if (!order.getStatus().canBeCancelled()) return;
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
         
