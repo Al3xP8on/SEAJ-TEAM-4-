@@ -1,0 +1,22 @@
+<header class="topbar">
+  <a class="brand" routerLink="/dashboard"
+    ><span class="brand-mark">S</span> SEAJ <span>Capital</span></a
+  >
+  <nav aria-label="Main navigation">
+    <a
+      routerLink="/dashboard"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      ariaCurrentWhenActive="page"
+      >Overview</a
+    >
+    <a
+      routerLink="/order"
+      [class.active]="ordersActive()"
+      [attr.aria-current]="ordersActive() ? 'page' : null"
+      >Orders</a
+    >
+  </nav>
+  <button class="logout" type="button" (click)="logout()">Logout</button>
+</header>
+<router-outlet />

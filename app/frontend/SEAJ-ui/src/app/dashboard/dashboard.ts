@@ -1,7 +1,8 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, catchError, exhaustMap, timer } from 'rxjs';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { AuthService } from '../auth/auth.service';
 import { Account, Position } from './dashboard.models';
 import { DashboardService } from './dashboard.service';
 
@@ -16,8 +17,9 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
 })
 export class DashboardComponent implements OnInit {
   private readonly dashboard = inject(DashboardService);
-  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+
+  private readonly destroy = inject(DestroyRef);
 
   readonly account = signal<Account | null>(null);
   readonly positions = signal<Position[]>([]);
@@ -34,12 +36,19 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    timer(2000, 2000).pipe(
+      exhaustMap(() => this.dashboard.load().pipe(catchError(() => EMPTY))),
+      takeUntilDestroyed(this.destroy),
+    ).subscribe(({ account, positions }) => {
+      this.account.set(account);
+      this.positions.set(positions);
+    });
   }
 
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.dashboard.load().subscribe({
+    this.dashboard.load().pipe(takeUntilDestroyed(this.destroy)).subscribe({
       next: ({ account, positions }) => {
         this.account.set(account);
         this.positions.set(positions);
@@ -60,8 +69,4 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/blotter']);
   }
 
-  logout(): void {
-    this.auth.logout();
-    this.router.navigate(['/login']);
-  }
 }
