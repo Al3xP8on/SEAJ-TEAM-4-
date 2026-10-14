@@ -3,6 +3,8 @@
 package com.neueda.leap.security;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.neueda.leap.repositories.AccountRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -33,6 +35,9 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     @Value("${jwt.shared-secret}")
     private String sharedSecret;
 
@@ -48,7 +53,19 @@ public class SecurityConfig {
             }
             return OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Email verification is required", null));
         };
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefault(), emailFactor));
+        OAuth2TokenValidator<Jwt> activeAccount = jwt -> {
+            try {
+                String subject = jwt.getSubject();
+                var account = subject != null && subject.matches("\\d+")
+                        ? accountRepository.findById(Long.valueOf(subject))
+                        : accountRepository.findByUsername(subject);
+                if (account.isPresent() && account.get().isActive()) return OAuth2TokenValidatorResult.success();
+            } catch (RuntimeException exception) {
+                // Reject deleted accounts and fail closed if account state cannot be read.
+            }
+            return OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Account is unavailable", null));
+        };
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefault(), emailFactor, activeAccount));
         return decoder;
     }
 
