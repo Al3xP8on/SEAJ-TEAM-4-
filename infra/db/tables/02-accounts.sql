@@ -23,9 +23,9 @@ CREATE INDEX idx_accounts_username ON accounts(username);
 CREATE INDEX idx_accounts_status ON accounts(status);
 
 -- Seed data
--- Passwords: alice=SecurePass123!, brian=SecurePass123!, carla=SecurePass123!, diane=SecurePass123!, ethan=SecurePass123!
+-- Passwords: jay=SecurePass123!, brian=SecurePass123!, carla=SecurePass123!, diane=SecurePass123!, ethan=SecurePass123!
 INSERT INTO accounts (account_id, username, password_hash, roles, name, email, phone, cash_balance, status) VALUES
-    ('ACC-0001', 'alice', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'ADMIN,USER', 'Alice Johnson', 'alice.johnson@email.com', '+44-1234-567890', 10000.00, 'ACTIVE'),
+    ('ACC-0001', 'jay', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'ADMIN,USER', 'Jay', 'alamjan2005@gmail.com', '+44-1234-567890', 10000.00, 'ACTIVE'),
     ('ACC-0002', 'brian', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'USER', 'Brian Osei', 'brian.osei@email.com', '+44-1234-567891', 5000.00, 'ACTIVE'),
     ('ACC-0003', 'carla', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'USER', 'Carla Mendes', 'carla.mendes@email.com', '+44-1234-567892', 0.00, 'SUSPENDED'),
     ('ACC-0004', 'diane', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'ADMIN,USER', 'Diane Carter', 'diane.carter@email.com', '+44-1234-567893', 25000.00, 'ACTIVE'),
