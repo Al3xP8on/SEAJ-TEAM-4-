@@ -20,6 +20,15 @@ export interface Quote {
   lastPrice: number;
   priceTimeStamp: string;
 }
+export interface DailyPrice {
+  symbol: string;
+  priceDate: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
 export interface Order {
   orderId: string;
   accountId: string;

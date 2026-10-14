@@ -90,13 +90,49 @@ class OrderSettlementTest {
         order.setOrderType(OrderType.MARKET); assertFalse(service.settle(event("600.00")));
         assertEquals(OrderStatus.REJECTED, order.getStatus()); assertEquals(new BigDecimal("1000.00"), account.getCashBalance());
         verify(positions, never()).save(any()); verify(accounts, never()).save(any());
+        assertEquals("Insufficient cash at execution: required $1200.00, available $1000.00.", savedRejection().getReason());
     }
     @Test void insufficientHoldingsRejectsWithoutCreditingCash() {
         ReflectionTestUtils.setField(order, "side", OrderSide.SELL);
         assertFalse(service.settle(event("100.00"))); assertEquals(OrderStatus.REJECTED, order.getStatus()); verify(accounts, never()).save(any());
+        assertEquals("Insufficient holdings at execution: requested 2 AAPL units, available 0.", savedRejection().getReason());
     }
     @Test void mismatchedExecutionIsNotSettled() {
         var invalid = new ExecutionEvent(UUID.randomUUID(), order.getId(), "ACC-0002", "AAPL", OrderSide.BUY, 2, BigDecimal.TEN, BigDecimal.TEN, "SIM", Instant.now());
         assertThrows(PoisonMessageException.class, () -> service.settle(invalid)); verifyNoInteractions(accounts, positions, history);
+    }
+
+    private OrderHistory savedRejection() {
+        var capture = ArgumentCaptor.forClass(OrderHistory.class);
+        verify(history).save(capture.capture());
+        assertEquals(OrderStatus.REJECTED, capture.getValue().getStatus());
+        assertEquals(order.getId(), capture.getValue().getOrderId());
+        return capture.getValue();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = AccountStatus.class, names = {"SUSPENDED", "CLOSED"})
+    void inactiveAccountRecordsItsActualStatus(AccountStatus status) {
+        account.setStatus(status);
+        assertFalse(service.settle(event("100.00")));
+        assertEquals("Account is " + status + ". Only ACTIVE accounts can execute orders.", savedRejection().getReason());
+        verify(accounts, never()).save(any());
+        verify(positions, never()).save(any());
+    }
+
+    @Test void unavailableInstrumentRecordsWhichInstrumentWasRejected() {
+        ReflectionTestUtils.setField(order.getInstrument(), "tradable", false);
+        assertFalse(service.settle(event("100.00")));
+        assertEquals("Instrument AAPL is not tradable.", savedRejection().getReason());
+        verify(accounts, never()).save(any());
+        verify(positions, never()).save(any());
+    }
+
+    @Test void oversizedPositionRecordsTheQuantityLimit() {
+        when(positions.findByAccountIdAndSymbol(1L, "AAPL")).thenReturn(Optional.of(new Positions(1L, "AAPL", Integer.MAX_VALUE, new BigDecimal("80.00"))));
+        assertFalse(service.settle(event("100.00")));
+        assertEquals("Position quantity limit exceeded for AAPL: the resulting holding would exceed 2147483647 units.", savedRejection().getReason());
+        verify(accounts, never()).save(any());
+        verify(positions, never()).save(any());
     }
 }

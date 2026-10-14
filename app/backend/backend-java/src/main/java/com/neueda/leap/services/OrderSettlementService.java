@@ -45,16 +45,24 @@ public class OrderSettlementService {
         entityManager.refresh(account, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
         var held = positions.findByAccountIdAndSymbol(account.getId(), event.symbol());
         BigDecimal amount = event.price().multiply(BigDecimal.valueOf(event.quantity()));
-        if (!account.isActive() || !order.getInstrument().isTradable()
-            || (event.side() == OrderSide.BUY && (account.getCashBalance().compareTo(amount) < 0
-                || (long) held.map(Positions::getQuantity).orElse(0) + event.quantity() > Integer.MAX_VALUE))
-            || (event.side() == OrderSide.SELL && held.map(Positions::getQuantity).orElse(0) < event.quantity())) {
-            order.setStatus(OrderStatus.REJECTED);
-            orders.save(order);
-            OrderHistory entry = new OrderHistory(order.getId(), OrderStatus.REJECTED);
-            entry.setReason("Account inactive, instrument unavailable, or insufficient cash/holdings at execution");
-            history.save(entry);
-            return false;
+        int availableHoldings = held.map(Positions::getQuantity).orElse(0);
+        if (!account.isActive()) {
+            return reject(order, "Account is " + account.getStatus() + ". Only ACTIVE accounts can execute orders.");
+        }
+        if (!order.getInstrument().isTradable()) {
+            return reject(order, "Instrument " + event.symbol() + " is not tradable.");
+        }
+        if (event.side() == OrderSide.BUY && account.getCashBalance().compareTo(amount) < 0) {
+            return reject(order, String.format(java.util.Locale.ROOT,
+                "Insufficient cash at execution: required $%.2f, available $%.2f.", amount, account.getCashBalance()));
+        }
+        if (event.side() == OrderSide.BUY && (long) availableHoldings + event.quantity() > Integer.MAX_VALUE) {
+            return reject(order, "Position quantity limit exceeded for " + event.symbol()
+                + ": the resulting holding would exceed " + Integer.MAX_VALUE + " units.");
+        }
+        if (event.side() == OrderSide.SELL && availableHoldings < event.quantity()) {
+            return reject(order, "Insufficient holdings at execution: requested " + event.quantity()
+                + " " + event.symbol() + " units, available " + availableHoldings + ".");
         }
         Positions position;
         if (held.isPresent()) {
@@ -79,5 +87,14 @@ public class OrderSettlementService {
         orders.save(order);
         history.save(new OrderHistory(order.getId(), OrderStatus.FILLED));
         return true;
+    }
+
+    private boolean reject(Order order, String reason) {
+        order.setStatus(OrderStatus.REJECTED);
+        orders.save(order);
+        OrderHistory entry = new OrderHistory(order.getId(), OrderStatus.REJECTED);
+        entry.setReason(reason);
+        history.save(entry);
+        return false;
     }
 }

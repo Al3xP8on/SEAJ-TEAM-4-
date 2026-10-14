@@ -1,0 +1,170 @@
+@if (selectedInstrument(); as instrument) {
+  <section class="panel instrument-detail" aria-labelledby="market-instrument-title">
+    <div class="heading">
+      <div>
+        <p class="eyebrow">INSTRUMENT SPOTLIGHT</p>
+        <h2 id="market-instrument-title">
+          {{ instrument.symbol }} <span>{{ instrument.currency }}</span>
+        </h2>
+        <p class="muted">{{ instrument.name }}</p>
+      </div>
+      <span class="asset-class">{{ instrument.assetClass }}</span>
+    </div>
+    @if (latest(); as price) {
+      <div class="price-heading">
+        <strong class="close-price">{{ price.close | currency: instrument.currency }}</strong>
+        @if (selectedGain(); as gain) {
+          <span class="gain" [class.negative]="gain < 0"
+            >{{ gain > 0 ? '+' : '' }}{{ gain | number: '1.2-2' }}%</span
+          >
+        } @else if (selectedGain() === 0) {
+          <span class="gain">0.00%</span>
+        }
+      </div>
+      <p class="muted">Daily close · {{ price.priceDate | date: 'd MMM y' : 'UTC' }}</p>
+      @if (chart(); as plot) {
+        <figure>
+          <div class="chart-labels muted">
+            <span>{{ plot.high | currency: instrument.currency }}</span
+            ><span>Daily closes</span>
+          </div>
+          <svg
+            viewBox="0 0 500 180"
+            role="img"
+            [attr.aria-label]="instrument.symbol + ' daily closing prices'"
+          >
+            <title>{{ instrument.name }} daily closing prices</title>
+            <desc>
+              {{ plot.points.length }} recorded closes, from {{ plot.first }} to {{ plot.last }}.
+              Low {{ plot.low }}, high {{ plot.high }} {{ instrument.currency }}.
+            </desc>
+            <path class="grid" d="M12 12H488 M12 90H488 M12 168H488" />
+            @if (plot.points.length > 1) {
+              <polyline class="price-line" [attr.points]="plot.line" />
+            }
+            @for (point of plot.points; track point.price.priceDate) {
+              <circle
+                class="price-point"
+                [attr.cx]="point.x"
+                [attr.cy]="point.y"
+                [attr.r]="plot.points.length === 1 ? 5 : 3"
+              >
+                <title>
+                  {{ point.price.priceDate }} ·
+                  {{ point.price.close | currency: instrument.currency }}
+                </title>
+              </circle>
+            }
+          </svg>
+          <div class="chart-labels muted">
+            <span>{{ plot.first | date: 'd MMM' : 'UTC' }}</span
+            ><span>{{ plot.low | currency: instrument.currency }}</span
+            ><span>{{ plot.last | date: 'd MMM' : 'UTC' }}</span>
+          </div>
+          <figcaption class="muted">
+            {{
+              plot.points.length === 1
+                ? 'One daily close recorded. More history is needed to show a trend.'
+                : 'Last ' +
+                  plot.points.length +
+                  ' recorded daily closes. Change is versus the previous recorded trading day.'
+            }}
+          </figcaption>
+        </figure>
+      }
+      <dl class="stats">
+        <div>
+          <dt>Open</dt>
+          <dd>{{ price.open | currency: instrument.currency }}</dd>
+        </div>
+        <div>
+          <dt>Day high</dt>
+          <dd>{{ price.high | currency: instrument.currency }}</dd>
+        </div>
+        <div>
+          <dt>Day low</dt>
+          <dd>{{ price.low | currency: instrument.currency }}</dd>
+        </div>
+        <div>
+          <dt>Volume</dt>
+          <dd>{{ price.volume | number }}</dd>
+        </div>
+      </dl>
+    } @else {
+      <p class="empty" role="status">
+        {{
+          loading()
+            ? 'Loading daily price history…'
+            : failedSymbols().includes(instrument.symbol)
+              ? 'Price history could not be loaded for this instrument.'
+              : 'No daily price history is available for this instrument yet.'
+        }}
+      </p>
+    }
+    @if (selectedQuote(); as current) {
+      <div class="quote-note">
+        <span class="muted"
+          >Simulated trading quote · {{ current.priceTimeStamp | date: 'HH:mm:ss' }}</span
+        ><strong>{{ current.lastPrice | currency: instrument.currency }}</strong>
+      </div>
+    }
+  </section>
+}
+
+<section class="panel market-overview" aria-labelledby="market-title">
+  <div class="heading">
+    <div>
+      <p class="eyebrow">FROM OUR INSTRUMENTS</p>
+      <h2 id="market-title">Market data</h2>
+    </div>
+    <span class="asset-class">Daily gain</span>
+  </div>
+  <p class="muted">Best performers by daily percentage change.</p>
+  @if (latestDate()) {
+    <p class="data-date muted">
+      Latest stored close · {{ latestDate() | date: 'd MMM y' : 'UTC' }}
+    </p>
+  }
+  @if (leaders().length) {
+    <ol class="leaders">
+      @for (entry of leaders(); track entry.instrument.symbol; let rank = $index) {
+        <li>
+          <button
+            type="button"
+            (click)="choose.emit(entry.instrument.symbol)"
+            [attr.aria-label]="'View market data for ' + entry.instrument.symbol"
+          >
+            <span class="rank">{{ rank + 1 }}</span>
+            <span class="instrument-name"
+              ><strong>{{ entry.instrument.symbol }}</strong
+              ><small>{{ entry.instrument.name }}</small></span
+            >
+            <span class="performance"
+              ><strong class="gain" [class.negative]="entry.gain! < 0"
+                >{{ entry.gain! > 0 ? '+' : '' }}{{ entry.gain | number: '1.2-2' }}%</strong
+              ><small>{{ entry.latest!.close | currency: entry.instrument.currency }}</small></span
+            >
+          </button>
+        </li>
+      }
+    </ol>
+    <p class="muted footnote">
+      Compared with the previous recorded trading day. Select an instrument to explore its history.
+    </p>
+  } @else {
+    <p class="empty" role="status">
+      {{
+        loading()
+          ? 'Loading market data…'
+          : 'Daily rankings need two daily closes per instrument. Waiting for more market history.'
+      }}
+    </p>
+  }
+  @if (failedSymbols().length) {
+    <p class="load-error" role="status">
+      {{ failedSymbols().length }} instrument histories could not be loaded.
+      <button type="button" (click)="refresh()">Retry</button>
+    </p>
+  }
+  <p class="muted footnote">Stored daily history · refreshes every minute</p>
+</section>

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { catchError, forkJoin, of } from 'rxjs';
 import { Account, Position } from '../dashboard/dashboard.models';
 import {
+  DailyPrice,
   Instrument,
   Order,
   OrderHistory,
@@ -34,6 +35,9 @@ export class OrdersService {
     return this.http
       .get<Quote | null>(`/api/v1/instruments/${encodeURIComponent(symbol)}/quote`)
       .pipe(catchError(() => of(null)));
+  }
+  priceHistory(symbol: string) {
+    return this.http.get<DailyPrice[]>(`/api/v1/price-history/${encodeURIComponent(symbol)}`);
   }
   place(request: OrderRequest) {
     return this.http.post<Order>('/api/v1/orders', request);

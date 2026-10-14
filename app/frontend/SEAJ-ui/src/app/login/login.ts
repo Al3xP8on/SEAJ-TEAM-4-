@@ -2,7 +2,7 @@
 // Preserves validation, password clearing, retry feedback and cancellation of late UI responses.
 import { Component, effect, signal, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import type { Challenge } from '../auth/session-client.mjs';
 
@@ -11,7 +11,7 @@ type MessageType = 'success' | 'error' | '';
 export const PHONE_PATTERN = /^(?=.{7,20}$)\+?[0-9 ()-]+$/;
 
 @Component({
-  selector: 'app-login', imports: [FormsModule], templateUrl: './login.html', styleUrl: './login.css',
+  selector: 'app-login', imports: [FormsModule, RouterLink], templateUrl: './login.html', styleUrl: './login.css',
 })
 export class LoginComponent implements OnDestroy {
   view = signal<'login' | 'register' | 'verify'>('login');

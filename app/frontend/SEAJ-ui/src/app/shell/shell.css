@@ -29,20 +29,12 @@ button {
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 1.4375rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
   white-space: nowrap;
 }
-.brand > span:last-child {
-  font-weight: 400;
-}
-.brand-mark {
-  background: #246342;
-  color: var(--on-brand);
-  padding: 6px 10px;
-  border-radius: 7px;
+.brand-logo {
+  display: block;
+  width: 146px;
+  height: auto;
 }
 nav {
   display: flex;
@@ -84,11 +76,8 @@ nav .active {
     gap: 12px;
     padding: 0 12px;
   }
-  .brand {
-    font-size: 1rem;
-  }
-  .brand-mark {
-    display: none;
+  .brand-logo {
+    width: 112px;
   }
   nav {
     gap: 14px;

@@ -2,6 +2,7 @@
 // Redirects old HTML login bookmarks to the same Angular route.
 import { AccountComponent } from './account/account';
 import { Routes } from '@angular/router';
+import { LandingComponent } from './landing/landing';
 import { LoginComponent } from './login/login';
 import { DashboardComponent } from './dashboard/dashboard';
 import { OrdersComponent } from './orders/orders';
@@ -9,6 +10,7 @@ import { ShellComponent } from './shell/shell';
 import { authGuard } from './auth/auth.guard';
 
 export const routes: Routes = [
+  { path: '', component: LandingComponent, pathMatch: 'full' },
   { path: 'login/Login.html', redirectTo: 'login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
   {
@@ -23,5 +25,4 @@ export const routes: Routes = [
       { path: 'blotter', component: OrdersComponent },
     ],
   },
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
 ];
