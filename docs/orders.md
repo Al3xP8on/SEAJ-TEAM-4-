@@ -6,13 +6,19 @@ Overview, Orders and Order History share a sticky navigation header. The header 
 
 Users can place buy and sell orders for their own account. Admins can view all accounts, select a trading account, cancel pending orders, and reject pending orders with an audit reason. Ownership is checked before mutations; admin-only endpoints require the ADMIN role on the server.
 
+Regular users use their own account automatically and do not see the trading-account selector. The instrument picker searches symbols and names and supports arrow keys, Enter and Escape. Selecting an instrument opens its market detail card above the market overview, including its last 30 recorded daily closes, OHLC values and volume. Holdings remain on Overview and continue to refresh for sell validation.
+
+Market data uses the existing `/api/v1/price-history/{symbol}` endpoint, refreshed every minute with at most four concurrent requests. Best performers are ranked by close-to-close percentage gain on the latest stored trading date; older instruments and instruments without two closes are excluded. This uses percentage changes across currencies, without converting prices. Dates and currencies are displayed. Missing history or failed requests show explicit empty/error states; a single close is plotted as a point without inventing a trend. Stored daily closes are shown separately from the simulated trading quote. The market website does not need to be running for stored history to work.
+
 ## Supported behavior
 
 - Market orders use the server's current ask for buys and bid for sells. Client prices are ignored for market orders.
 - Limit orders remain PENDING until ask <= buy limit or bid >= sell limit. They can be cancelled until filled.
 - Orders are good till cancelled (GTC), for whole units, and filled completely by the existing simulated execution engine.
 - Pending buys reserve their order value; pending sells reserve their quantities. Short selling is disallowed.
+  The account cash card shows cash reserved for pending buys and the remaining amount available for new orders. Filled, cancelled and rejected orders no longer reserve cash; only the selected account's pending buys count.
 - An idempotency key prevents a retried submission from creating a second order. Changing the request while reusing its key returns a conflict.
+  The browser uses `randomUUID` when available and falls back to a UUID generated with `getRandomValues` on HTTP server/IP origins. If it cannot generate a key, it shows a preparation error before submission.
 - Settlement locks the order and account and changes cash, holdings, fill price, and order history in the same database transaction. Duplicate executions and late fills after cancellation have no effect.
 - Buys update weighted average cost; sells reduce holdings and record realized profit/loss. Fully sold positions close and later buys reopen them.
 - The trading desk and dashboard poll every two seconds, with polling cancelled on navigation.

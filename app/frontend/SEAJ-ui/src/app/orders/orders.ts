@@ -25,10 +25,11 @@ import {
   TradingAccount,
 } from './orders.models';
 import { OrdersService } from './orders.service';
+import { MarketDataComponent } from './market-data';
 
 @Component({
   selector: 'app-orders',
-  imports: [FormsModule, CurrencyPipe, DecimalPipe, DatePipe],
+  imports: [FormsModule, CurrencyPipe, DecimalPipe, DatePipe, MarketDataComponent],
   templateUrl: './orders.html',
   styleUrl: './orders.css',
 })
@@ -59,6 +60,16 @@ export class OrdersComponent {
   readonly accountFilter = signal('');
   readonly statusFilter = signal('ALL');
   readonly search = signal('');
+  readonly instrumentSearch = signal('');
+  readonly pickerOpen = signal(false);
+  readonly activeInstrument = signal(0);
+  readonly marketSymbol = signal('');
+  readonly filteredInstruments = computed(() => {
+    const query = this.instrumentSearch().trim().toLowerCase();
+    return this.instruments().filter((instrument) =>
+      `${instrument.symbol} ${instrument.name}`.toLowerCase().includes(query),
+    );
+  });
   readonly isAdmin = this.readAdmin();
   accountId = '';
   symbol = '';
@@ -172,7 +183,7 @@ export class OrdersComponent {
           const ownId = accountIdFromToken(this.auth.getToken());
           this.accountId =
             data.accounts.find((a) => String(a.id) === ownId)?.accountId ??
-            data.accounts[0]?.accountId ??
+            (this.isAdmin ? data.accounts[0]?.accountId : '') ??
             '';
           this.symbol = this.instruments()[0]?.symbol ?? '';
           if (!this.accountId) {
@@ -238,10 +249,69 @@ export class OrdersComponent {
     this.refresh();
   }
   changeSymbol(): void {
+    this.marketSymbol.set(this.symbol);
     this.quote.set(null);
     this.limitPrice = null;
     this.edited();
     this.refresh();
+  }
+  selectInstrument(symbol: string): void {
+    if (this.submitting() || !this.instruments().some((instrument) => instrument.symbol === symbol))
+      return;
+    this.symbol = symbol;
+    this.pickerOpen.set(false);
+    this.instrumentSearch.set('');
+    this.changeSymbol();
+  }
+  openInstrumentPicker(): void {
+    this.instrumentSearch.set('');
+    this.activeInstrument.set(
+      Math.max(
+        0,
+        this.instruments().findIndex((instrument) => instrument.symbol === this.symbol),
+      ),
+    );
+    this.pickerOpen.set(true);
+    this.scrollActiveInstrument();
+  }
+  searchInstruments(query: string): void {
+    this.instrumentSearch.set(query);
+    this.activeInstrument.set(0);
+    this.pickerOpen.set(true);
+  }
+  closeInstrumentPicker(event: FocusEvent): void {
+    const wrapper = event.currentTarget as HTMLElement;
+    if (!wrapper.contains(event.relatedTarget as Node | null)) this.pickerOpen.set(false);
+  }
+  instrumentKey(event: KeyboardEvent): void {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!this.pickerOpen()) this.openInstrumentPicker();
+      else {
+        const count = this.filteredInstruments().length;
+        this.activeInstrument.set(
+          Math.max(
+            0,
+            Math.min(count - 1, this.activeInstrument() + (event.key === 'ArrowDown' ? 1 : -1)),
+          ),
+        );
+        this.scrollActiveInstrument();
+      }
+    } else if (event.key === 'Enter' && this.pickerOpen()) {
+      event.preventDefault();
+      const instrument = this.filteredInstruments()[this.activeInstrument()];
+      if (instrument) this.selectInstrument(instrument.symbol);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this.pickerOpen.set(false);
+    } else if (event.key === 'Tab') this.pickerOpen.set(false);
+  }
+  private scrollActiveInstrument(): void {
+    queueMicrotask(() =>
+      this.host.nativeElement
+        .querySelector<HTMLElement>(`#instrument-option-${this.activeInstrument()}`)
+        ?.scrollIntoView?.({ block: 'nearest' }),
+    );
   }
   edited(): void {
     this.review = false;
@@ -260,11 +330,17 @@ export class OrdersComponent {
   estimatedTotal(): number {
     return (this.unitPrice() ?? 0) * (this.quantity ?? 0);
   }
-  availableCash(): number {
+  reservedCash(): number {
     const reserved = this.orders()
       .filter((o) => o.accountId === this.accountId && this.isPending(o) && o.side === 'BUY')
-      .reduce((sum, o) => sum + o.quantity * o.price, 0);
-    return Math.max(0, (this.account()?.cashBalance ?? 0) - reserved);
+      .reduce((sum, o) => sum + Math.round(o.quantity * o.price * 100), 0);
+    return reserved / 100;
+  }
+  availableCash(): number {
+    return Math.max(
+      0,
+      Math.round(((this.account()?.cashBalance ?? 0) - this.reservedCash()) * 100) / 100,
+    );
   }
   availableHolding(): number {
     const held = this.heldPositions().find((p) => p.symbol === this.symbol)?.quantity ?? 0;
@@ -292,6 +368,7 @@ export class OrdersComponent {
     if (this.submitting()) return;
     if (
       form.invalid ||
+      !this.selectedInstrument() ||
       !Number.isInteger(this.quantity) ||
       !this.quantity ||
       this.quantity < 1 ||
@@ -340,8 +417,14 @@ export class OrdersComponent {
       timeInForce: 'GTC' as const,
     };
     const fingerprint = JSON.stringify(draft);
-    if (this.submission?.fingerprint !== fingerprint)
-      this.submission = { fingerprint, key: crypto.randomUUID() };
+    if (this.submission?.fingerprint !== fingerprint) {
+      try {
+        this.submission = { fingerprint, key: this.createSubmissionKey() };
+      } catch {
+        this.error.set('Could not prepare your order. Reload the page and try again.');
+        return;
+      }
+    }
     const request: OrderRequest = { ...draft, idempotencyKey: this.submission!.key };
     this.submitting.set(true);
     this.error.set('');
@@ -359,7 +442,7 @@ export class OrdersComponent {
             ...orders.filter((o) => o.orderId !== order.orderId),
           ]);
           this.notice.set(
-            `${order.side === 'BUY' ? 'Buy' : 'Sell'} order submitted: ${order.quantity} ${order.ticker}. We’ll update its status automatically.`,
+            `${order.side === 'BUY' ? 'Buy' : 'Sell'} order submitted: ${order.quantity} ${order.ticker}.`,
           );
           this.review = false;
           this.submission = null;
@@ -373,6 +456,17 @@ export class OrdersComponent {
             ),
           ),
       });
+  }
+
+  private createSubmissionKey(): string {
+    const browserCrypto = globalThis.crypto;
+    if (typeof browserCrypto?.randomUUID === 'function') return browserCrypto.randomUUID();
+    // getRandomValues remains available on HTTP origins where randomUUID is unavailable.
+    const bytes = browserCrypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   }
 
   cancel(order: Order): void {
