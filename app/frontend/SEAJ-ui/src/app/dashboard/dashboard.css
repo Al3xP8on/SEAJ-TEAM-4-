@@ -90,11 +90,25 @@ h2 {
   background: #edf4ef;
 }
 
-.overview {
+.summary {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 24px;
-  align-items: start;
+  margin-bottom: 24px;
+}
+
+/* Tinted like the Orders page balance panel */
+.cash-card {
+  background: #eaf2ed;
+}
+
+.figure {
+  font-size: 26px;
+  letter-spacing: -0.6px;
+  font-weight: 600;
+  margin: 8px 0 6px;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
 }
 
 .panel {
@@ -103,11 +117,6 @@ h2 {
   border-radius: 12px;
   padding: 28px;
   box-shadow: 0 3px 14px #243d2e05;
-}
-
-.balance-panel {
-  background: #eaf2ed;
-  border-color: #dce8df;
 }
 
 .balance {
@@ -209,7 +218,7 @@ footer {
 }
 
 @media (max-width: 800px) {
-  .overview {
+  .summary {
     grid-template-columns: 1fr;
   }
 
