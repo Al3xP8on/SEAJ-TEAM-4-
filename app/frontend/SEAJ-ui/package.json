@@ -21,6 +21,7 @@
     "@spartan-ng/brain": "^1.6.3",
     "@tailwindcss/postcss": "^4.3.3",
     "chart.js": "^4.5.1",
+    "clsx": "^2.1.1",
     "lightweight-charts": "^5.2.1",
     "postcss": "^8.5.30",
     "rxjs": "~7.8.0",

@@ -19,53 +19,77 @@
       </div>
     </div>
 
-    <div class="overview">
-      <section class="panel balance-panel" aria-labelledby="balance-title">
-        <h2 id="balance-title" class="eyebrow">CASH BALANCE</h2>
-        <p class="balance">{{ account.cashBalance | currency: 'USD' }}</p>
-        <p class="muted">Available to trade</p>
+    <div class="summary">
+      <section hlmCard class="cash-card" aria-labelledby="cash-title">
+        <div hlmCardHeader>
+          <h2 hlmCardTitle id="cash-title" class="eyebrow">CASH BALANCE</h2>
+        </div>
+        <div hlmCardContent>
+          <p class="balance">{{ account.cashBalance | currency: 'USD' }}</p>
+          <p class="muted">Available to trade</p>
+        </div>
       </section>
 
-      <section class="panel positions-panel" aria-labelledby="positions-title">
-        <div class="section-heading">
-          <h2 id="positions-title">Positions</h2>
-          <span class="tag">{{ holdings().length }} {{ holdings().length === 1 ? 'holding' : 'holdings' }}</span>
+      <section hlmCard aria-labelledby="holdings-title">
+        <div hlmCardHeader>
+          <h2 hlmCardTitle id="holdings-title" class="eyebrow">HOLDINGS VALUE</h2>
         </div>
+        <div hlmCardContent>
+          <p class="figure holdings-value">{{ holdingsValue() | currency: 'USD' }}</p>
+          <p class="muted">{{ holdings().length }} {{ holdings().length === 1 ? 'holding' : 'holdings' }}, at cost</p>
+        </div>
+      </section>
 
-        @if (holdings().length > 0) {
-          <div class="table-scroll">
-            <table class="positions-table">
-              <thead>
-                <tr>
-                  <th scope="col">Symbol</th>
-                  <th scope="col" class="num">Quantity</th>
-                  <th scope="col" class="num">Avg cost</th>
-                  <th scope="col" class="num">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (holding of holdings(); track holding.positionId) {
-                  <tr>
-                    <th scope="row" class="symbol">{{ holding.symbol }}</th>
-                    <td class="num">{{ holding.quantity | number }}</td>
-                    <td class="num">{{ holding.averageCost | currency: 'USD' }}</td>
-                    <td class="num">{{ holding.value | currency: 'USD' }}</td>
-                  </tr>
-                }
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th scope="row" colspan="3">Total</th>
-                  <td class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        } @else {
-          <p class="empty">You don't hold any positions yet.</p>
-        }
+      <section hlmCard aria-labelledby="total-title">
+        <div hlmCardHeader>
+          <h2 hlmCardTitle id="total-title" class="eyebrow">TOTAL PORTFOLIO</h2>
+        </div>
+        <div hlmCardContent>
+          <p class="figure total-value">{{ totalValue() | currency: 'USD' }}</p>
+          <p class="muted">Cash + holdings</p>
+        </div>
       </section>
     </div>
+
+    <section class="panel positions-panel" aria-labelledby="positions-title">
+      <div class="section-heading">
+        <h2 id="positions-title">Positions</h2>
+        <span class="tag">{{ holdings().length }} {{ holdings().length === 1 ? 'holding' : 'holdings' }}</span>
+      </div>
+
+      @if (holdings().length > 0) {
+        <div class="table-scroll">
+          <table class="positions-table">
+            <thead>
+              <tr>
+                <th scope="col">Symbol</th>
+                <th scope="col" class="num">Quantity</th>
+                <th scope="col" class="num">Avg cost</th>
+                <th scope="col" class="num">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (holding of holdings(); track holding.positionId) {
+                <tr>
+                  <th scope="row" class="symbol">{{ holding.symbol }}</th>
+                  <td class="num">{{ holding.quantity | number }}</td>
+                  <td class="num">{{ holding.averageCost | currency: 'USD' }}</td>
+                  <td class="num">{{ holding.value | currency: 'USD' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row" colspan="3">Total</th>
+                <td class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      } @else {
+        <p class="empty">You don't hold any positions yet.</p>
+      }
+    </section>
   }
 </main>
 
