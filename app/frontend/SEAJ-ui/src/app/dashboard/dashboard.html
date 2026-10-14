@@ -21,7 +21,7 @@
           <h3 id="positions-title">Positions</h3>
 
           @if (holdings().length > 0) {
-            <table class="positions-table">
+            <div class="positions-scroll" role="region" aria-label="Positions table" tabindex="0"><table class="positions-table">
               <thead>
                 <tr>
                   <th scope="col">Symbol</th>
@@ -46,7 +46,7 @@
                   <td class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
                 </tr>
               </tfoot>
-            </table>
+            </table></div>
           } @else {
             <p class="empty">You don't hold any positions yet.</p>
           }
