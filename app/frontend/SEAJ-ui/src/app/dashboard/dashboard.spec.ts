@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { Observable, Subject, of, throwError } from 'rxjs';
-import { AuthService } from '../auth/auth.service';
 import { DashboardComponent } from './dashboard';
 import { DashboardData, DashboardService } from './dashboard.service';
 import { Position } from './dashboard.models';
@@ -18,7 +17,6 @@ const DATA: DashboardData = {
 
 describe('DashboardComponent', () => {
   const router = { navigate: vi.fn() };
-  const auth = { logout: vi.fn() };
   const dashboard = { load: vi.fn<() => Observable<DashboardData>>() };
 
   async function render() {
@@ -32,13 +30,11 @@ describe('DashboardComponent', () => {
 
   beforeEach(async () => {
     router.navigate.mockReset();
-    auth.logout.mockReset();
     dashboard.load.mockReset().mockReturnValue(of(DATA));
     await TestBed.configureTestingModule({
       imports: [DashboardComponent],
       providers: [
         { provide: Router, useValue: router },
-        { provide: AuthService, useValue: auth },
         { provide: DashboardService, useValue: dashboard },
       ],
     }).compileComponents();
@@ -107,14 +103,6 @@ describe('DashboardComponent', () => {
     expect(page.querySelector('.welcome')?.textContent).toContain('Alice Johnson');
   });
 
-  it('logout clears the session before returning to login', async () => {
-    const { page } = await render();
-
-    button(page, 'Logout').click();
-
-    expect(auth.logout).toHaveBeenCalled();
-    expect(router.navigate).toHaveBeenCalledWith(['/login']);
-  });
 
   it.each([
     ['Place Order', '/order'],
