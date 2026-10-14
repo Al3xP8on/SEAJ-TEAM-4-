@@ -80,6 +80,7 @@ public class SecurityUtilsService {
      * @throws AuthorizationException if the user does not own this account
      */
     public void validateAccountOwnership(String targetAccountId) {
+        if (isAdmin()) return;
         Account userAccount = getAuthenticatedUserAccount();
         
         if (!userAccount.getAccountId().equals(targetAccountId)) {
@@ -103,6 +104,7 @@ public class SecurityUtilsService {
             throw new AuthorizationException("Order not found");
         }
         
+        if (isAdmin()) return;
         Account userAccount = getAuthenticatedUserAccount();
         String orderAccountId = order.getAccount().getAccountId();
         

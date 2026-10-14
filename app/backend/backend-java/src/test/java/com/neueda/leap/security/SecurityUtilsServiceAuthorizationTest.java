@@ -320,4 +320,13 @@ public class SecurityUtilsServiceAuthorizationTest {
         when(order.getAccount()).thenReturn(account);
         return order;
     }
+    @Test
+    void adminCanAccessOtherAccountsAndOrders() {
+        var admin = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+            "jay", "unused", List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+        when(securityContext.getAuthentication()).thenReturn(admin);
+        assertDoesNotThrow(() -> securityUtilsService.validateAccountOwnership("ACC-0002"));
+        assertDoesNotThrow(() -> securityUtilsService.validateOrderOwnership(mock(Order.class)));
+        verifyNoInteractions(accountRepository);
+    }
 }

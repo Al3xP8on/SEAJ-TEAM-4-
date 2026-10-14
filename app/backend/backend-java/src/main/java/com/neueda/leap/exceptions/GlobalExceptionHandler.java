@@ -168,12 +168,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException exception, HttpServletRequest request){
         logger.error("AccessDeniedException occurred at {}: {}", request.getRequestURI(), exception.getMessage(), exception);
         ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.UNAUTHORIZED.value(),
-                "Unauthorized: " + exception.getMessage(),
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden: " + exception.getMessage(),
                 LocalDateTime.now(),
                 request.getRequestURI()
         );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
         }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -204,6 +204,18 @@ public class GlobalExceptionHandler {
                 );
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleStatusException(org.springframework.web.server.ResponseStatusException exception, HttpServletRequest request) {
+        return ResponseEntity.status(exception.getStatusCode()).body(new ErrorResponse(exception.getStatusCode().value(),
+            exception.getReason(), LocalDateTime.now(), request.getRequestURI()));
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleOrderConflict(org.springframework.dao.DataIntegrityViolationException exception, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(409,
+            "This request conflicts with existing data. Refresh and retry.", LocalDateTime.now(), request.getRequestURI()));
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception exception, HttpServletRequest request){
