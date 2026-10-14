@@ -341,7 +341,7 @@
                 </td>
                 <td class="row-actions">
                   <button type="button" class="text-button" (click)="showHistory(o)">
-                    Details
+                    {{ o.status === 'REJECTED' ? 'View reason' : 'Details' }}
                   </button>
                   @if (isPending(o)) {
                     <button
@@ -427,6 +427,12 @@
       }
       @if (historyError()) {
         <p class="alert" role="alert">{{ historyError() }}</p>
+      }
+      @if (historyRejectionReason(); as reason) {
+        <div class="alert rejection-reason" role="status">
+          <strong>Order rejected</strong>
+          <p>{{ reason }}</p>
+        </div>
       }
       <ol class="timeline">
         @for (entry of history(); track $index) {

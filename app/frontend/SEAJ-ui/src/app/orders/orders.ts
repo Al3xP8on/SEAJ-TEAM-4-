@@ -37,6 +37,7 @@ export class OrdersComponent {
   private readonly auth = inject(AuthService);
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
   private previousFocus: HTMLElement | null = null;
+  private dialogWasOpen = false;
   private readonly destroy = inject(DestroyRef);
   readonly accounts = signal<TradingAccount[]>([]);
   readonly instruments = signal<Instrument[]>([]);
@@ -69,6 +70,7 @@ export class OrdersComponent {
   rejectionReason = '';
   private submission: { fingerprint: string; key: string } | null = null;
   private initialized = false;
+  private historyRequestVersion = 0;
 
   readonly visibleOrders = computed(() =>
     this.orders()
@@ -87,6 +89,23 @@ export class OrdersComponent {
       )
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
   );
+  readonly historyRejectionReason = computed(() => {
+    if (this.historyOrder()?.status !== 'REJECTED' || this.historyLoading() || this.historyError())
+      return '';
+    const entry = this.history()
+      .filter((entry) => entry.status === 'REJECTED')
+      .reverse()
+      .find((entry) => entry.reason?.trim());
+    const reason = entry?.reason?.trim();
+    if (
+      reason ===
+      'Account inactive, instrument unavailable, or insufficient cash/holdings at execution'
+    ) {
+      return 'A specific rejection reason was not recorded for this order.';
+    }
+    return reason || 'No rejection reason was recorded for this order.';
+  });
+
   readonly heldPositions = computed(() =>
     this.positions().filter(
       (p) => p.quantity > 0 && ['OPEN', 'PARTIALLY_CLOSED'].includes(p.status),
@@ -97,13 +116,15 @@ export class OrdersComponent {
   constructor() {
     effect(() => {
       const open = !!(this.confirming() || this.historyOrder());
+      const wasOpen = this.dialogWasOpen;
+      this.dialogWasOpen = open;
       queueMicrotask(() => {
-        if (open) {
+        if (open && !wasOpen) {
           this.previousFocus = document.activeElement as HTMLElement;
           this.host.nativeElement
             .querySelector<HTMLElement>('[role="dialog"] button, [role="dialog"] input')
             ?.focus();
-        } else this.previousFocus?.focus();
+        } else if (!open && wasOpen) this.previousFocus?.focus();
       });
     });
     this.load();
@@ -187,6 +208,11 @@ export class OrdersComponent {
       exhaustMap((data) => {
         if (accountId !== this.accountId || symbol !== this.symbol) return EMPTY;
         this.orders.set(data.orders);
+        const viewedOrder = this.historyOrder();
+        const updatedOrder = data.orders.find((order) => order.orderId === viewedOrder?.orderId);
+        if (viewedOrder && updatedOrder && viewedOrder.status !== updatedOrder.status) {
+          this.showHistory(updatedOrder);
+        }
         this.account.set(data.portfolio.account);
         this.positions.set(data.portfolio.positions);
         this.quote.set(data.quote);
@@ -400,6 +426,7 @@ export class OrdersComponent {
       });
   }
   showHistory(order: Order): void {
+    const version = ++this.historyRequestVersion;
     this.historyOrder.set(order);
     this.history.set([]);
     this.historyError.set('');
@@ -409,12 +436,20 @@ export class OrdersComponent {
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (history) => {
-          if (this.historyOrder()?.orderId === order.orderId) {
+          if (
+            version === this.historyRequestVersion &&
+            this.historyOrder()?.orderId === order.orderId
+          ) {
             this.history.set(history.sort((a, b) => a.timestamp.localeCompare(b.timestamp)));
             this.historyLoading.set(false);
           }
         },
         error: () => {
+          if (
+            version !== this.historyRequestVersion ||
+            this.historyOrder()?.orderId !== order.orderId
+          )
+            return;
           this.historyError.set('Could not load this order’s timeline.');
           this.historyLoading.set(false);
         },

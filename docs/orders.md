@@ -41,7 +41,7 @@ Fresh database builds include the additional columns and PENDING enum value in t
 
 `POST /api/v1/orders` accepts `orderType` (`MARKET` or `LIMIT`, default `LIMIT`), optional `idempotencyKey`, and `timeInForce` (`GTC` only). `price` is required for LIMIT and omitted for MARKET. Responses include `orderType` and nullable `executionPrice`.
 
-`GET /api/v1/instruments/{symbol}/quote` returns a current quote or 204 if none is available. Order timelines include persisted rejection reasons.
+`GET /api/v1/instruments/{symbol}/quote` returns a current quote or 204 if none is available. Order timelines include persisted rejection reasons. Rejected orders offer **View reason**, with a prominent explanation in details. Automatic settlement rejections distinguish insufficient cash (required/available amounts), insufficient holdings (requested/available units), inactive accounts, untradable instruments and position limits. Pricing-validation rejections are also persisted and included in their audit events. An open details dialog refreshes if its order status changes. Older orders without a specific recorded reason say so explicitly.
 
 ## Validation
 
