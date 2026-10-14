@@ -41,6 +41,9 @@ public class ExecutionListener {
     @Autowired
     private TradeEventPublisher tradeEventPublisher;
 
+    @Autowired
+    private com.neueda.leap.services.OrderSettlementService settlement;
+
     @KafkaListener(topics = "${trading.kafka.topics.executions}", groupId = "${spring.kafka.consumer.group-id}")
     @Transactional
     public void onExecution(String message) throws JsonProcessingException {
@@ -49,37 +52,9 @@ public class ExecutionListener {
     }
 
     private void settle(ExecutionEvent event) {
-        Order order = orderRepository.findById(event.orderId())
-                .orElseThrow(() -> new PoisonMessageException("Order not found for execution: " + event.orderId()));
-        Account account = accountRepository.findByAccountId(event.accountId())
-                .orElseThrow(() -> new PoisonMessageException("Account not found for execution: " + event.accountId()));
-
-        // Only settle if order is still NEW or PENDING (at-least-once delivery safety)
-        // PENDING means it was accepted but not yet filled
-        if (order.getStatus() != OrderStatus.NEW && order.getStatus() != OrderStatus.PENDING) {
-            log.info("Order {} is already {}, skipping duplicate execution", LogMaskingUtil.maskId(event.orderId()), order.getStatus());
-            return;
-        }
-
-        // Calculate execution amount
-        BigDecimal executionAmount = event.price().multiply(BigDecimal.valueOf(event.quantity()));
-
-        // Update cash balance based on side
-        try {
-            if ("BUY".equalsIgnoreCase(event.side().toString())) {
-                account.debit(executionAmount);
-            } else if ("SELL".equalsIgnoreCase(event.side().toString())) {
-                account.credit(executionAmount);
-            }
-        } catch (IllegalArgumentException e) {
-            throw new PoisonMessageException("Cannot settle execution for order " + event.orderId(), e);
-        }
-
-        accountRepository.save(account);
-
-        // Update order status to FILLED
-        order.setStatus(OrderStatus.FILLED);
-        orderRepository.save(order);
+        if (!settlement.settle(event)) return;
+        Order order = orderRepository.findById(event.orderId()).orElseThrow();
+        Account account = accountRepository.findByAccountId(event.accountId()).orElseThrow();
 
         log.info("Execution settled: Order {} FILLED | {} {} @ {} | Account {} balance: ${} | Venue: {}",
                 LogMaskingUtil.maskId(event.orderId()), event.side(), event.quantity(), event.price(),

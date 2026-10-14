@@ -53,6 +53,10 @@ public class ExecutionListenerTest {
     @Mock
     private TradeEventPublisher tradeEventPublisher;
 
+    @Mock private com.neueda.leap.repositories.PositionsRepository positions;
+    @Mock private com.neueda.leap.repositories.OrderHistoryRepository history;
+    @Mock private jakarta.persistence.EntityManager entityManager;
+
     @InjectMocks
     private ExecutionListener executionListener;
 
@@ -74,12 +78,20 @@ public class ExecutionListenerTest {
         account = new Account(accountId, "Alice Johnson", "alice@example.com", "555-1234", 
                             new BigDecimal("50000.00"), AccountStatus.ACTIVE);
 
+        org.springframework.test.util.ReflectionTestUtils.setField(account, "id", 1L);
+        var service = new com.neueda.leap.services.OrderSettlementService(orderRepository, accountRepository, positions, history);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "entityManager", entityManager);
+        org.springframework.test.util.ReflectionTestUtils.setField(executionListener, "settlement", service);
+        lenient().when(accountRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(account));
+
         // Setup test instrument
         Instrument instrument = new Instrument("AAPL", "Apple Inc.", "EQUITY", "USD", true);
 
         // Setup test order (in PENDING status - ready for execution)
         order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"),
                         OrderSide.BUY, "idem-key-001", OrderStatus.PENDING, LocalDateTime.now());
+
+        lenient().when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
 
         // Setup execution event (100 shares at $150.50 = $15,050.00 debit)
         executionEvent = new ExecutionEvent(
@@ -109,7 +121,7 @@ public class ExecutionListenerTest {
     void testSettleExecutionFirstTime() throws Exception {
         // Arrange
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
         when(accountRepository.save(any(Account.class))).thenReturn(account);
@@ -127,6 +139,7 @@ public class ExecutionListenerTest {
         assertEquals(OrderStatus.FILLED, order.getStatus(), 
                    "Order should transition to FILLED");
         verify(accountRepository).save(account);
+        verify(positions).save(any());
         verify(orderRepository).save(order);
         verify(tradeEventPublisher, times(2)).publishTradeEvent(any()); // TRADE_EXECUTED + ORDER_FILLED
     }
@@ -137,7 +150,7 @@ public class ExecutionListenerTest {
         // Arrange
         // First execution: order is PENDING
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order savedOrder = invocation.getArgument(0);
@@ -172,6 +185,7 @@ public class ExecutionListenerTest {
         
         // Verify save was called only once (first execution), not twice
         verify(accountRepository).save(account);
+        verify(positions).save(any());
     }
 
     @Test
@@ -179,7 +193,7 @@ public class ExecutionListenerTest {
     void testReplayedExecutionDoesNotPublishDuplicateEvents() throws Exception {
         // Arrange
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order savedOrder = invocation.getArgument(0);
@@ -213,8 +227,7 @@ public class ExecutionListenerTest {
         order.setStatus(OrderStatus.FILLED); // Order already filled from previous execution
 
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-        when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
 
         BigDecimal initialBalance = account.getCashBalance();
 
@@ -236,8 +249,7 @@ public class ExecutionListenerTest {
         order.setStatus(OrderStatus.REJECTED); // Order was rejected during pricing validation
 
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-        when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
 
         BigDecimal initialBalance = account.getCashBalance();
 
@@ -259,8 +271,7 @@ public class ExecutionListenerTest {
         order.setStatus(OrderStatus.CANCELLED); // Order was cancelled before execution
 
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-        when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
 
         BigDecimal initialBalance = account.getCashBalance();
 
@@ -280,7 +291,7 @@ public class ExecutionListenerTest {
     void testThrowsPoisonMessageWhenOrderNotFound() throws Exception {
         // Arrange
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
-        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(PoisonMessageException.class, () -> executionListener.onExecution(executionMessage),
@@ -292,8 +303,8 @@ public class ExecutionListenerTest {
     void testThrowsPoisonMessageWhenAccountNotFound() throws Exception {
         // Arrange
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-        when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.empty());
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
+        when(accountRepository.findByIdForUpdate(1L)).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(PoisonMessageException.class, () -> executionListener.onExecution(executionMessage),
@@ -305,6 +316,7 @@ public class ExecutionListenerTest {
     @Test
     @DisplayName("Should credit account for SELL execution")
     void testSettleSellExecutionCreditsAccount() throws Exception {
+        org.springframework.test.util.ReflectionTestUtils.setField(order, "side", OrderSide.SELL);
         // Arrange
         order.setStatus(OrderStatus.PENDING);
         ExecutionEvent sellEvent = new ExecutionEvent(
@@ -326,7 +338,7 @@ public class ExecutionListenerTest {
                            "\"venue\":\"SIM\",\"executedOn\":\"2026-10-06T15:00:00Z\"}";
 
         when(objectMapper.readValue(sellMessage, ExecutionEvent.class)).thenReturn(sellEvent);
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
         when(accountRepository.save(any(Account.class))).thenReturn(account);
@@ -334,6 +346,8 @@ public class ExecutionListenerTest {
         BigDecimal initialBalance = account.getCashBalance();
         BigDecimal executionAmount = new BigDecimal("150.50").multiply(BigDecimal.valueOf(100));
         BigDecimal expectedBalance = initialBalance.add(executionAmount);
+
+        when(positions.findByAccountIdAndSymbol(1L, "AAPL")).thenReturn(Optional.of(new com.neueda.leap.models.Positions(1L, "AAPL", 100, new BigDecimal("145.00"))));
 
         // Act
         executionListener.onExecution(sellMessage);
@@ -359,7 +373,7 @@ public class ExecutionListenerTest {
     void demonstrateDuplicateDeliveryHandling() throws Exception {
         // SETUP: Create order and account state
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order savedOrder = invocation.getArgument(0);
