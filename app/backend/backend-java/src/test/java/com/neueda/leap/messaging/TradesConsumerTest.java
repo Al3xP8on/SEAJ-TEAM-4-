@@ -92,7 +92,7 @@ public class TradesConsumerTest {
         OrderPricingValidator.PricingValidationResult approvalResult = 
             new OrderPricingValidator.PricingValidationResult(OrderStatus.PENDING, "Approved for execution");
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(pricingValidator.validateOrderPricing(order)).thenReturn(approvalResult);
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
@@ -124,7 +124,7 @@ public class TradesConsumerTest {
         OrderPricingValidator.PricingValidationResult rejectionResult = 
             new OrderPricingValidator.PricingValidationResult(OrderStatus.REJECTED, "Insufficient funds");
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(pricingValidator.validateOrderPricing(order)).thenReturn(rejectionResult);
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
@@ -155,7 +155,7 @@ public class TradesConsumerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
 
         tradesConsumer.handleOrderPlaced(message, 0, 100L);
 
@@ -180,13 +180,13 @@ public class TradesConsumerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> 
             tradesConsumer.handleOrderPlaced(message, 0, 100L)
         );
 
-        verify(orderRepository).findById(orderId);
+        verify(orderRepository).findByIdForUpdate(orderId);
         verify(pricingValidator, never()).validateOrderPricing(any());
     }
 
@@ -255,7 +255,7 @@ public class TradesConsumerTest {
         OrderPricingValidator.PricingValidationResult approvalResult = 
             new OrderPricingValidator.PricingValidationResult(OrderStatus.PENDING, "Approved");
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(pricingValidator.validateOrderPricing(order)).thenReturn(approvalResult);
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
@@ -287,7 +287,7 @@ public class TradesConsumerTest {
         OrderPricingValidator.PricingValidationResult rejectionResult = 
             new OrderPricingValidator.PricingValidationResult(OrderStatus.REJECTED, "Instrument not tradeable");
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(pricingValidator.validateOrderPricing(order)).thenReturn(rejectionResult);
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
@@ -318,7 +318,7 @@ public class TradesConsumerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
 
         tradesConsumer.handleOrderPlaced(message, 0, 100L);
 
@@ -345,7 +345,7 @@ public class TradesConsumerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
 
         tradesConsumer.handleOrderPlaced(message, 0, 100L);
 

@@ -115,7 +115,7 @@ public class TradesConsumer {
     }
 
     private Order loadAndValidateOrder(UUID orderId) {
-        return orderRepository.findById(orderId)
+        return orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new PoisonMessageException("Order not found in database: " + orderId));
     }
 
