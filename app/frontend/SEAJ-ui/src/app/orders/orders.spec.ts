@@ -48,6 +48,7 @@ describe('OrdersComponent', () => {
     cancel: vi.fn(),
     reject: vi.fn(),
     history: vi.fn(),
+    priceHistory: vi.fn(),
   };
   const auth = { getToken: vi.fn(), logout: vi.fn() };
   const token = (roles: string[]) =>
@@ -73,6 +74,7 @@ describe('OrdersComponent', () => {
       }),
     );
     service.quote.mockReturnValue(of(quote));
+    service.priceHistory.mockReturnValue(of([]));
     service.place.mockReturnValue(of(order));
     service.cancel.mockReturnValue(of({ ...order, status: 'CANCELLED' }));
     service.history.mockReturnValue(
@@ -95,6 +97,73 @@ describe('OrdersComponent', () => {
     const form = fixture.debugElement.query(By.directive(NgForm)).injector.get(NgForm);
     return { fixture, component, form, page: fixture.nativeElement as HTMLElement };
   }
+  afterEach(() => vi.unstubAllGlobals());
+  it('submits a confirmed buy when randomUUID is unavailable on an HTTP origin', async () => {
+    vi.stubGlobal('crypto', {
+      getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto),
+    });
+    const { component, form } = await render();
+    component.submit(form);
+    expect(component.review).toBe(true);
+    expect(() => component.submit(form)).not.toThrow();
+    expect(service.place).toHaveBeenCalledWith(
+      expect.objectContaining({
+        side: 'BUY',
+        idempotencyKey: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        ),
+      }),
+    );
+  });
+  it('submits from the confirm button on HTTP and reuses its key for a network retry', async () => {
+    const randomValues = vi.fn(globalThis.crypto.getRandomValues.bind(globalThis.crypto));
+    vi.stubGlobal('crypto', { getRandomValues: randomValues });
+    service.place.mockReturnValueOnce(throwError(() => ({ status: 0 }))).mockReturnValue(of(order));
+    const { fixture, page } = await render();
+    const button = page.querySelector<HTMLButtonElement>('.ticket button[type="submit"]')!;
+    button.click();
+    await fixture.whenStable();
+    expect(button.textContent).toContain('Confirm buy order');
+    button.click();
+    await fixture.whenStable();
+    expect(page.querySelector('[role="alert"]')?.textContent).toContain('Order submission failed');
+    button.click();
+    await fixture.whenStable();
+    expect(service.place).toHaveBeenCalledTimes(2);
+    expect(service.place.mock.calls[0][0].idempotencyKey).toBe(
+      service.place.mock.calls[1][0].idempotencyKey,
+    );
+    expect(randomValues).toHaveBeenCalledTimes(1);
+    expect(page.querySelector('.notice')?.textContent).toContain('Buy order submitted');
+  });
+  it('generates different keys for separate HTTP submissions', async () => {
+    vi.stubGlobal('crypto', {
+      getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto),
+    });
+    const { component, form } = await render();
+    component.submit(form);
+    component.submit(form);
+    component.submit(form);
+    component.submit(form);
+    expect(service.place).toHaveBeenCalledTimes(2);
+    expect(service.place.mock.calls[0][0].idempotencyKey).not.toBe(
+      service.place.mock.calls[1][0].idempotencyKey,
+    );
+  });
+  it('shows an error instead of silently failing when browser crypto is unavailable', async () => {
+    vi.stubGlobal('crypto', undefined);
+    const { fixture, component, page } = await render();
+    const button = page.querySelector<HTMLButtonElement>('.ticket button[type="submit"]')!;
+    button.click();
+    await fixture.whenStable();
+    button.click();
+    await fixture.whenStable();
+    expect(page.querySelector('[role="alert"]')?.textContent).toContain(
+      'Could not prepare your order',
+    );
+    expect(component.submitting()).toBe(false);
+    expect(service.place).not.toHaveBeenCalled();
+  });
   it('requires a review before placing a market order and leaves pricing to the server', async () => {
     const { component, form } = await render();
     component.submit(form);
@@ -134,6 +203,52 @@ describe('OrdersComponent', () => {
     expect(component.error()).toContain('exceeds your available cash');
     expect(service.place).not.toHaveBeenCalled();
   });
+  it('reconciles the cash card and counts only this account’s pending buys', async () => {
+    service.portfolio.mockReturnValue(
+      of({ account: { ...account, cashBalance: 7899.83 }, positions: [] }),
+    );
+    service.orders.mockReturnValue(
+      of([
+        {
+          ...order,
+          orderId: 'bond-buy',
+          ticker: 'UST10',
+          status: 'NEW',
+          quantity: 60,
+          price: 97.5,
+        },
+        { ...order, orderId: 'apple-buy', quantity: 1, price: 100 },
+        { ...order, orderId: 'bank-buy', ticker: 'BAC', quantity: 1, price: 4.98 },
+        { ...order, orderId: 'pending-sell', side: 'SELL', quantity: 1, price: 5000 },
+        { ...order, orderId: 'filled-buy', status: 'FILLED', quantity: 1, price: 5000 },
+        { ...order, orderId: 'other-account', accountId: 'ACC-0002', quantity: 1, price: 5000 },
+      ]),
+    );
+    const { component, page } = await render();
+    expect(component.reservedCash()).toBe(5954.98);
+    expect(component.availableCash()).toBe(1944.85);
+    expect(page.querySelector('.cash')?.textContent).toContain('$7,899.83');
+    expect(page.querySelector('.cash-reserved')?.textContent).toContain('$5,954.98');
+    expect(page.querySelector('.cash-available')?.textContent).toContain('$1,944.85');
+  });
+  it.each(['FILLED', 'CANCELLED', 'REJECTED'] as const)(
+    'releases reserved cash when a buy becomes %s',
+    async (status) => {
+      service.orders.mockReturnValue(of([{ ...order, quantity: 9 }]));
+      const { fixture, component, page } = await render();
+      expect(component.reservedCash()).toBe(900);
+      const cashBalance = status === 'FILLED' ? 100 : 1000;
+      service.orders.mockReturnValue(of([{ ...order, quantity: 9, status }]));
+      service.portfolio.mockReturnValue(
+        of({ account: { ...account, cashBalance }, positions: [] }),
+      );
+      component.refresh();
+      await fixture.whenStable();
+      expect(component.reservedCash()).toBe(0);
+      expect(component.availableCash()).toBe(cashBalance);
+      expect(page.querySelector('.cash-reserved')?.textContent).toContain('$0.00');
+    },
+  );
   it('prevents selling holdings reserved by another pending sell', async () => {
     service.orders.mockReturnValue(of([{ ...order, side: 'SELL', quantity: 4 }]));
     const { component, form } = await render();
@@ -181,12 +296,91 @@ describe('OrdersComponent', () => {
     auth.getToken.mockReturnValue(token(['ADMIN', 'USER']));
     const { page } = await render();
     expect(page.querySelector('[aria-label="Filter account"]')).not.toBeNull();
+    expect(page.querySelector('#account')).not.toBeNull();
     expect(page.textContent).toContain('All account orders');
   });
   it('omits admin controls for regular users', async () => {
     const { page } = await render();
     expect(page.querySelector('[aria-label="Filter account"]')).toBeNull();
+    expect(page.querySelector('#account')).toBeNull();
+    expect(page.querySelector('label[for="account"]')).toBeNull();
     expect(page.textContent).toContain('Your orders');
+  });
+  it('searches symbols and names, and selects an instrument with the keyboard', async () => {
+    service.setup.mockReturnValue(
+      of({
+        accounts: [{ ...account, name: 'Jay' }],
+        instruments: [
+          {
+            symbol: 'AAPL',
+            name: 'Apple Inc.',
+            assetClass: 'EQUITY',
+            currency: 'USD',
+            tradable: true,
+          },
+          {
+            symbol: 'MSFT',
+            name: 'Microsoft',
+            assetClass: 'EQUITY',
+            currency: 'USD',
+            tradable: true,
+          },
+        ],
+      }),
+    );
+    const { fixture, component, page } = await render();
+    const input = page.querySelector<HTMLInputElement>('#instrument')!;
+    expect(page.querySelector('.instrument-detail')).toBeNull();
+    input.focus();
+    input.value = ' MICRO ';
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(page.querySelectorAll('[role="option"]')).toHaveLength(1);
+    expect(page.querySelector('[role="option"]')?.textContent).toContain('MSFT');
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await fixture.whenStable();
+    expect(component.symbol).toBe('MSFT');
+    expect(service.quote).toHaveBeenLastCalledWith('MSFT');
+    expect(input.getAttribute('aria-expanded')).toBe('false');
+    expect(page.querySelector('.instrument-detail')?.textContent).toContain('MSFT');
+    const cards = Array.from(page.querySelector('app-market-data')!.children);
+    expect(cards[0].classList.contains('instrument-detail')).toBe(true);
+    expect(cards[1].classList.contains('market-overview')).toBe(true);
+    input.focus();
+    component.openInstrumentPicker();
+    input.value = 'aapl';
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(page.querySelector('[role="option"]')?.textContent).toContain('AAPL');
+  });
+  it('keeps the current instrument when a search has no matches or is dismissed', async () => {
+    const { fixture, component, page } = await render();
+    const input = page.querySelector<HTMLInputElement>('#instrument')!;
+    input.focus();
+    input.value = 'not-a-symbol';
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(page.textContent).toContain('No instruments match your search.');
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(component.symbol).toBe('AAPL');
+    expect(component.review).toBe(false);
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await fixture.whenStable();
+    expect(input.value).toContain('AAPL');
+    expect(page.querySelector('[role="listbox"]')).toBeNull();
+  });
+  it('does not substitute another trading account for a regular user', async () => {
+    service.setup.mockReturnValue(
+      of({
+        accounts: [{ ...account, id: 2, accountId: 'ACC-0002', name: 'Another user' }],
+        instruments: [],
+      }),
+    );
+    const fixture = TestBed.createComponent(OrdersComponent);
+    await fixture.whenStable();
+    expect(fixture.componentInstance.accountId).toBe('');
+    expect(fixture.componentInstance.error()).toContain('No trading account');
+    expect(service.portfolio).not.toHaveBeenCalled();
   });
   it('keeps a cancellation error visible if a fill wins the race', async () => {
     service.cancel.mockReturnValue(throwError(() => ({ status: 400 })));

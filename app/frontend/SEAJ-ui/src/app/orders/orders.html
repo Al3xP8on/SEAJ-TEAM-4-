@@ -33,33 +33,77 @@
         </div>
         <form #ticket="ngForm" (ngSubmit)="submit(ticket)">
           <fieldset [disabled]="submitting()">
-            <label for="account">Trading account</label>
-            <select
-              id="account"
-              name="account"
-              [(ngModel)]="accountId"
-              (ngModelChange)="changeAccount()"
-              required
-            >
-              @for (a of accounts(); track a.accountId) {
-                <option [value]="a.accountId">
-                  {{ a.name }} · {{ a.accountId
-                  }}{{ a.status !== 'ACTIVE' ? ' (' + a.status + ')' : '' }}
-                </option>
-              }
-            </select>
+            @if (isAdmin) {
+              <label for="account">Trading account</label>
+              <select
+                id="account"
+                name="account"
+                [(ngModel)]="accountId"
+                (ngModelChange)="changeAccount()"
+                required
+              >
+                @for (a of accounts(); track a.accountId) {
+                  <option [value]="a.accountId">
+                    {{ a.name }} · {{ a.accountId
+                    }}{{ a.status !== 'ACTIVE' ? ' (' + a.status + ')' : '' }}
+                  </option>
+                }
+              </select>
+            }
             <label for="instrument">Instrument</label>
-            <select
-              id="instrument"
-              name="instrument"
-              [(ngModel)]="symbol"
-              (ngModelChange)="changeSymbol()"
-              required
-            >
-              @for (i of instruments(); track i.symbol) {
-                <option [value]="i.symbol">{{ i.symbol }} — {{ i.name }}</option>
+            <div class="instrument-picker" (focusout)="closeInstrumentPicker($event)">
+              <input
+                id="instrument"
+                type="text"
+                role="combobox"
+                autocomplete="off"
+                aria-autocomplete="list"
+                aria-controls="instrument-options"
+                [attr.aria-expanded]="pickerOpen()"
+                [attr.aria-activedescendant]="
+                  pickerOpen() && filteredInstruments().length
+                    ? 'instrument-option-' + activeInstrument()
+                    : null
+                "
+                placeholder="Search by symbol or instrument name"
+                [ngModel]="
+                  pickerOpen()
+                    ? instrumentSearch()
+                    : symbol + ' — ' + (selectedInstrument()?.name ?? '')
+                "
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="searchInstruments($event)"
+                (focus)="openInstrumentPicker()"
+                (click)="!pickerOpen() && openInstrumentPicker()"
+                (keydown)="instrumentKey($event)"
+              />
+              @if (pickerOpen()) {
+                <div
+                  id="instrument-options"
+                  class="instrument-options"
+                  role="listbox"
+                  aria-label="Instruments"
+                >
+                  @for (i of filteredInstruments(); track i.symbol; let index = $index) {
+                    <button
+                      type="button"
+                      role="option"
+                      tabindex="-1"
+                      [id]="'instrument-option-' + index"
+                      [attr.aria-selected]="i.symbol === symbol"
+                      [class.active-option]="index === activeInstrument()"
+                      (pointerdown)="$event.preventDefault()"
+                      (click)="selectInstrument(i.symbol)"
+                    >
+                      <strong>{{ i.symbol }}</strong
+                      ><span>{{ i.name }}</span>
+                    </button>
+                  } @empty {
+                    <p class="help">No instruments match your search.</p>
+                  }
+                </div>
               }
-            </select>
+            </div>
             <div class="quote-strip">
               @if (quote(); as q) {
                 <div>
@@ -190,49 +234,22 @@
           <p class="cash">{{ account()?.cashBalance ?? 0 | currency }}</p>
           <p class="muted">{{ account()?.holderName }} · {{ accountId }}</p>
           <hr />
-          <div class="section-heading">
+          <div class="section-heading cash-reserved">
+            <span>Reserved for pending buys</span><strong>{{ reservedCash() | currency }}</strong>
+          </div>
+          <div class="section-heading cash-available">
             <span>Available for orders</span><strong>{{ availableCash() | currency }}</strong>
           </div>
+          <p class="help balance-help">
+            Account cash minus reserved cash is available for new orders.
+          </p>
         </section>
-        <section class="panel" aria-labelledby="holdings-title">
-          <div class="section-heading">
-            <h2 id="holdings-title">Your holdings</h2>
-            <span class="tag">{{ heldPositions().length }}</span>
-          </div>
-          <p class="help">Balances and holdings refresh automatically after fills.</p>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Instrument</th>
-                  <th class="num">Units</th>
-                  <th class="num">Avg cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (p of heldPositions(); track p.positionId) {
-                  <tr>
-                    <td>
-                      <button
-                        type="button"
-                        class="symbol-link"
-                        (click)="symbol = p.symbol; changeSymbol()"
-                      >
-                        {{ p.symbol }}
-                      </button>
-                    </td>
-                    <td class="num">{{ p.quantity | number }}</td>
-                    <td class="num">{{ p.averageCost | currency }}</td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="3" class="empty">No holdings yet.</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <app-market-data
+          [instruments]="instruments()"
+          [selectedSymbol]="marketSymbol()"
+          [quote]="quote()"
+          (choose)="selectInstrument($event)"
+        />
         <div class="desk-note">
           <span>↗</span>
           <div>
