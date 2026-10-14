@@ -2,11 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NgForm } from '@angular/forms';
 import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { OrdersService } from './orders.service';
 import { OrdersComponent } from './orders';
-import { Order } from './orders.models';
+import { Order, OrderHistory } from './orders.models';
 
 const account = {
   id: 1,
@@ -195,5 +195,118 @@ describe('OrdersComponent', () => {
     component.cancel(order);
     expect(component.error()).toContain('may already have filled');
     expect(component.confirming()).toEqual(order);
+  });
+  it('shows the saved reason when opening a rejected order', async () => {
+    const rejected: Order = { ...order, status: 'REJECTED' };
+    const reason = 'Insufficient cash at execution: required $1200.00, available $1000.00.';
+    service.orders.mockReturnValue(of([rejected]));
+    service.history.mockReturnValue(
+      of([{ orderId: order.orderId, status: 'REJECTED', timestamp: order.createdAt, reason }]),
+    );
+    const { fixture, page } = await render();
+    const details = page.querySelector<HTMLButtonElement>('.row-actions button')!;
+    expect(details.textContent).toContain('View reason');
+    details.click();
+    await fixture.whenStable();
+    expect(page.querySelector('.rejection-reason')?.textContent).toContain(reason);
+  });
+
+  it.each([
+    { history: [] },
+    {
+      history: [
+        {
+          orderId: order.orderId,
+          status: 'REJECTED' as const,
+          timestamp: order.createdAt,
+          reason: null,
+        },
+      ],
+    },
+  ])('explains when a rejected order has no recorded reason', async ({ history }) => {
+    const rejected: Order = { ...order, status: 'REJECTED' };
+    service.history.mockReturnValue(of(history));
+    const { fixture, component, page } = await render();
+    component.showHistory(rejected);
+    await fixture.whenStable();
+    expect(page.querySelector('.rejection-reason')?.textContent).toContain(
+      'No rejection reason was recorded for this order.',
+    );
+  });
+
+  it('refreshes an open timeline when its order is rejected and ignores an older response', async () => {
+    const earlier = new Subject<OrderHistory[]>();
+    const rejected: Order = { ...order, status: 'REJECTED' };
+    const reason = 'Instrument AAPL is not tradable.';
+    service.orders.mockReturnValue(of([order]));
+    service.history
+      .mockReturnValueOnce(earlier)
+      .mockReturnValue(
+        of([{ orderId: order.orderId, status: 'REJECTED', timestamp: order.createdAt, reason }]),
+      );
+    const { fixture, component, page } = await render();
+    component.showHistory(order);
+    service.orders.mockReturnValue(of([rejected]));
+    component.refresh();
+    await fixture.whenStable();
+    expect(page.querySelector('.rejection-reason')?.textContent).toContain(reason);
+    earlier.next([
+      { orderId: order.orderId, status: 'PENDING', timestamp: order.createdAt, reason: null },
+    ]);
+    earlier.complete();
+    await fixture.whenStable();
+    expect(page.querySelector('.rejection-reason')?.textContent).toContain(reason);
+  });
+
+  it('shows a loading failure separately from a missing historical reason', async () => {
+    service.history.mockReturnValue(throwError(() => ({ status: 503 })));
+    const { fixture, component, page } = await render();
+    component.showHistory({ ...order, status: 'REJECTED' });
+    await fixture.whenStable();
+    expect(page.textContent).toContain('Could not load this order’s timeline.');
+    expect(page.querySelector('.rejection-reason')).toBeNull();
+  });
+  it('labels the old generic rejection message without guessing its specific cause', async () => {
+    service.history.mockReturnValue(
+      of([
+        {
+          orderId: order.orderId,
+          status: 'REJECTED',
+          timestamp: order.createdAt,
+          reason:
+            'Account inactive, instrument unavailable, or insufficient cash/holdings at execution',
+        },
+      ]),
+    );
+    const { fixture, component, page } = await render();
+    component.showHistory({ ...order, status: 'REJECTED' });
+    await fixture.whenStable();
+    expect(page.querySelector('.rejection-reason')?.textContent).toContain(
+      'A specific rejection reason was not recorded for this order.',
+    );
+  });
+  it('returns keyboard focus to the order action after a live rejection updates its dialog', async () => {
+    service.orders.mockReturnValue(of([order]));
+    const { fixture, component, page } = await render();
+    const action = page.querySelector<HTMLButtonElement>('.row-actions button')!;
+    action.focus();
+    action.click();
+    await fixture.whenStable();
+    service.orders.mockReturnValue(of([{ ...order, status: 'REJECTED' }]));
+    service.history.mockReturnValue(
+      of([
+        {
+          orderId: order.orderId,
+          status: 'REJECTED',
+          timestamp: order.createdAt,
+          reason: 'Account is SUSPENDED.',
+        },
+      ]),
+    );
+    component.refresh();
+    await fixture.whenStable();
+    component.historyOrder.set(null);
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(action);
   });
 });

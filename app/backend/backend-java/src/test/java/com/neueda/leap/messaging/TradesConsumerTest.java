@@ -7,6 +7,8 @@ import com.neueda.leap.enums.OrderSide;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.models.Order;
+import com.neueda.leap.models.OrderHistory;
+import com.neueda.leap.repositories.OrderHistoryRepository;
 import com.neueda.leap.repositories.OrderRepository;
 import com.neueda.leap.services.OrderPricingValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +47,9 @@ public class TradesConsumerTest {
 
     @Mock
     private TradeEventPublisher tradeEventPublisher;
+
+    @Mock
+    private OrderHistoryRepository history;
 
     private ObjectMapper objectMapper;
     private UUID orderId;
@@ -133,6 +138,11 @@ public class TradesConsumerTest {
         ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
         verify(orderRepository).save(orderCaptor.capture());
         assertEquals(OrderStatus.REJECTED, orderCaptor.getValue().getStatus());
+        var historyCaptor = ArgumentCaptor.forClass(OrderHistory.class);
+        verify(history).save(historyCaptor.capture());
+        assertEquals(orderId, historyCaptor.getValue().getOrderId());
+        assertEquals(OrderStatus.REJECTED, historyCaptor.getValue().getStatus());
+        assertEquals("Insufficient funds", historyCaptor.getValue().getReason());
         verify(tradeEventPublisher).publishTradeEvent(any(TradeEvent.class));
     }
 
@@ -297,6 +307,7 @@ public class TradesConsumerTest {
         verify(tradeEventPublisher).publishTradeEvent(eventCaptor.capture());
         TradeEvent publishedEvent = eventCaptor.getValue();
         assertEquals("REJECTED", publishedEvent.getStatus());
+        assertEquals("Instrument not tradeable", publishedEvent.getReason());
     }
 
     @Test
@@ -351,5 +362,24 @@ public class TradesConsumerTest {
 
         verify(pricingValidator, never()).validateOrderPricing(any());
         verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void preservesTheReasonWhenEventPublicationFailsAndSkipsDuplicateValidation() throws Exception {
+        String reason = "No live quote available for symbol: AAPL";
+        var envelope = new EventEnvelope(UUID.randomUUID(), EventType.ORDER_PLACED, Instant.now(), 1,
+            Map.of("orderId", orderId.toString(), "accountId", "ACC-001", "symbol", "AAPL",
+                "side", "BUY", "price", "150.50", "quantity", 100));
+        String message = objectMapper.writeValueAsString(envelope);
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
+        when(pricingValidator.validateOrderPricing(order)).thenReturn(new OrderPricingValidator.PricingValidationResult(OrderStatus.REJECTED, reason));
+        doThrow(new RuntimeException("Kafka offline")).when(tradeEventPublisher).publishTradeEvent(any());
+        tradesConsumer.handleOrderPlaced(message, 0, 1L);
+        tradesConsumer.handleOrderPlaced(message, 0, 1L);
+        var capture = ArgumentCaptor.forClass(OrderHistory.class);
+        verify(history).save(capture.capture());
+        assertEquals(reason, capture.getValue().getReason());
+        assertEquals(OrderStatus.REJECTED, capture.getValue().getStatus());
+        verify(pricingValidator, times(1)).validateOrderPricing(order);
     }
 }
