@@ -30,14 +30,10 @@ public class PriceHistoryController {
     
     @GetMapping("/{symbol}")
     public ResponseEntity<List<PriceHistoryResponse>> getPriceHistory(@PathVariable String symbol) {
-        if (logger.isInfoEnabled()) {
-            logger.info("GET /v1/price-history/{} - Fetching price history", LogMaskingUtil.sanitize(symbol));
-        }
+        logger.info("GET /v1/price-history/{} - Fetching price history", LogMaskingUtil.sanitize(symbol));
         try {
             List<PriceHistory> history = priceHistoryService.getPriceHistoryBySymbol(symbol);
-            if (logger.isInfoEnabled()) {
-                logger.info("Found {} price history records for symbol {}", history.size(), LogMaskingUtil.sanitize(symbol));
-            }
+            logger.info("Found {} price history records for symbol {}", history.size(), LogMaskingUtil.sanitize(symbol));
             return ResponseEntity.ok(history.stream().map(PriceHistoryResponse::from).toList());
         } catch (Exception e) {
             logger.error("Error fetching price history for symbol {}: {}", LogMaskingUtil.sanitize(symbol), e.getMessage());
@@ -50,26 +46,18 @@ public class PriceHistoryController {
             @PathVariable String symbol,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        if (logger.isInfoEnabled()) {
-            logger.info("GET /v1/price-history/{}/range - Fetching price history from {} to {}", LogMaskingUtil.sanitize(symbol), LogMaskingUtil.sanitize(from), LogMaskingUtil.sanitize(to));
-        }
+        logger.info("GET /v1/price-history/{}/range - Fetching price history from {} to {}", LogMaskingUtil.sanitize(symbol), LogMaskingUtil.sanitize(from), LogMaskingUtil.sanitize(to));
         try {
             if (from == null || to == null) {
-                if (logger.isWarnEnabled()) {
-                    logger.warn("Missing required date parameters for symbol {}", LogMaskingUtil.sanitize(symbol));
-                }
+                logger.warn("Missing required date parameters for symbol {}", LogMaskingUtil.sanitize(symbol));
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
             
             List<PriceHistory> history = priceHistoryService.getPriceHistoryBySymbolAndDateRange(symbol, from, to);
-            if (logger.isInfoEnabled()) {
-                logger.info("Found {} price history records for symbol {} in date range", history.size(), LogMaskingUtil.sanitize(symbol));
-            }
+            logger.info("Found {} price history records for symbol {} in date range", history.size(), LogMaskingUtil.sanitize(symbol));
             return ResponseEntity.ok(history.stream().map(PriceHistoryResponse::from).toList());
         } catch (IllegalArgumentException e) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Invalid date range for symbol {}: {}", LogMaskingUtil.sanitize(symbol), e.getMessage());
-            }
+            logger.warn("Invalid date range for symbol {}: {}", LogMaskingUtil.sanitize(symbol), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
             logger.error("Error fetching price history for symbol {}: {}", LogMaskingUtil.sanitize(symbol), e.getMessage());
@@ -79,20 +67,14 @@ public class PriceHistoryController {
     
     @GetMapping("/{symbol}/latest")
     public ResponseEntity<PriceHistoryResponse> getLatestPriceHistory(@PathVariable String symbol) {
-        if (logger.isInfoEnabled()) {
-            logger.info("GET /v1/price-history/{}/latest - Fetching latest price history", LogMaskingUtil.sanitize(symbol));
-        }
+        logger.info("GET /v1/price-history/{}/latest - Fetching latest price history", LogMaskingUtil.sanitize(symbol));
         try {
             Optional<PriceHistory> latestPrice = priceHistoryService.getLatestPriceHistory(symbol);
             if (latestPrice.isPresent()) {
-                if (logger.isInfoEnabled()) {
-                    logger.info("Found latest price history for symbol {}", LogMaskingUtil.sanitize(symbol));
-                }
+                logger.info("Found latest price history for symbol {}", LogMaskingUtil.sanitize(symbol));
                 return ResponseEntity.ok(PriceHistoryResponse.from(latestPrice.get()));
             }
-            if (logger.isWarnEnabled()) {
-                logger.warn("No price history found for symbol {}", LogMaskingUtil.sanitize(symbol));
-            }
+            logger.warn("No price history found for symbol {}", LogMaskingUtil.sanitize(symbol));
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
             logger.error("Error fetching latest price history for symbol {}: {}", LogMaskingUtil.sanitize(symbol), e.getMessage());
@@ -102,19 +84,13 @@ public class PriceHistoryController {
     
     @PostMapping
     public ResponseEntity<PriceHistoryResponse> savePriceHistory(@Valid @RequestBody PriceHistoryRequest request) {
-        if (logger.isInfoEnabled()) {
-            logger.info("POST /v1/price-history - Creating price history for symbol {}", LogMaskingUtil.sanitize(request.symbol()));
-        }
+        logger.info("POST /v1/price-history - Creating price history for symbol {}", LogMaskingUtil.sanitize(request.symbol()));
         try {
             PriceHistory savedPriceHistory = priceHistoryService.savePriceHistory(request.toEntity());
-            if (logger.isInfoEnabled()) {
-                logger.info("Price history saved successfully for symbol: {}", LogMaskingUtil.sanitize(request.symbol()));
-            }
+            logger.info("Price history saved successfully for symbol: {}", LogMaskingUtil.sanitize(request.symbol()));
             return ResponseEntity.status(HttpStatus.CREATED).body(PriceHistoryResponse.from(savedPriceHistory));
         } catch (IllegalArgumentException e) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Invalid price history data: {}", LogMaskingUtil.sanitize(e.getMessage()));
-            }
+            logger.warn("Invalid price history data: {}", LogMaskingUtil.sanitize(e.getMessage()));
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
             logger.error("Error saving price history: {}", e.getMessage());

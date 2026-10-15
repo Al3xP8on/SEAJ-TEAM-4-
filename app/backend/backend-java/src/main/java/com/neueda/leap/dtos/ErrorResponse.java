@@ -21,12 +21,4 @@ public record ErrorResponse(
     @Schema(description="The API path that was called", example="/api/orders/create")
     @NotBlank(message="API path is required.")
     String path
-) {
-    
-    public ErrorResponse(int status, String message, LocalDateTime timestamp, String path){
-        this.status = status;
-        this.message = message;
-        this.timestamp = timestamp;
-        this.path = path;
-    }
-}
+) {}
