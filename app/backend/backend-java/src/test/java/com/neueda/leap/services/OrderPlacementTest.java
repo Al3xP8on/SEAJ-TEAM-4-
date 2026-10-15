@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 class OrderPlacementTest {
+    @org.mockito.Mock com.neueda.leap.messaging.OrderEventOutbox outbox;
     @Mock OrderRepository orders;
     @Mock AccountRepository accounts;
     @Mock InstrumentsRepository instruments;

@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 class OrderSettlementTest {
+    @Mock OrderEventOutbox outbox;
     @Mock OrderRepository orders;
     @Mock AccountRepository accounts;
     @Mock PositionsRepository positions;
@@ -30,6 +31,7 @@ class OrderSettlementTest {
     @BeforeEach void setup() {
         service = new OrderSettlementService(orders, accounts, positions, history);
         ReflectionTestUtils.setField(service, "entityManager", entityManager);
+        ReflectionTestUtils.setField(service, "outbox", outbox);
         account = new Account("ACC-0001", "Jay", "jay@example.com", null, new BigDecimal("1000.00"), AccountStatus.ACTIVE);
         ReflectionTestUtils.setField(account, "id", 1L);
         order = new Order(account, new Instrument("AAPL", "Apple", "EQUITY", "USD", true), 2, new BigDecimal("100.00"), OrderSide.BUY, "key");
@@ -37,7 +39,12 @@ class OrderSettlementTest {
         lenient().when(orders.findByIdForUpdate(order.getId())).thenReturn(Optional.of(order));
         lenient().when(accounts.findByIdForUpdate(1L)).thenReturn(Optional.of(account));
     }
-    ExecutionEvent event(String price) { return new ExecutionEvent(UUID.randomUUID(), order.getId(), "ACC-0001", "AAPL", order.getSide(), 2, new BigDecimal(price), order.getPrice(), "SIM", Instant.now()); }
+    ExecutionEvent event(String price) {
+        Instant now = Instant.now();
+        var value = new BigDecimal(price);
+        return new ExecutionEvent(UUID.randomUUID(), order.getId(), "ACC-0001", "AAPL", order.getSide(),
+            2, value, order.getPrice(), "ALPACA_IEX", now, now, UUID.randomUUID(), value, value);
+    }
     Positions savedPosition() { var capture = ArgumentCaptor.forClass(Positions.class); verify(positions).save(capture.capture()); return capture.getValue(); }
     @Test void buyCreatesHoldingAndDebitsActualFillPrice() {
         assertTrue(service.settle(event("99.50")));
@@ -74,6 +81,8 @@ class OrderSettlementTest {
     @Test void duplicateFillCannotDebitOrAddHoldingsTwice() {
         ExecutionEvent fill = event("100.00"); service.settle(fill); assertFalse(service.settle(fill));
         assertEquals(new BigDecimal("800.00"), account.getCashBalance()); verify(positions, times(1)).save(any()); verify(accounts, times(1)).save(any());
+        verify(outbox, times(1)).lifecycle(eq(order), eq(EventType.ORDER_FILLED), isNull(), anyMap());
+        verify(outbox, times(1)).lifecycle(eq(order), eq(EventType.PORTFOLIO_UPDATED), isNull(), anyMap());
     }
     @Test void cancelledOrderCannotBeFilled() {
         order.cancel(); assertFalse(service.settle(event("100.00")));
@@ -100,6 +109,23 @@ class OrderSettlementTest {
     @Test void mismatchedExecutionIsNotSettled() {
         var invalid = new ExecutionEvent(UUID.randomUUID(), order.getId(), "ACC-0002", "AAPL", OrderSide.BUY, 2, BigDecimal.TEN, BigDecimal.TEN, "SIM", Instant.now());
         assertThrows(PoisonMessageException.class, () -> service.settle(invalid)); verifyNoInteractions(accounts, positions, history);
+    }
+
+    @Test void staleQuoteProofCannotDebitTheAccount() {
+        var fill = event("100.00");
+        var stale = new ExecutionEvent(fill.executionId(), fill.orderId(), fill.accountId(), fill.symbol(), fill.side(),
+            fill.quantity(), fill.price(), fill.limitPrice(), fill.venue(), fill.executedOn(),
+            fill.executedOn().minusSeconds(61), fill.quoteEventId(), fill.bidPrice(), fill.askPrice());
+        assertThrows(PoisonMessageException.class, () -> service.settle(stale));
+        verifyNoInteractions(accounts, positions, history, outbox);
+    }
+    @Test void engineCannotApplyRandomPriceImprovementToTheQuotedPrice() {
+        var fill = event("100.00");
+        var altered = new ExecutionEvent(fill.executionId(), fill.orderId(), fill.accountId(), fill.symbol(), fill.side(),
+            fill.quantity(), new BigDecimal("99.99"), fill.limitPrice(), fill.venue(), fill.executedOn(),
+            fill.quoteTimestamp(), fill.quoteEventId(), fill.bidPrice(), fill.askPrice());
+        assertThrows(PoisonMessageException.class, () -> service.settle(altered));
+        verifyNoInteractions(accounts, positions, history, outbox);
     }
 
     private OrderHistory savedRejection() {
