@@ -53,7 +53,9 @@ public class OrderController {
             orders = orderService.getAllOrders();
         } else {
             Account userAccount = securityUtilsService.getAuthenticatedUserAccount();
-            logger.info("Non-admin user - returning orders for account {}", LogMaskingUtil.maskAccountId(userAccount.getAccountId()));
+            if (logger.isInfoEnabled()) {
+                logger.info("Non-admin user - returning orders for account {}", LogMaskingUtil.maskAccountId(userAccount.getAccountId()));
+            }
             orders = orderService.getOrdersByAccount(userAccount.getAccountId());
         }
         
@@ -86,7 +88,9 @@ public class OrderController {
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
-        logger.info("GET /v1/orders/account/{} - Fetching orders for account", LogMaskingUtil.maskAccountId(accountId));
+        if (logger.isInfoEnabled()) {
+            logger.info("GET /v1/orders/account/{} - Fetching orders for account", LogMaskingUtil.maskAccountId(accountId));
+        }
         
         // Validate user owns this account (unless user is admin)
         if (!securityUtilsService.isAdmin()) {
@@ -97,19 +101,25 @@ public class OrderController {
         
         // Filter by status if provided
         if (status != null) {
-            logger.info("Filtering orders by status: {}", LogMaskingUtil.sanitize(status));
+            if (logger.isInfoEnabled()) {
+                logger.info("Filtering orders by status: {}", LogMaskingUtil.sanitize(status));
+            }
             orders = orders.stream()
                 .filter(o -> o.getStatus() == status)
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
         }
         
-        logger.info("Found {} orders for account {}", orders.size(), LogMaskingUtil.maskAccountId(accountId));
+        if (logger.isInfoEnabled()) {
+            logger.info("Found {} orders for account {}", orders.size(), LogMaskingUtil.maskAccountId(accountId));
+        }
         return ResponseEntity.ok(orders.stream().map(OrderResponse::from).toList());
     }
 
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody PlaceOrderRequest request) throws DuplicateOrderException {
-        logger.info("POST /v1/orders - Creating order for account {} with symbol {}", LogMaskingUtil.maskAccountId(request.getAccountId()), request.getSymbol());
+        if (logger.isInfoEnabled()) {
+            logger.info("POST /v1/orders - Creating order for account {} with symbol {}", LogMaskingUtil.maskAccountId(request.getAccountId()), request.getSymbol());
+        }
         
         // SECURITY: Validate that user is authorized to create orders for the requested account
         securityUtilsService.validateAccountOwnership(request.getAccountId());
