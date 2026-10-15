@@ -132,13 +132,13 @@ public class AccountService {
 
     public List<Positions> getPositions(Long accountId) throws AccountNotFoundException {
         // Validate account exists
-        Account account = getAccount(accountId);
+        getAccount(accountId);
         // Fetch and return all positions for this account
         return positionsRepository.findByAccountId(accountId);
     }
 
     public OrderHistory getOrders(Long accountId) throws AccountNotFoundException {
-        Account account = getAccount(accountId);
+        getAccount(accountId);
         return new OrderHistory();
     }
 

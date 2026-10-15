@@ -30,15 +30,7 @@ public class TradeEvent implements Serializable {
     
     public TradeEvent(UUID tradeId, String accountId, String symbol, String side, 
                       BigDecimal price, long quantity, String status, LocalDateTime timestamp) {
-        this.tradeId = tradeId;
-        this.accountId = accountId;
-        this.symbol = symbol;
-        this.side = side;
-        this.price = price;
-        this.quantity = quantity;
-        this.status = status;
-        this.timestamp = timestamp;
-        this.timeInForce = "GTC";  // Default
+        this(tradeId, accountId, symbol, side, price, quantity, status, "GTC", timestamp);
     }
     
     public TradeEvent(UUID tradeId, String accountId, String symbol, String side, 

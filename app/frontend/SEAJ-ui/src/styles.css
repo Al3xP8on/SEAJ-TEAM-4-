@@ -40,6 +40,7 @@
   --surface: var(--card);
   --surface-soft: var(--muted);
   --text: var(--foreground);
+  --accent: var(--primary);
   --on-brand: var(--primary-foreground);
   --error: var(--destructive);
   --focus: var(--ring);

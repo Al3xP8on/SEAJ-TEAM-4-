@@ -31,13 +31,4 @@ public record CreateOrderRequest(
     @Schema(description="Unique key for idempotency")
     @NotBlank(message="Idempotency key must not be blank")
     String idempotencyKey
-){
-   public CreateOrderRequest(String accountId, String instrumentId, int quantity, BigDecimal price, OrderSide side, String idempotencyKey){
-       this.accountId = accountId;
-       this.instrumentId = instrumentId;
-       this.quantity = quantity;
-       this.price = price;
-       this.side = side;
-       this.idempotencyKey = idempotencyKey;
-   } 
-}
+) {}

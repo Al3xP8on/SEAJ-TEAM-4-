@@ -97,7 +97,7 @@ public class Order {
 
     public void execute() {
         if (!OrderValidator.isValidForExecution(this)) {
-            transitionToRejected("Failed execution validation");
+            transitionToRejected();
             throw new OrderException(
                 "Order cannot be executed in current state",
                 OrderErrorCode.EXECUTION_FAILED,
@@ -118,7 +118,7 @@ public class Order {
             transitionToFilled();
 
         } catch (Exception e) {
-            transitionToRejected("Execution error: " + e.getMessage());
+            transitionToRejected();
             throw new OrderException(
                 "Order execution failed: " + e.getMessage(),
                 OrderErrorCode.EXECUTION_ERROR,
@@ -161,7 +161,7 @@ public class Order {
         this.status = OrderStatus.CANCELLED;
     }
 
-    private void transitionToRejected(String reason) {
+    private void transitionToRejected() {
         this.status = OrderStatus.REJECTED;
     }
 

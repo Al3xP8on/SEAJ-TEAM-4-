@@ -40,16 +40,6 @@ public record AccountResponse(
     Optional<LocalDateTime> lastUpdated
 ) {
 
-    public AccountResponse(long id, String accountId, String holderName, BigDecimal cashBalance, AccountStatus status, String roles, Optional<LocalDateTime> lastUpdated){
-        this.id = id;
-        this.accountId = accountId;
-        this.holderName = holderName;
-        this.cashBalance = cashBalance;
-        this.status = status;
-        this.roles = roles;
-        this.lastUpdated = lastUpdated;
-    }
-
     public AccountResponse(long id, String accountId, String holderName, BigDecimal cashBalance, AccountStatus status, Optional<LocalDateTime> lastUpdated){
         this(id, accountId, holderName, cashBalance, status, "USER", lastUpdated);
     }
