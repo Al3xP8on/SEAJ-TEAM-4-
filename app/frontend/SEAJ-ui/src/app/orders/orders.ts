@@ -8,10 +8,20 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe, DOCUMENT } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMPTY, catchError, exhaustMap, finalize, forkJoin, timer } from 'rxjs';
+import {
+  EMPTY,
+  catchError,
+  exhaustMap,
+  finalize,
+  forkJoin,
+  fromEvent,
+  startWith,
+  switchMap,
+  timer,
+} from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { Account, Position } from '../dashboard/dashboard.models';
 import { accountIdFromToken } from '../dashboard/dashboard.service';
@@ -34,6 +44,7 @@ import { MarketDataComponent } from './market-data';
   styleUrl: './orders.css',
 })
 export class OrdersComponent {
+  private readonly document = inject(DOCUMENT);
   private readonly service = inject(OrdersService);
   private readonly auth = inject(AuthService);
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
@@ -193,9 +204,14 @@ export class OrdersComponent {
           }
           if (!this.initialized) {
             this.initialized = true;
-            timer(0, 2000)
+            fromEvent(this.document, 'visibilitychange')
               .pipe(
-                exhaustMap(() => this.fetch()),
+                startWith(null),
+                switchMap(() =>
+                  this.document.hidden
+                    ? EMPTY
+                    : timer(0, 10_000).pipe(exhaustMap(() => this.fetch())),
+                ),
                 takeUntilDestroyed(this.destroy),
               )
               .subscribe();

@@ -72,6 +72,24 @@ dt {
 .negative {
   color: var(--destructive);
 }
+.chart-periods {
+  display: flex;
+  gap: 6px;
+  margin-top: 20px;
+}
+.chart-periods button {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 6px 12px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 0.75rem;
+}
+.chart-periods button[aria-pressed='true'] {
+  background: var(--muted);
+  color: var(--positive);
+  border-color: var(--positive);
+}
 figure {
   margin: 22px 0;
 }
@@ -85,6 +103,30 @@ svg {
 .grid {
   stroke: var(--border);
   stroke-width: 1;
+}
+.session-divider,
+.previous-close {
+  stroke: var(--muted-foreground);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+.previous-close {
+  stroke: var(--positive);
+  stroke-dasharray: 2 4;
+}
+.session-label {
+  fill: var(--foreground);
+  font-size: 10px;
+}
+.close-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.close-legend span {
+  width: 20px;
+  border-top: 2px dotted var(--positive);
 }
 .price-line {
   fill: none;

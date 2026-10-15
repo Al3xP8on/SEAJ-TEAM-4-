@@ -25,6 +25,8 @@ regexes = [
     '''^eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.\.\.$''',
     # Placeholder token in the NestJS README
     '''^abc123def456$''',
+    # OpenAPI / JSON-Schema property definitions: `fieldname: {type: string, ...}`
+    '''\{type:\s*string''',
 ]
 paths = [
     '''(^|/)node_modules/''',
@@ -34,4 +36,6 @@ paths = [
     '''(^|/)package-lock\.json$''',
     # Local, gitignored env file: it is meant to hold secrets and never reaches the repo or CI
     '''(^|/)\.env$''',
+    # OpenAPI contract docs are schema definitions, not config with real credentials
+    '''(^|/)docs/.*\.ya?ml$''',
 ]

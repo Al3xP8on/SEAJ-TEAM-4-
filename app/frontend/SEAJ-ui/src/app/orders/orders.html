@@ -5,7 +5,7 @@
       <h1>Place an order</h1>
       <p class="muted">Put your next investment in motion.</p>
     </div>
-    <span class="live"><span></span> Updates every 2 seconds</span>
+    <span class="live"><span></span> Updates every 10 seconds</span>
   </div>
   @if (loading()) {
     <p class="panel">Loading your trading desk…</p>
@@ -248,16 +248,13 @@
         <app-market-data
           [instruments]="instruments()"
           [selectedSymbol]="marketSymbol()"
-          [quote]="quote()"
           (choose)="selectInstrument($event)"
         />
         <div class="desk-note">
           <span>↗</span>
           <div>
             <strong>A little clarity before you trade</strong>
-            <p>
-              Only whole units are supported. Quotes and executions are simulated by the platform.
-            </p>
+            <p>Only whole units are supported. Orders execute through the platform's simulator.</p>
           </div>
         </div>
       </aside>
