@@ -6,6 +6,7 @@ services:
       context: ./infra/db
       dockerfile: Dockerfile
     container_name: seaj_postgres_db
+    mem_limit: 512m
     environment:
       POSTGRES_USER: "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
@@ -20,6 +21,7 @@ services:
       context: app/backend/backend-java
       dockerfile: Dockerfile
     container_name: seaj_app
+    mem_limit: 768m
     ports:
       - "8081:8083"
     depends_on:
@@ -36,6 +38,7 @@ services:
       context: .
       dockerfile: app/backend/backend-nestjs/Dockerfile
     container_name: seaj_auth_service
+    mem_limit: 384m
     ports:
       - "3000:3000"
     depends_on:
@@ -61,6 +64,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     container_name: seaj_kafka
+    mem_limit: 768m
     ports:
       - "9094:9094"
     environment:
@@ -86,6 +90,7 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: seaj_kafka_ui
+    mem_limit: 384m
     ports:
       - "8090:8080"
     depends_on:
@@ -99,6 +104,7 @@ services:
       context: execution-engine
       dockerfile: Dockerfile
     container_name: seaj_execution_engine
+    mem_limit: 512m
     ports:
       - "8082:8082"
     depends_on:
@@ -113,6 +119,7 @@ services:
   sonarqube:
     image: sonarqube:9.9-community
     container_name: seaj_sonarqube
+    mem_limit: 1g
     ports:
       - "8088:9000" 
     environment:
