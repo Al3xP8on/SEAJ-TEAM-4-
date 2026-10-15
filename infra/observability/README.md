@@ -15,11 +15,12 @@ docker-compose down            # stop both
 | UI / endpoint | URL |
 |---|---|
 | Grafana | http://10.9.65.95:8084 (`GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`, default admin/admin) |
-| Prometheus | http://10.9.65.95:8085 |
+| Prometheus | http://10.9.65.95:8086 |
 | OTLP gRPC (services) | `otel-collector:4317` in Docker, `localhost:4317` from host |
 | OTLP HTTP (browser) | `localhost:4318` |
 
-Ports 8084/8085 are used because the VM's AWS security group only allows the 808x–8100 range from the team network.
+Ports 8084/8086 are used because the VM's AWS security group only allows the 808x–8100 range from the team network.
+8085 is taken by the Angular dev server.
 
 ## Sending telemetry from a service
 

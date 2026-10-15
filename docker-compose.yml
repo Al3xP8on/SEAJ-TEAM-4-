@@ -198,7 +198,7 @@ services:
       - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     ports:
-      - "8085:9090"
+      - "8086:9090"
 
   kafka-exporter:
     profiles: ["observability"]
