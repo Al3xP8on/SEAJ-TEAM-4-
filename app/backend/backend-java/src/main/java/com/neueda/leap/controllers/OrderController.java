@@ -37,9 +37,6 @@ public class OrderController {
     private OrderService orderService;
 
     @Autowired
-    private TradeEventPublisher tradeEventPublisher;
-
-    @Autowired
     private SecurityUtilsService securityUtilsService;
 
     @GetMapping
@@ -122,7 +119,7 @@ public class OrderController {
         securityUtilsService.validateOrderOwnership(existing.get());
         try {
             Order order = orderService.executeOrder(id);
-            logger.info("Order executed: {}", LogMaskingUtil.maskId(id));
+            logger.info("Order queued for Kafka execution: {}", LogMaskingUtil.maskId(id));
             return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
             logger.error("Failed to execute order {}: {}", LogMaskingUtil.maskId(id), e.getMessage());
@@ -139,26 +136,6 @@ public class OrderController {
         try {
             Order order = orderService.cancelOrder(id);
             logger.info("Order cancelled: {}", LogMaskingUtil.maskId(id));
-            
-            // Publish CANCELLED trade event to Kafka
-            try {
-                TradeEvent cancelledEvent = new TradeEvent(
-                    order.getId(),
-                    order.getAccount().getAccountId(),
-                    order.getInstrument().getSymbol(),
-                    order.getSide().toString(),
-                    order.getPrice(),
-                    order.getQuantity(),
-                    "CANCELLED",
-                    "GTC",  // timeInForce
-                    LocalDateTime.now()
-                );
-                tradeEventPublisher.publishTradeEvent(cancelledEvent);
-                logger.info("Cancellation event published for order: {}", LogMaskingUtil.maskId(id));
-            } catch (Exception e) {
-                logger.error("Failed to publish cancellation event for order {}: {}", LogMaskingUtil.maskId(id), LogMaskingUtil.sanitize(e));
-                // Don't fail the cancellation if Kafka publishing fails
-            }
             
             return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {

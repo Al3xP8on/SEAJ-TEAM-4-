@@ -17,6 +17,7 @@ public class OrderSettlementService {
     private final PositionsRepository positions;
     private final OrderHistoryRepository history;
     @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
+    @org.springframework.beans.factory.annotation.Autowired private com.neueda.leap.messaging.OrderEventOutbox outbox;
 
     public OrderSettlementService(OrderRepository orders, AccountRepository accounts,
                                   PositionsRepository positions, OrderHistoryRepository history) {
@@ -31,6 +32,7 @@ public class OrderSettlementService {
         Order order = orders.findByIdForUpdate(event.orderId())
             .orElseThrow(() -> new PoisonMessageException("Order not found for execution"));
         if (!order.getStatus().canBeCancelled()) return false;
+        validateQuote(event);
         if (!order.getAccount().getAccountId().equals(event.accountId())
             || !order.getInstrument().getSymbol().equals(event.symbol())
             || order.getSide() != event.side() || order.getQuantity() != event.quantity()
@@ -86,6 +88,19 @@ public class OrderSettlementService {
         order.setStatus(OrderStatus.FILLED);
         orders.save(order);
         history.save(new OrderHistory(order.getId(), OrderStatus.FILLED));
+        var details = new java.util.LinkedHashMap<String, Object>();
+        details.put("executionId", event.executionId());
+        details.put("executionPrice", event.price());
+        details.put("venue", event.venue());
+        details.put("executedOn", event.executedOn());
+        details.put("quoteTimestamp", event.quoteTimestamp());
+        details.put("quoteEventId", event.quoteEventId());
+        details.put("bidPrice", event.bidPrice());
+        details.put("askPrice", event.askPrice());
+        outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_FILLED, null, details);
+        outbox.lifecycle(order, com.neueda.leap.messaging.EventType.PORTFOLIO_UPDATED, null,
+            java.util.Map.of("executionId", event.executionId(), "cashBalance", account.getCashBalance(),
+                "positionQuantity", position.getQuantity(), "averageCost", position.getAverageCost()));
         return true;
     }
 
@@ -95,6 +110,23 @@ public class OrderSettlementService {
         OrderHistory entry = new OrderHistory(order.getId(), OrderStatus.REJECTED);
         entry.setReason(reason);
         history.save(entry);
+        outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_REJECTED, reason);
+        outbox.command(order, "REJECT");
         return false;
+    }
+
+    private void validateQuote(ExecutionEvent event) {
+        if (event.venue() == null || !java.util.Set.of("ALPACA_IEX", "ALPACA_SIP").contains(event.venue())
+            || event.executedOn() == null || event.quoteTimestamp() == null || event.quoteEventId() == null
+            || event.bidPrice() == null || event.askPrice() == null || event.bidPrice().signum() <= 0
+            || event.askPrice().compareTo(event.bidPrice()) < 0
+            || event.quoteTimestamp().isAfter(event.executedOn().plusSeconds(5))
+            || java.time.Duration.between(event.quoteTimestamp(), event.executedOn()).compareTo(java.time.Duration.ofSeconds(60)) > 0) {
+            throw new PoisonMessageException("Execution must reference a fresh Alpaca quote");
+        }
+        BigDecimal expected = (event.side() == OrderSide.BUY ? event.askPrice() : event.bidPrice())
+            .setScale(2, event.side() == OrderSide.BUY ? java.math.RoundingMode.CEILING : java.math.RoundingMode.FLOOR);
+        if (event.price() == null || expected.compareTo(event.price()) != 0)
+            throw new PoisonMessageException("Execution price does not match the Alpaca quote");
     }
 }
