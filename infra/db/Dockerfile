@@ -18,6 +18,7 @@ COPY tables/06-order_history.sql /docker-entrypoint-initdb.d/08-order_history.sq
 COPY tables/07-price_history.sql /docker-entrypoint-initdb.d/09-price_history.sql
 COPY tables/08-current_prices.sql /docker-entrypoint-initdb.d/10-current_prices.sql
 COPY tables/index.sql /docker-entrypoint-initdb.d/11-indexes.sql
+COPY migrations/02-order-event-outbox.sql /docker-entrypoint-initdb.d/12-order-event-outbox.sql
 
 
 EXPOSE 5432

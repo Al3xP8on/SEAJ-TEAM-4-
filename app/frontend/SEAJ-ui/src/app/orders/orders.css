@@ -78,6 +78,7 @@ h2 {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   gap: 24px;
+  align-items: start;
 }
 .panel {
   background: var(--surface);
@@ -241,10 +242,12 @@ select:focus {
 .full.quiet {
   margin-top: 10px;
 }
+.ticket-column,
 .portfolio {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
 }
 .balance-panel {
   background: var(--surface-soft);

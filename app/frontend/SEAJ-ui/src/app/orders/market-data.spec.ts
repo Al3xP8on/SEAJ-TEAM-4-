@@ -102,7 +102,10 @@ describe('MarketDataComponent with Alpaca', () => {
     expect(page.querySelector('.market-overview .asset-class')?.textContent).toContain(
       'Alpaca · IEX',
     );
-    expect(page.querySelector('.data-date')?.textContent).toContain('14 Oct');
+    const localDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(
+      new Date(overview.snapshots[0].timestamp),
+    );
+    expect(page.querySelector('.data-date')?.textContent).toContain(localDate);
     expect(service.marketBars).not.toHaveBeenCalled();
   });
   it('excludes missing previous closes and prices from older trading dates', async () => {
@@ -240,7 +243,7 @@ describe('MarketDataComponent with Alpaca', () => {
     );
   });
   it('shows five trading days for 1W and reuses the same daily request for 1M', async () => {
-    const dailyBars = Array.from({ length: 35 }, (_, index) =>
+    const dailyBars = Array.from({ length: 49 }, (_, index) =>
       bar(new Date(Date.UTC(2026, 8, 1 + index, 4)).toISOString(), 100 + index),
     ).filter((entry) => ![0, 6].includes(new Date(entry.timestamp).getUTCDay()));
     service.marketBars.mockImplementation((symbol: string, timeframe: '1Min' | '1Day') =>
@@ -268,7 +271,7 @@ describe('MarketDataComponent with Alpaca', () => {
     const calls = service.marketBars.mock.calls.length;
     page.querySelectorAll<HTMLButtonElement>('.chart-periods button')[2].click();
     await settle(fixture);
-    expect(component.chart()?.points).toHaveLength(Math.min(30, dailyBars.length));
+    expect(component.chart()?.points).toHaveLength(30);
     expect(service.marketBars).toHaveBeenCalledTimes(calls);
     page.querySelectorAll<HTMLButtonElement>('.chart-periods button')[1].click();
     await settle(fixture);
