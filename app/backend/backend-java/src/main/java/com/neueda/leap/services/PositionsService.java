@@ -34,7 +34,7 @@ public class PositionsService {
         accountService.getAccount(accountId);
         
         List<Positions> positions = positionsRepository.findByAccountId(accountId);
-        return positions.stream().map(this::toResponse).collect(Collectors.toList());
+        return positions.stream().map(this::toResponse).toList();
     }
     
     public PositionResponse getPosition(Long accountId, Long positionId) throws AccountNotFoundException, PositionNotFoundException {

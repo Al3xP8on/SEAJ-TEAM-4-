@@ -36,15 +36,4 @@ public record OrderList(
     @Schema(description="Number of CANCELLED orders")
     @PositiveOrZero(message="Cancelled count must be zero or positive")
     Optional<Integer> cancelledCount
-) {
-
-    public OrderList(String accountId, List<Order> orders, int totalCount, Optional<Integer> newCount, Optional<Integer> executedCount, Optional<Integer> rejectedCount, Optional<Integer> cancelledCount){
-        this.accountId = accountId;
-        this.orders = orders;
-        this.totalCount = totalCount;
-        this.newCount = newCount;
-        this.executedCount = executedCount;
-        this.rejectedCount = rejectedCount;
-        this.cancelledCount = cancelledCount;
-    }
-}
+) {}

@@ -3,6 +3,7 @@ package com.neueda.leap.models;
 
 import jakarta.persistence.*;
 import com.neueda.leap.validators.InstrumentsValidator;
+import java.util.Objects;
 
 @Entity
 @Table(name = "instruments")
@@ -74,12 +75,12 @@ public class Instrument {
             return false;
         }
 
-        return symbol.equals(instrument.symbol);
+        return Objects.equals(symbol, instrument.symbol);
     }
 
     @Override
     public int hashCode(){
-        return symbol.hashCode();
+        return Objects.hashCode(symbol);
     }
 
     @Override

@@ -259,6 +259,49 @@ public class PriceHistoryControllerTest {
     }
 
     @Test
+    @DisplayName("Should return 400 when only 'to' date parameter is missing")
+    void testGetPriceHistoryByDateRangeMissingToParam() throws Exception {
+        mockMvc.perform(get("/v1/price-history/AAPL/range")
+                .param("to", "2024-09-25")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(priceHistoryService, never()).getPriceHistoryBySymbolAndDateRange(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Should return 500 when date range query throws unexpected error")
+    void testGetPriceHistoryByDateRangeUnexpectedError() throws Exception {
+        LocalDate fromDate = LocalDate.of(2024, 9, 24);
+        LocalDate toDate = LocalDate.of(2024, 9, 25);
+
+        when(priceHistoryService.getPriceHistoryBySymbolAndDateRange("AAPL", fromDate, toDate))
+            .thenThrow(new RuntimeException("Database error"));
+
+        mockMvc.perform(get("/v1/price-history/AAPL/range")
+                .param("from", "2024-09-24")
+                .param("to", "2024-09-25")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when savePriceHistory throws IllegalArgumentException")
+    void testSavePriceHistoryIllegalArgument() throws Exception {
+        when(priceHistoryService.savePriceHistory(any(PriceHistory.class)))
+            .thenThrow(new IllegalArgumentException("Duplicate entry"));
+
+        String priceHistoryJson = objectMapper.writeValueAsString(testPriceHistory);
+
+        mockMvc.perform(post("/v1/price-history")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(priceHistoryJson))
+                .andExpect(status().isBadRequest());
+
+        verify(priceHistoryService, times(1)).savePriceHistory(any(PriceHistory.class));
+    }
+
+    @Test
     @DisplayName("Should handle error when saving price history")
     void testSavePriceHistoryError() throws Exception {
         when(priceHistoryService.savePriceHistory(any(PriceHistory.class)))

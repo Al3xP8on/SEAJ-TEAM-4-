@@ -167,7 +167,7 @@ public class Positions {
             return false;
         }
         Positions position = (Positions) o;
-        return accountId == position.accountId && symbol.equals(position.symbol);
+        return accountId == position.accountId && Objects.equals(symbol, position.symbol);
     }
 
     @Override

@@ -371,6 +371,46 @@ public class OrderControllerTest {
     }
 
     @Test
+    @DisplayName("Should return 404 when executing non-existent order")
+    void testExecuteOrderNotFound() throws Exception {
+        UUID nonExistentId = UUID.randomUUID();
+        when(orderService.getOrderById(nonExistentId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/v1/orders/" + nonExistentId + "/execute")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+
+        verify(orderService, never()).executeOrder(any());
+    }
+
+    @Test
+    @DisplayName("Should return 404 when cancelling non-existent order")
+    void testCancelOrderNotFound() throws Exception {
+        UUID nonExistentId = UUID.randomUUID();
+        when(orderService.getOrderById(nonExistentId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/v1/orders/" + nonExistentId + "/cancel")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+
+        verify(orderService, never()).cancelOrder(any());
+    }
+
+    @Test
+    @DisplayName("Should return 404 when rejecting non-existent order")
+    void testRejectOrderNotFound() throws Exception {
+        UUID nonExistentId = UUID.randomUUID();
+        when(orderService.getOrderById(nonExistentId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/v1/orders/" + nonExistentId + "/reject")
+                .param("reason", "Test reason")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+
+        verify(orderService, never()).rejectOrder(any(), any());
+    }
+
+    @Test
     @DisplayName("Should handle internal server error on executeOrder")
     void testExecuteOrderInternalServerError() throws Exception {
         when(orderService.executeOrder(testOrderId))
@@ -386,5 +426,71 @@ public class OrderControllerTest {
             .content("{\"accountId\":\"ACC-001\",\"symbol\":\"AAPL\",\"side\":\"BUY\",\"quantity\":1.5,\"orderType\":\"MARKET\"}"))
             .andExpect(status().isBadRequest());
         verify(orderService, never()).placeOrder(any());
+    }
+
+    @Test
+    @DisplayName("Should return orders filtered by status when status filter matches no orders")
+    void testGetOrdersByAccountStatusFilterNoMatch() throws Exception {
+        Order filledOrder = new Order(testOrderId, testAccount, testInstrument, 100, new BigDecimal("150.50"),
+                OrderSide.BUY, "idem-key-001", OrderStatus.FILLED, LocalDateTime.now());
+        when(orderService.getOrdersByAccount("ACC-001")).thenReturn(Arrays.asList(filledOrder));
+
+        mockMvc.perform(get("/v1/orders/account/ACC-001")
+                .param("status", "NEW")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("Should return 409 when duplicate order is submitted")
+    void testCreateOrderDuplicate() throws Exception {
+        when(orderService.placeOrder(any()))
+                .thenThrow(new com.neueda.leap.exceptions.DuplicateOrderException("Duplicate"));
+
+        mockMvc.perform(post("/v1/orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"accountId\":\"ACC-001\",\"symbol\":\"AAPL\",\"side\":\"BUY\",\"quantity\":100,\"price\":150.50}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when OrderException thrown on create")
+    void testCreateOrderOrderException() throws Exception {
+        when(orderService.placeOrder(any()))
+                .thenThrow(new com.neueda.leap.exceptions.OrderException("Bad order", null, "ACC-001"));
+
+        mockMvc.perform(post("/v1/orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"accountId\":\"ACC-001\",\"symbol\":\"AAPL\",\"side\":\"BUY\",\"quantity\":100,\"price\":150.50}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return 500 on unexpected error during create")
+    void testCreateOrderUnexpectedError() throws Exception {
+        when(orderService.placeOrder(any()))
+                .thenThrow(new RuntimeException("Unexpected"));
+
+        mockMvc.perform(post("/v1/orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"accountId\":\"ACC-001\",\"symbol\":\"AAPL\",\"side\":\"BUY\",\"quantity\":100,\"price\":150.50}"))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    @DisplayName("Should get orders for non-admin user")
+    void testGetAllOrdersNonAdmin() throws Exception {
+        when(securityUtilsService.isAdmin()).thenReturn(false);
+        when(securityUtilsService.getAuthenticatedUserAccount()).thenReturn(testAccount);
+        List<Order> orders = Arrays.asList(testOrder);
+        when(orderService.getOrdersByAccount("ACC-001")).thenReturn(orders);
+
+        mockMvc.perform(get("/v1/orders")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        verify(orderService, times(1)).getOrdersByAccount("ACC-001");
     }
 }
