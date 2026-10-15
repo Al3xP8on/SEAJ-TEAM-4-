@@ -1,54 +1,40 @@
 package com.neueda.leap.messaging;
 
-import com.neueda.leap.enums.*;
+import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.models.Order;
 import com.neueda.leap.repositories.OrderRepository;
-import com.neueda.leap.services.MarketPriceService;
+import com.neueda.leap.services.OrderService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.slf4j.LoggerFactory;
-import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
-/** Resting limit orders wait for a marketable quote. Unsettled sends are retried after 30s. */
+/** Recover resting orders after an engine restart. Marketability belongs to the engine. */
 @Component
 public class PendingOrderDispatcher {
     private final OrderRepository orders;
-    private final MarketPriceService prices;
-    private final OrderEventPublisher publisher;
+    private final OrderService service;
     private final ConcurrentHashMap<UUID, Instant> sent = new ConcurrentHashMap<>();
 
-    public PendingOrderDispatcher(OrderRepository orders, MarketPriceService prices, OrderEventPublisher publisher) {
+    public PendingOrderDispatcher(OrderRepository orders, OrderService service) {
         this.orders = orders;
-        this.prices = prices;
-        this.publisher = publisher;
+        this.service = service;
     }
-
-    @Scheduled(fixedDelayString = "${trading.orders.dispatch-interval:2000}")
+    @Scheduled(fixedDelayString = "${trading.orders.dispatch-interval:10000}")
     public void dispatchPendingOrders() {
         var pending = orders.findByStatus(OrderStatus.PENDING);
-        var ids = pending.stream().map(Order::getId).collect(java.util.stream.Collectors.toSet());
-        sent.keySet().retainAll(ids);
+        sent.keySet().retainAll(pending.stream().map(Order::getId).collect(java.util.stream.Collectors.toSet()));
         for (Order order : pending) {
+            Instant last = sent.get(order.getId());
+            if (last != null && last.isAfter(Instant.now().minusSeconds(30))) continue;
             try {
-                Instant last = sent.get(order.getId());
-                if (last != null && last.isAfter(Instant.now().minusSeconds(30))) continue;
-                var quote = prices.getLatestPrice(order.getInstrument().getSymbol());
-                if (quote.isEmpty()) continue;
-                BigDecimal price = (order.getSide() == OrderSide.BUY ? quote.get().askPrice() : quote.get().bidPrice())
-                    .setScale(2, order.getSide() == OrderSide.BUY ? java.math.RoundingMode.CEILING : java.math.RoundingMode.FLOOR);
-                if (price.signum() <= 0) continue;
-                if (order.getOrderType() == OrderType.LIMIT
-                    && (order.getSide() == OrderSide.BUY ? price.compareTo(order.getPrice()) > 0
-                                                        : price.compareTo(order.getPrice()) < 0)) continue;
-                publisher.publish(new OrderEvent(order.getId(), order.getAccount().getAccountId(),
-                    order.getInstrument().getSymbol(), order.getSide(), Math.toIntExact(order.getQuantity()),
-                    price, Instant.now()));
+                // Locks/rechecks the order, preventing a later submit after a concurrent cancellation.
+                service.executeOrder(order.getId());
                 sent.put(order.getId(), Instant.now());
-            } catch (Exception e) {
-                LoggerFactory.getLogger(getClass()).warn("Could not dispatch order {}", order.getId(), e);
+            } catch (Exception error) {
+                LoggerFactory.getLogger(getClass()).warn("Could not requeue pending order {}", order.getId());
             }
         }
     }
