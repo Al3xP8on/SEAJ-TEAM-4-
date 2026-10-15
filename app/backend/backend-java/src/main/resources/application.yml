@@ -38,7 +38,13 @@ trading:
 market:
   data:
     poll:
-      symbols: AAPL,GOOGL,MSFT,TSLA,META
-      interval: 5000
+      symbols: "*"
+      interval: 10000
     staleness:
       threshold-seconds: 60
+
+alpaca:
+  enabled: ${ALPACA_ENABLED:true}
+  key-id: ${ALPACA_API_KEY_ID:}
+  secret-key: ${ALPACA_API_SECRET_KEY:}
+  feed: ${ALPACA_DATA_FEED:iex}

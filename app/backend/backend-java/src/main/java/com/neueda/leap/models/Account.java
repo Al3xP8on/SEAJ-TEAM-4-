@@ -1,6 +1,9 @@
+// Maps platform accounts and their identity, credentials, balances and status to the database.
+// Excludes the password hash from JSON responses while supporting existing account operations.
 package com.neueda.leap.models;
 
 import java.math.BigDecimal;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 import jakarta.persistence.*;
 import com.neueda.leap.interfaces.Closable;
@@ -22,7 +25,11 @@ public class Account implements Closable {
     private String username;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String passwordHash;
+
+    @Column(nullable = false)
+    private String roles;
     
     @Column(nullable = false)
     private String name;
@@ -56,10 +63,15 @@ public class Account implements Closable {
     // Legacy constructor for backward compatibility (used in tests)
     public Account(String accountId, String name, String email, String phone,
                    BigDecimal cashBalance, AccountStatus status) {
-        this(accountId, accountId.toLowerCase().replace("-", ""), "placeholder", name, email, phone, cashBalance, status);
+        this(accountId, accountId.toLowerCase().replace("-", ""), "placeholder", "USER", name, email, phone, cashBalance, status);
     }
 
     public Account(String accountId, String username, String rawPassword, String email, String phone,
+                   AccountStatus status) {
+        this(accountId, username, rawPassword, "USER", email, phone, status);
+    }
+
+    public Account(String accountId, String username, String rawPassword, String roles, String email, String phone,
                    AccountStatus status) {
         AccountValidator.validateAccountId(accountId);
 
@@ -67,6 +79,7 @@ public class Account implements Closable {
         this.username = username;
         this.name = username;
         this.passwordHash = new BCryptPasswordEncoder().encode(rawPassword);
+        this.roles = AccountValidator.normalizeRoles(roles);
         this.email = email;
         this.phone = phone;
         this.cashBalance = BigDecimal.ZERO;
@@ -79,14 +92,19 @@ public class Account implements Closable {
     // Full constructor kept for backward compatibility
     public Account(String accountId, String username, String rawPassword, String name, String email, String phone,
                    BigDecimal cashBalance, AccountStatus status) {
+        this(accountId, username, rawPassword, "USER", name, email, phone, cashBalance, status);
+    }
+
+    // Full constructor with roles support
+    public Account(String accountId, String username, String rawPassword, String roles, String name, String email, String phone,
+                   BigDecimal cashBalance, AccountStatus status) {
         AccountValidator.validateAccountId(accountId);
-        if (cashBalance == null || cashBalance.signum() < 0) {
-            throw new IllegalArgumentException("Initial balance must be zero or positive");
-        }
+        AccountValidator.validateNonNegativeAmount(cashBalance, "Initial balance");
 
         this.accountId = accountId;
         this.username = username;
         this.passwordHash = new BCryptPasswordEncoder().encode(rawPassword);
+        this.roles = AccountValidator.normalizeRoles(roles);
         this.name = name;
         this.email = email;
         this.phone = phone;
@@ -161,8 +179,8 @@ public class Account implements Closable {
     @Override
     public String toString() {
         return String.format(
-            "Account{id=%d, accountId='%s', name='%s', balance=%s, status=%s, version=%d}",
-            id, accountId, name, cashBalance, status, version
+            "Account{id=%d, accountId='%s', roles='%s', name='%s', balance=%s, status=%s, version=%d}",
+            id, accountId, roles, name, cashBalance, status, version
         );
     }
 
@@ -170,6 +188,7 @@ public class Account implements Closable {
     public String getAccountId() { return accountId; }
     public String getUsername() { return username; }
     public String getName() { return name; }
+    public String getRoles() { return roles; }
     public String getEmail() { return email; }
     public String getPhone() { return phone; }
     public String getHolderName() { return name; }  // Backward compatibility
@@ -186,6 +205,10 @@ public class Account implements Closable {
     
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setRoles(String roles) {
+        this.roles = AccountValidator.normalizeRoles(roles);
     }
     
     public void setEmail(String email) {

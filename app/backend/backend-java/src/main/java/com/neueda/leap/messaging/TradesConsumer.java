@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.models.Order;
+import com.neueda.leap.models.OrderHistory;
+import com.neueda.leap.repositories.OrderHistoryRepository;
 import com.neueda.leap.repositories.OrderRepository;
 import com.neueda.leap.services.OrderPricingValidator;
 import com.neueda.leap.utils.LogMaskingUtil;
@@ -42,11 +44,13 @@ public class TradesConsumer {
     private final OrderPricingValidator pricingValidator;
     private final TradeEventPublisher tradeEventPublisher;
     private final ObjectMapper objectMapper;
+    private final OrderHistoryRepository history;
     
-    public TradesConsumer(OrderRepository orderRepository, OrderPricingValidator pricingValidator, TradeEventPublisher tradeEventPublisher) {
+    public TradesConsumer(OrderRepository orderRepository, OrderPricingValidator pricingValidator, TradeEventPublisher tradeEventPublisher, OrderHistoryRepository history) {
         this.orderRepository = orderRepository;
         this.pricingValidator = pricingValidator;
         this.tradeEventPublisher = tradeEventPublisher;
+        this.history = history;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
     }
@@ -115,7 +119,7 @@ public class TradesConsumer {
     }
 
     private Order loadAndValidateOrder(UUID orderId) {
-        return orderRepository.findById(orderId)
+        return orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new PoisonMessageException("Order not found in database: " + orderId));
     }
 
@@ -124,7 +128,10 @@ public class TradesConsumer {
         
         order.setStatus(result.newStatus());
         orderRepository.save(order);
-        
+        OrderHistory entry = new OrderHistory(orderId, result.newStatus());
+        entry.setReason(result.reason());
+        history.save(entry);
+
         if (result.newStatus() == OrderStatus.PENDING) {
             logger.info("Order {} approved for execution: {}", LogMaskingUtil.maskId(orderId), result.reason());
             // Publish ORDER_ACCEPTED event to trade-events topic
@@ -203,6 +210,7 @@ public class TradesConsumer {
                 LocalDateTime.now()
             );
             
+            rejectedEvent.setReason(reason);
             tradeEventPublisher.publishTradeEvent(rejectedEvent);
             logger.info("Published ORDER_REJECTED event for order: {} - Reason: {}", LogMaskingUtil.maskId(orderId), reason);
         } catch (Exception e) {

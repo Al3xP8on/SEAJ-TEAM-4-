@@ -1,0 +1,231 @@
+/* Matches the Orders page (orders.css) so every page inside the shell looks the same */
+:host {
+  display: block;
+  min-height: calc(100dvh - var(--app-nav-height, 0px));
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, sans-serif;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  outline-offset: 4px;
+}
+
+main {
+  max-width: 1320px;
+  margin: auto;
+  padding: 42px 32px;
+}
+
+.page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  font-size: 0.6875rem;
+  letter-spacing: 1.7px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 10px;
+}
+
+h1 {
+  font-size: 2.125rem;
+  font-weight: 600;
+  letter-spacing: -1px;
+  margin: 0 0 10px;
+}
+
+h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.muted {
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.primary {
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.primary:hover {
+  background: var(--primary-hover);
+}
+
+.quiet {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  padding: 12px 18px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.quiet:hover {
+  background: var(--muted);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+/* Tinted like the Orders page balance panel */
+.cash-card {
+  background: var(--muted);
+}
+
+.figure {
+  font-size: 1.625rem;
+  letter-spacing: -0.6px;
+  font-weight: 600;
+  margin: 8px 0 6px;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 3px 14px #243d2e05;
+}
+
+.balance {
+  font-size: 2.375rem;
+  letter-spacing: -1.2px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 12px 0 8px;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.tag {
+  background: var(--muted);
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 0.6875rem;
+  color: var(--foreground);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.positions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.positions-table th,
+.positions-table td {
+  padding: 13px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.positions-table thead th {
+  font-size: 0.6875rem;
+  color: var(--foreground);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.positions-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.positions-table .symbol {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.positions-table tfoot th,
+.positions-table tfoot td {
+  border-bottom: none;
+  font-weight: 600;
+}
+
+.empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.status {
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.error-panel {
+  max-width: 560px;
+}
+
+.error-panel p {
+  color: var(--destructive);
+  margin: 0 0 16px;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  max-width: 1320px;
+  margin: auto;
+  padding: 20px 32px 30px;
+  color: var(--foreground);
+  font-size: 0.6875rem;
+}
+
+@media (max-width: 800px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  main {
+    padding: 28px 16px;
+  }
+}
+
+.card { min-width: 0; } .positions-scroll { overflow-x: auto; }
+@media (max-width: 520px) { main { padding: 1rem; } .card { padding: 1rem; } }

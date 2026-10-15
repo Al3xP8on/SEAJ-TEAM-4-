@@ -1,0 +1,111 @@
+/* Tailwind + spartan/ui. Spartan's components rely on Tailwind's preflight reset (e.g. for borders),
+   so it is included; existing page styles set their own headings, buttons and inputs explicitly. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@import '@spartan-ng/brain/hlm-tailwind-preset.css';
+
+/* Spartan owns the theme tokens. Legacy page aliases below keep every route in sync. */
+:root {
+  color-scheme: light;
+  --font-sans: Arial, sans-serif;
+  --radius: .5rem;
+  --background: #f4f6f5;
+  --foreground: #17251d;
+  --card: #ffffff;
+  --card-foreground: #17251d;
+  --popover: #ffffff;
+  --popover-foreground: #17251d;
+  --primary: #246342;
+  --primary-hover: #194b31;
+  --primary-foreground: #ffffff;
+  --secondary: #e5eee8;
+  --secondary-foreground: #17251d;
+  --muted: #edf4ef;
+  --muted-foreground: #4d5e54;
+  --accent: #e5eee8;
+  --accent-foreground: #17251d;
+  --destructive: #a3271c;
+  --border: #c4cfc8;
+  --input: #74877a;
+  --ring: #174ca8;
+  --positive: #246342;
+  --chart-1: #246342;
+  --chart-2: #4a926a;
+  --chart-3: #779b87;
+  --chart-4: #946012;
+  --chart-5: #5a6b61;
+  --surface: var(--card);
+  --surface-soft: var(--muted);
+  --text: var(--foreground);
+  --on-brand: var(--primary-foreground);
+  --error: var(--destructive);
+  --focus: var(--ring);
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+:root.dark {
+  color-scheme: dark;
+  --background: #111c16;
+  --foreground: #f4f7f5;
+  --card: #1d2b23;
+  --card-foreground: #f4f7f5;
+  --popover: #1d2b23;
+  --popover-foreground: #f4f7f5;
+  --primary: #286b48;
+  --primary-hover: #205e3d;
+  --primary-foreground: #ffffff;
+  --secondary: #2b4033;
+  --secondary-foreground: #f4f7f5;
+  --muted: #23352a;
+  --muted-foreground: #c2d0c7;
+  --accent: #2b4033;
+  --accent-foreground: #f4f7f5;
+  --destructive: #ffb6bb;
+  --border: #52695b;
+  --input: #91a699;
+  --ring: #9ac7ff;
+  --positive: #a5dfb7;
+  --chart-1: #a5dfb7;
+  --chart-2: #8bc6b5;
+  --chart-3: #bdd5c7;
+  --chart-4: #ffd58a;
+  --chart-5: #cfbbef;
+}
+
+@layer base {
+  * { @apply border-border; box-sizing: border-box; }
+  body { @apply bg-background text-foreground; font-family: var(--font-sans); }
+  h1, h2, h3 { font-weight: 600; }
+  button, a, input, select { scroll-margin-top: 10rem; }
+  button, input, select { min-height: 2.75rem; }
+  button { cursor: pointer; white-space: normal; }
+  :focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
+}
+html:not([data-text-size='100']) .topbar { position: static; }
+/* The generated Helm switch uses Brain for interaction and these brand styles. */
+[data-slot='switch'] .spartan-switch {
+  width: 64px; height: 36px; min-height: 36px; margin: 0; padding: 4px;
+  display: inline-flex; align-items: center; flex-shrink: 0;
+  border: 2px solid var(--positive); border-radius: 24px;
+  background: var(--card); transition: background-color .15s ease;
+}
+[data-slot='switch'] .spartan-switch:hover { background: var(--muted); }
+[data-slot='switch'] .spartan-switch[data-state='checked'] { background: var(--primary); }
+[data-slot='switch-thumb'] {
+  display: block; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--positive); transform: translateX(0); transition: transform .15s ease;
+}
+[data-slot='switch-thumb'][data-state='checked'] { background: var(--primary-foreground); transform: translateX(28px); }
+[data-slot='switch'] .spartan-switch:focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; scroll-behavior: auto !important; }
+}

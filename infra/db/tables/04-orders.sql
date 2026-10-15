@@ -8,6 +8,8 @@ CREATE TABLE orders (
     side                order_side NOT NULL,
     quantity            INT NOT NULL CHECK (quantity > 0),
     price               NUMERIC(18, 2) NOT NULL CHECK (price > 0),
+    order_type          VARCHAR(16) NOT NULL DEFAULT 'LIMIT' CHECK (order_type IN ('MARKET', 'LIMIT')),
+    execution_price     NUMERIC(18, 2) CHECK (execution_price > 0),
     status              order_status NOT NULL DEFAULT 'NEW',
     idempotency_key     VARCHAR(100) NOT NULL UNIQUE,
     created_on          TIMESTAMP NOT NULL DEFAULT NOW()

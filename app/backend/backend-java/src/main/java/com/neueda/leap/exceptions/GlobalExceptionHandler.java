@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -163,6 +164,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException exception, HttpServletRequest request){
+        logger.error("AccessDeniedException occurred at {}: {}", request.getRequestURI(), exception.getMessage(), exception);
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden: " + exception.getMessage(),
+                LocalDateTime.now(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+        }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException exception, HttpServletRequest request){
         // Field names and constraint messages only, so rejected input values never reach the logs
@@ -180,16 +193,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    ResponseEntity<ErrorResponse> handleUnreadableBody(HttpMessageNotReadableException exception, HttpServletRequest request){
-        logger.warn("Malformed request body at {}", request.getRequestURI());
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Malformed request body",
-                LocalDateTime.now(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        @ExceptionHandler(HttpMessageNotReadableException.class)
+        ResponseEntity<ErrorResponse> handleUnreadableBody(HttpMessageNotReadableException exception, HttpServletRequest request){
+                logger.warn("Malformed request body at {}", request.getRequestURI());
+                ErrorResponse errorResponse = new ErrorResponse(
+                                HttpStatus.BAD_REQUEST.value(),
+                                "Malformed request body",
+                                LocalDateTime.now(),
+                                request.getRequestURI()
+                );
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleStatusException(org.springframework.web.server.ResponseStatusException exception, HttpServletRequest request) {
+        return ResponseEntity.status(exception.getStatusCode()).body(new ErrorResponse(exception.getStatusCode().value(),
+            exception.getReason(), LocalDateTime.now(), request.getRequestURI()));
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleOrderConflict(org.springframework.dao.DataIntegrityViolationException exception, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(409,
+            "This request conflicts with existing data. Refresh and retry.", LocalDateTime.now(), request.getRequestURI()));
     }
 
     @ExceptionHandler(Exception.class)

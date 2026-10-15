@@ -23,8 +23,14 @@ public class OrderValidator {
     public static Account validateAccount(Account account) {
         Objects.requireNonNull(account, "Account cannot be null");
         if (!account.isActive()) {
+            String status = account.getStatus() != null ? account.getStatus().toString() : "UNKNOWN";
+            String message = String.format(
+                "Cannot create orders: Account %s is in %s status. Only ACTIVE accounts can create orders.",
+                account.getAccountId(),
+                status
+            );
             throw new OrderException(
-                "Account is not in active state",
+                message,
                 OrderErrorCode.ACCOUNT_NOT_ACTIVE,
                 account.getAccountId()
             );

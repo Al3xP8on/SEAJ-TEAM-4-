@@ -82,6 +82,12 @@ public class OrderControllerTest {
         testOrder = new Order(testOrderId, testAccount, testInstrument, 100, new BigDecimal("150.50"), 
                             OrderSide.BUY, "idem-key-001", OrderStatus.NEW, LocalDateTime.now());
         testOrderHistory = new OrderHistory(testOrderId, OrderStatus.NEW);
+        
+        when(orderService.getOrderById(testOrderId)).thenReturn(Optional.of(testOrder));
+        when(orderService.getOrderById(invalidOrderId)).thenReturn(Optional.of(testOrder));
+        // Default mock setup: regular user (not admin)
+        when(securityUtilsService.isAdmin()).thenReturn(false);
+        when(securityUtilsService.getAuthenticatedUserAccount()).thenReturn(testAccount);
     }
 
     // ==================== GET Tests ====================
@@ -89,6 +95,8 @@ public class OrderControllerTest {
     @Test
     @DisplayName("Should get all orders (admin)")
     void testGetAllOrdersSuccess() throws Exception {
+        // Admin user case - should return all orders
+        when(securityUtilsService.isAdmin()).thenReturn(true);
         List<Order> orders = Arrays.asList(testOrder);
         when(orderService.getAllOrders()).thenReturn(orders);
 
@@ -212,10 +220,7 @@ public class OrderControllerTest {
         Order createdOrder = new Order(UUID.randomUUID(), testAccount, testInstrument, 100, new BigDecimal("150.50"),
                                        OrderSide.BUY, "idem-key-002", OrderStatus.NEW, LocalDateTime.now());
         
-        when(accountRepository.findByAccountId("ACC-001")).thenReturn(Optional.of(testAccount));
-        when(instrumentsRepository.findBySymbol("AAPL")).thenReturn(Optional.of(testInstrument));
-        when(orderService.createOrder(eq(testAccount), eq(testInstrument), eq(100L), eq(new BigDecimal("150.50")), 
-                                      eq(OrderSide.BUY), anyString())).thenReturn(createdOrder);
+        when(orderService.placeOrder(any())).thenReturn(createdOrder);
 
         mockMvc.perform(post("/v1/orders")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -224,41 +229,33 @@ public class OrderControllerTest {
                 .andExpect(jsonPath("$.orderId", notNullValue()))
                 .andExpect(jsonPath("$.status", equalTo("NEW")));
 
-        verify(accountRepository, times(1)).findByAccountId("ACC-001");
-        verify(instrumentsRepository, times(1)).findBySymbol("AAPL");
-        verify(orderService, times(1)).createOrder(eq(testAccount), eq(testInstrument), eq(100L), 
-                                                    eq(new BigDecimal("150.50")), eq(OrderSide.BUY), anyString());
+        verify(orderService).placeOrder(any());
     }
 
     @Test
     @DisplayName("Should return 404 when account not found")
     void testCreateOrderAccountNotFound() throws Exception {
-        when(accountRepository.findByAccountId("ACC-999")).thenReturn(Optional.empty());
+        when(orderService.placeOrder(any())).thenThrow(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Account not found"));
 
         mockMvc.perform(post("/v1/orders")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"accountId\":\"ACC-999\",\"symbol\":\"AAPL\",\"side\":\"BUY\",\"quantity\":100,\"price\":150.50}"))
                 .andExpect(status().isNotFound());
 
-        verify(accountRepository, times(1)).findByAccountId("ACC-999");
-        verify(instrumentsRepository, never()).findBySymbol(any());
-        verify(orderService, never()).createOrder(any(), any(), anyLong(), any(), any(), any());
+        verify(orderService).placeOrder(any());
     }
 
     @Test
     @DisplayName("Should return 404 when instrument not found")
     void testCreateOrderInstrumentNotFound() throws Exception {
-        when(accountRepository.findByAccountId("ACC-001")).thenReturn(Optional.of(testAccount));
-        when(instrumentsRepository.findBySymbol("XYZ")).thenReturn(Optional.empty());
+        when(orderService.placeOrder(any())).thenThrow(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Instrument not found"));
 
         mockMvc.perform(post("/v1/orders")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"accountId\":\"ACC-001\",\"symbol\":\"XYZ\",\"side\":\"BUY\",\"quantity\":100,\"price\":150.50}"))
                 .andExpect(status().isNotFound());
 
-        verify(accountRepository, times(1)).findByAccountId("ACC-001");
-        verify(instrumentsRepository, times(1)).findBySymbol("XYZ");
-        verify(orderService, never()).createOrder(any(), any(), anyLong(), any(), any(), any());
+        verify(orderService).placeOrder(any());
     }
 
     // ==================== PUT Tests ====================
@@ -382,5 +379,12 @@ public class OrderControllerTest {
         mockMvc.perform(put("/v1/orders/" + testOrderId + "/execute")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError());
+    }
+    @Test
+    void rejectsFractionalQuantityWithoutCreatingAnOrder() throws Exception {
+        mockMvc.perform(post("/v1/orders").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"accountId\":\"ACC-001\",\"symbol\":\"AAPL\",\"side\":\"BUY\",\"quantity\":1.5,\"orderType\":\"MARKET\"}"))
+            .andExpect(status().isBadRequest());
+        verify(orderService, never()).placeOrder(any());
     }
 }

@@ -349,3 +349,7 @@ Open http://localhost:8501. On a remote VM, forward port 8501 (e.g. the **Ports*
 cd app/backend/backend-python
 python -m pytest -v
 ```
+
+### Placing orders
+
+See [Orders](docs/orders.md) for the trading desk, supported order actions, and the migration for existing databases.

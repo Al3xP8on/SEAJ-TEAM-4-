@@ -42,6 +42,14 @@ public class Order {
     @Column(nullable = false)
     private OrderStatus status;
     
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_type", nullable = false, length = 16)
+    @org.hibernate.annotations.ColumnDefault("'LIMIT'")
+    private com.neueda.leap.enums.OrderType orderType = com.neueda.leap.enums.OrderType.LIMIT;
+
+    @Column(name = "execution_price", precision = 18, scale = 2)
+    private BigDecimal executionPrice;
+
     @Column(unique = true, nullable = false)
     private String idempotencyKey;
     
@@ -228,6 +236,11 @@ public class Order {
     public LocalDateTime getCreatedAt() { 
         return createdAt; 
     }
+
+    public com.neueda.leap.enums.OrderType getOrderType() { return orderType; }
+    public void setOrderType(com.neueda.leap.enums.OrderType type) { orderType = Objects.requireNonNull(type); }
+    public BigDecimal getExecutionPrice() { return executionPrice; }
+    public void setExecutionPrice(BigDecimal value) { executionPrice = value; }
 
     public void setStatus(OrderStatus status) { 
         this.status = Objects.requireNonNull(status, "Status cannot be null");

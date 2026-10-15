@@ -38,7 +38,7 @@ public record OrderHistoryEntry (
             history.getOrderId() == null ? null : history.getOrderId().toString(),
             history.getStatus(),
             history.getChangedOn(),
-            Optional.empty()
+            Optional.ofNullable(history.getReason())
         );
     }
 }

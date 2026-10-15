@@ -72,4 +72,9 @@ class MarketDataConsumerTest {
         assertThrows(IllegalArgumentException.class, () -> consumer.consumeMarketData(invalid, "AAPL"));
         verifyNoInteractions(store);
     }
+    @Test void convertsJacksonDecimalSecondsTimestampWithoutTreatingItAsMillis() throws Exception {
+        Instant instant = Instant.parse("2026-10-14T09:00:00.125Z");
+        consumer.consumeMarketData(message(payload(instant)), "AAPL");
+        verify(store).updatePrice(argThat(price -> price.priceTimeStamp().equals(instant)));
+    }
 }

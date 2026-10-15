@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Market growth chart</title>
+  <desc id="desc">Red and green candlesticks trend upward across a dark market chart with a cyan arrow.</desc>
+  <rect width="1200" height="800" fill="#031d43"/>
+  <g stroke-linecap="round">
+    <g stroke="#e34b4b" fill="#e34b4b"><path d="M75 390V560" stroke-width="5"/><rect x="64" y="430" width="22" height="88"/><path d="M145 350V505" stroke-width="5"/><rect x="134" y="375" width="22" height="90"/><path d="M225 300V430" stroke-width="5"/><rect x="214" y="325" width="22" height="68"/></g>
+    <g stroke="#39d98a" fill="#39d98a"><path d="M110 420V575" stroke-width="5"/><rect x="99" y="450" width="22" height="86"/><path d="M185 330V465" stroke-width="5"/><rect x="174" y="350" width="22" height="80"/><path d="M265 250V390" stroke-width="5"/><rect x="254" y="275" width="22" height="82"/><path d="M330 290V420" stroke-width="5"/><rect x="319" y="315" width="22" height="72"/></g>
+    <g stroke="#e34b4b" fill="#e34b4b"><path d="M295 310V455" stroke-width="5"/><rect x="284" y="350" width="22" height="70"/><path d="M405 270V415" stroke-width="5"/><rect x="394" y="300" width="22" height="82"/><path d="M505 220V370" stroke-width="5"/><rect x="494" y="250" width="22" height="82"/></g>
+    <g stroke="#39d98a" fill="#39d98a"><path d="M370 245V370" stroke-width="5"/><rect x="359" y="265" width="22" height="72"/><path d="M450 205V350" stroke-width="5"/><rect x="439" y="225" width="22" height="82"/><path d="M545 175V320" stroke-width="5"/><rect x="534" y="195" width="22" height="82"/><path d="M625 205V345" stroke-width="5"/><rect x="614" y="225" width="22" height="78"/></g>
+    <g stroke="#e34b4b" fill="#e34b4b"><path d="M590 240V390" stroke-width="5"/><rect x="579" y="275" width="22" height="78"/><path d="M710 155V305" stroke-width="5"/><rect x="699" y="180" width="22" height="85"/></g>
+    <g stroke="#39d98a" fill="#39d98a"><path d="M670 165V295" stroke-width="5"/><rect x="659" y="185" width="22" height="78"/><path d="M750 115V255" stroke-width="5"/><rect x="739" y="140" width="22" height="78"/><path d="M830 95V225" stroke-width="5"/><rect x="819" y="115" width="22" height="78"/><path d="M910 60V200" stroke-width="5"/><rect x="899" y="80" width="22" height="82"/></g>
+  </g>
+  <path d="M610 430 L735 320 L820 380 L1025 120" fill="none" stroke="#16d9ff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M965 115 L1045 95 L1025 175 Z" fill="#16d9ff"/>
+</svg>

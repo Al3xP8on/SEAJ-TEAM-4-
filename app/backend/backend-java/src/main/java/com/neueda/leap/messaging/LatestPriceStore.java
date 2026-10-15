@@ -65,9 +65,7 @@ public class LatestPriceStore {
      * @return Optional containing the MarketPrice if available and not stale
      */
     public Optional<MarketPrice> getPriceIfNotStale(String symbol) {
-        // TEMPORARILY DISABLED: Comment out staleness check to debug pricing rejections
-        // return getPrice(symbol).filter(this::isNotStale);
-        return getPrice(symbol);  // Accept any available price regardless of age
+        return getPrice(symbol).filter(this::isNotStale);
     }
     
     /**

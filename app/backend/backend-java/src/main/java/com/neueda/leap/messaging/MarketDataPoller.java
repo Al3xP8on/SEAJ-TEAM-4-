@@ -17,25 +17,48 @@ public class MarketDataPoller {
     
     private final ExternalMarketDataClient marketDataClient;
     private final MarketDataProducer marketDataProducer;
+    private final com.neueda.leap.services.AlpacaMarketDataService alpaca;
     private final EventType eventType = EventType.PRICE_UPDATE;
     
-    @Value("${market.data.poll.symbols:AAPL,GOOGL,MSFT}")
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.neueda.leap.repositories.InstrumentsRepository instruments;
+
+    @Value("${market.data.poll.symbols:*}")
     private String symbols;
     
     public MarketDataPoller(ExternalMarketDataClient marketDataClient, 
-                           MarketDataProducer marketDataProducer) {
+                           MarketDataProducer marketDataProducer,
+                           com.neueda.leap.services.AlpacaMarketDataService alpaca) {
         this.marketDataClient = marketDataClient;
         this.marketDataProducer = marketDataProducer;
+        this.alpaca = alpaca;
     }
     
-    @Scheduled(fixedDelayString = "${market.data.poll.interval:5000}")
+    @Scheduled(fixedDelayString = "${market.data.poll.interval:10000}")
     public void pollMarketData() {
         if (symbols == null || symbols.isEmpty()) {
             logger.warn("No symbols configured for market data polling");
             return;
         }
         
-        String[] symbolArray = symbols.split(",");
+        if (alpaca.isConfigured()) {
+            var data = alpaca.overview();
+            if (!data.message().isEmpty()) {
+                logger.warn("Alpaca market data: {}", data.message());
+                return;
+            }
+            var requested = java.util.Arrays.stream(symbols.split(",")).map(s -> s.trim().toUpperCase(java.util.Locale.ROOT)).collect(java.util.stream.Collectors.toSet());
+            for (var snapshot : data.snapshots()) {
+                if ((requested.contains("*") || requested.contains(snapshot.symbol())) && snapshot.quote() != null) {
+                    marketDataProducer.publishMarketData(createEventEnvelope(MarketDataPayload.fromMarketPrice(snapshot.quote())));
+                }
+            }
+            return;
+        }
+
+        String[] symbolArray = symbols.trim().equals("*")
+            ? instruments.findByTradable(true).stream().map(com.neueda.leap.models.Instrument::getSymbol).toArray(String[]::new)
+            : symbols.split(",");
         
         for (String symbol : symbolArray) {
             try {
@@ -70,7 +93,7 @@ public class MarketDataPoller {
         payloadMap.put("bidPrice", payload.bidPrice());
         payloadMap.put("askPrice", payload.askPrice());
         payloadMap.put("lastPrice", payload.lastPrice());
-        payloadMap.put("priceTimeStamp", payload.priceTimeStamp());
+        payloadMap.put("priceTimeStamp", payload.priceTimeStamp().toString());
         
         return new EventEnvelope(
             UUID.randomUUID(),

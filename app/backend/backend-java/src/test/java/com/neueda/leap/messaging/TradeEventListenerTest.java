@@ -94,12 +94,12 @@ public class TradeEventListenerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, eventType, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
         tradeEventListener.handleTradeEvent(message, 0, 100L);
 
-        verify(orderRepository).findById(orderId);
+        verify(orderRepository).findByIdForUpdate(orderId);
         verify(orderRepository).save(any(Order.class));
         assertEquals(OrderStatus.CANCELLED, order.getStatus());
     }
@@ -193,13 +193,13 @@ public class TradeEventListenerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, eventType, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> 
             tradeEventListener.handleTradeEvent(message, 0, 100L)
         );
 
-        verify(orderRepository).findById(orderId);
+        verify(orderRepository).findByIdForUpdate(orderId);
     }
 
     @Test
@@ -233,7 +233,7 @@ public class TradeEventListenerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, eventType, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(any(UUID.class))).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(any(UUID.class))).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
         tradeEventListener.handleTradeEvent(message, 0, 100L);
@@ -265,7 +265,7 @@ public class TradeEventListenerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, eventType, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
         tradeEventListener.handleTradeEvent(message, 0, 100L);

@@ -1,0 +1,83 @@
+<!-- Presents registration, username login and six-digit email verification in Angular.
+     Uses the existing page styling and displays safe status messages without exposing tokens. -->
+<header>
+  <div class="brand-lockup">
+    <a class="logo-link" routerLink="/" aria-label="Go to SEAJ Capital landing page">
+      <img class="site-logo" src="seaj-capital-logo.png" alt="" />
+    </a>
+  </div>
+  <span class="brand-title">SEAJ Capital</span>
+  <nav>
+    <a class="nav-btn" routerLink="/">Back to Landing</a>
+  </nav>
+</header>
+
+<main>
+  <div class="login-container">
+
+    @if (view() === 'login') {
+      <h2>Login</h2>
+      <form (ngSubmit)="onLogin()" novalidate>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input id="username" type="text" [(ngModel)]="username" name="username"
+            placeholder="Enter your username" />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" [(ngModel)]="password" name="password"
+            placeholder="Enter your password" />
+        </div>
+        <p class="message" [class]="loginMessageType()">{{ loginMessage() }}</p>
+        <button type="submit" class="submit-btn" [disabled]="loginLoading()">Login</button>
+      </form>
+      <button class="toggle-btn" (click)="showView('register')" [disabled]="loginLoading()">New Customer?</button>
+    }
+
+    @if (view() === 'register') {
+      <h2>Create Account</h2>
+      <div class="form-group">
+        <label for="regUsername">Username</label>
+        <input id="regUsername" type="text" [(ngModel)]="regUsername" name="regUsername"
+          placeholder="Choose a username" />
+      </div>
+      <div class="form-group">
+        <label for="regPassword">Password</label>
+        <input id="regPassword" type="password" [(ngModel)]="regPassword" name="regPassword"
+          placeholder="Enter a strong password" />
+      </div>
+      <div class="form-group">
+        <label for="regEmail">Email</label>
+        <input id="regEmail" type="email" [(ngModel)]="regEmail" name="regEmail" required maxlength="255"
+          placeholder="your@email.com" />
+      </div>
+      <div class="form-group">
+        <label for="regPhone">Phone (optional)</label>
+        <input id="regPhone" type="tel" [(ngModel)]="regPhone" name="regPhone"
+          placeholder="+353-85-456-7891" />
+      </div>
+      <p class="message" [class]="registerMessageType()">{{ registerMessage() }}</p>
+      <button class="submit-btn" (click)="onRegister()" [disabled]="registerLoading()">Create Account</button>
+      <button class="toggle-btn" (click)="showView('login')" [disabled]="registerLoading()">Back to Login</button>
+    }
+
+    @if (view() === 'verify') {
+      <h2>Verify your email</h2>
+      <form (ngSubmit)="onVerify()" novalidate>
+        <p class="message" role="status">{{ verificationMessage() }}</p>
+        <div class="form-group">
+          <label for="verificationCode">Six-digit verification code</label>
+          <input id="verificationCode" name="verificationCode" [(ngModel)]="code"
+            type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" />
+        </div>
+        <button type="submit" class="submit-btn" [disabled]="verificationLoading()">Verify code</button>
+      </form>
+      <button type="button" class="toggle-btn" (click)="cancelVerification()">Cancel and start again</button>
+    }
+
+  </div>
+</main>
+
+<footer>
+  <p>© 2026 SEAJ Capital. All rights reserved.</p>
+</footer>
