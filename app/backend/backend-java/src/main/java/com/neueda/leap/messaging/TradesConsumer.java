@@ -67,6 +67,7 @@ public class TradesConsumer {
     @KafkaListener(
             topics = "${trading.kafka.topics.trades}",
             groupId = "trades-consumer-group",
+            autoStartup = "${trading.legacy-listeners.enabled:false}",
             concurrency = "3"
     )
     @Transactional

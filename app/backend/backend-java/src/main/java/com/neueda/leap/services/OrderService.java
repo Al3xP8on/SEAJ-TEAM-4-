@@ -57,6 +57,7 @@ public class OrderService {
     @Autowired private PositionsRepository positions;
     @Autowired private MarketPriceService prices;
     @Autowired private OrderSettlementService settlement;
+    @Autowired private com.neueda.leap.messaging.OrderEventOutbox outbox;
     @PersistenceContext private EntityManager entityManager;
 
     public Order placeOrder(PlaceOrderRequest request) throws DuplicateOrderException {
@@ -110,12 +111,13 @@ public class OrderService {
                 .mapToLong(Order::getQuantity).sum();
             if (held - reserved < request.getQuantity()) throw invalid("Insufficient holdings after pending sell orders");
         }
-        Order order = createOrder(account, instrument, request.getQuantity(), price, request.getSide(), key);
-        order.setOrderType(request.getOrderType());
+        Order order = persistOrder(account, instrument, request.getQuantity(), price, request.getSide(), key, request.getOrderType());
         order.setStatus(OrderStatus.PENDING);
         orderRepository.save(order);
         recordOrderHistory(order.getId(), OrderStatus.PENDING);
         OrderTelemetry.placed(order);
+        outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_ACCEPTED, null);
+        outbox.command(order, "SUBMIT");
         return order;
     }
 
@@ -126,6 +128,11 @@ public class OrderService {
     // Creates a new order with idempotency protection.
     // Checks if an order with the same idempotency key already exists to prevent duplicates.
     public Order createOrder(Account account, Instrument instrument, long quantity, BigDecimal price, OrderSide side, String idempotencyKey) throws DuplicateOrderException {
+        return persistOrder(account, instrument, quantity, price, side, idempotencyKey, OrderType.LIMIT);
+    }
+
+    private Order persistOrder(Account account, Instrument instrument, long quantity, BigDecimal price,
+            OrderSide side, String idempotencyKey, OrderType type) throws DuplicateOrderException {
         logger.info("OrderService.createOrder - Validating account: {} (Status: {}, Balance: {})", 
             account.getAccountId(), account.getStatus(), account.getCashBalance());
         OrderValidator.validateAccount(account);
@@ -148,23 +155,26 @@ public class OrderService {
 
         // Create and validate the order through the domain model
         Order order = new Order(account, instrument, quantity, price, side, idempotencyKey);
+        order.setOrderType(type);
         Order savedOrder = orderRepository.save(order);
 
         recordOrderHistory(savedOrder.getId(), OrderStatus.NEW);
+        outbox.lifecycle(savedOrder, com.neueda.leap.messaging.EventType.ORDER_PLACED, null);
 
         return savedOrder;
     }
 
-    // Validates the order state, processes account debits/credits, and tracks status change.
+    // Even the admin/recovery path goes through Kafka and the live-price execution engine.
     public Order executeOrder(UUID orderId) {
         Order order = findOrderOrThrow(orderId);
-        var quote = prices.getLatestPrice(order.getInstrument().getSymbol()).orElseThrow(() -> invalid("No current quote available"));
-        BigDecimal price = order.getSide() == OrderSide.BUY ? quote.askPrice() : quote.bidPrice();
-        if (!settlement.settle(new ExecutionEvent(UUID.randomUUID(), orderId,
-            order.getAccount().getAccountId(), order.getInstrument().getSymbol(), order.getSide(),
-            Math.toIntExact(order.getQuantity()), price, order.getPrice(), "MANUAL", Instant.now())))
-            throw invalid("Order is not eligible for execution");
-        return findOrderOrThrow(orderId);
+        if (!order.getStatus().canBeCancelled()) throw invalid("Order is not eligible for execution");
+        if (order.getStatus() == OrderStatus.NEW) {
+            order.setStatus(OrderStatus.PENDING);
+            recordOrderHistory(orderId, OrderStatus.PENDING);
+            outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_ACCEPTED, null);
+        }
+        outbox.command(order, "SUBMIT");
+        return order;
     }
 
     // Cancels a pending order and records the status change.
@@ -175,6 +185,8 @@ public class OrderService {
         Order cancelledOrder = orderRepository.save(order);
         recordOrderHistory(orderId, OrderStatus.CANCELLED);
         OrderTelemetry.cancelled(cancelledOrder);
+        outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_CANCELLED, "Cancelled by account user or administrator.");
+        outbox.command(order, "CANCEL");
 
         return cancelledOrder;
     }
@@ -192,6 +204,8 @@ public class OrderService {
         entry.setReason(reason);
         orderHistoryRepository.save(entry);
         OrderTelemetry.rejected(rejectedOrder, OrderTelemetry.RejectStage.ADMIN);
+        outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_REJECTED, reason);
+        outbox.command(order, "REJECT");
 
         return rejectedOrder;
     }

@@ -29,8 +29,8 @@ COPY --chmod=644 --from=ghcr.io/open-telemetry/opentelemetry-operator/autoinstru
 
 USER engine
 
-# Kafka comes from KAFKA_BOOTSTRAP_SERVERS and the simulated market's
-# timing from ENGINE_* (see src/main/resources/application.yml);
+# Kafka comes from KAFKA_BOOTSTRAP_SERVERS; order commands and Alpaca quotes
+# both arrive through Kafka (see src/main/resources/application.yml);
 # docker-compose.yml points it at the kafka service.
 ENV SERVER_PORT=8082 \
     JAVA_OPTS="-XX:MaxRAMPercentage=75.0"

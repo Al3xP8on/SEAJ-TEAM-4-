@@ -1,6 +1,6 @@
 # Alpaca market data
 
-The Orders page reads real market prices from Alpaca through the Java backend. The browser receives prices, charts and connection status; API keys stay in the backend environment. Alpaca is used only for read-only market data. Orders continue to execute in the platform's simulator.
+The Orders page reads real market prices from Alpaca through the Java backend. The browser receives prices, charts and connection status; API keys stay in the backend environment. Kafka delivers Alpaca quotes to SEAJ's execution engine, which matches market/limit orders at their live bid or ask. Alpaca supplies read-only market data; account balances and execution remain in SEAJ. See [the complete Kafka lifecycle](event-flow.md).
 
 ## Connect an account
 
@@ -27,7 +27,7 @@ If the image already includes this integration and only the keys changed:
 docker-compose up -d --no-deps --force-recreate app
 ```
 
-The frontend dev server reloads the source changes. Live verification requires valid keys; blank fields deliberately show an explicit disconnected state. Without credentials, the existing demo order quotes continue to work. With credentials configured, upstream failures are reported and never silently replaced with demo prices.
+The frontend dev server reloads source changes. Live verification requires valid keys; blank fields show a disconnected state and orders cannot execute without fresh Alpaca quotes. Upstream failures are reported and never replaced with demo execution prices. For the live-price engine and durable Kafka lifecycle, apply the [outbox migration and coordinated rebuild](event-flow.md#apply-locally).
 
 ## Coverage and price changes
 
@@ -47,7 +47,7 @@ Daily gain is `(latest price - previous close) / previous close * 100`. Before t
 - Authentication failures, subscription errors, throttling and outages produce sanitized messages without returning upstream credentials or response bodies. The overview retains the last successful prices and fetch time alongside an error during an outage.
 - The Kafka price events retain the original quote timestamp. The existing 60-second freshness rule applies to execution, so an old closing quote does not become executable just because it was fetched again.
 
-No database migration or reset is needed. The old price-history table is not used to invent live charts or daily movement.
+The Kafka order lifecycle requires the additive `02-order-event-outbox.sql` migration on existing databases. No database reset is needed. The old price-history table is not used to invent live charts or daily movement.
 
 ## Lightweight local startup
 
