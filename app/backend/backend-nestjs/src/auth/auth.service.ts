@@ -15,6 +15,7 @@ import type {
   RegistrationPayload,
   LoginPayload,
 } from './email-challenge.entity';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyDto } from './dto/verify.dto';
@@ -96,6 +97,49 @@ export class AuthService {
   async logout(token: string) {
     await this.sessions.revoke(token);
     return { message: 'Logged out' };
+  }
+  async changeEmail(id: string, email: string) {
+    const user = await this.users.findById(id);
+    if (!user || user.status !== 'ACTIVE') throw new UnauthorizedException();
+    return this.challenges.issue('EMAIL_CHANGE', email.toLowerCase(), { userId: id, email: email.toLowerCase() });
+  }
+  verifyEmailChange(id: string, dto: VerifyDto) {
+    return this.challenges.verify(dto, 'EMAIL_CHANGE', async (challenge, manager) => {
+      const payload = challenge.payload as { userId: string; email: string };
+      if (payload.userId !== id) throw new UnauthorizedException();
+      return this.users.updateEmail(id, payload.email, manager);
+    });
+  }
+  async startDeletion(id: string) {
+    const user = await this.users.deletionAccount(id);
+    return this.challenges.issue('DELETE_ACCOUNT', user.email, { userId: id, email: user.email });
+  }
+  verifyDeletion(id: string, sid: string, dto: VerifyDto) {
+    return this.challenges.verify(dto, 'DELETE_ACCOUNT', async (challenge, manager) => {
+      const payload = challenge.payload as { userId: string; email: string };
+      if (payload.userId !== id) throw new UnauthorizedException('Invalid verification code');
+      const user = await this.users.deletionAccount(id, manager);
+      if (user.email !== payload.email) throw new UnauthorizedException('Email changed. Request a new deletion code');
+      return { deletion_token: this.jwt.sign({ sub: id, sid, purpose: 'DELETE_ACCOUNT', email: user.email }, { expiresIn: 300 }), expires_in: 300 };
+    });
+  }
+  async confirmDeletion(id: string, sid: string, token: string) {
+    let grant: { sub: string; sid: string; purpose: string; email: string; exp: number };
+    try { grant = await this.jwt.verifyAsync(token, { algorithms: ['HS256'] }); }
+    catch { throw new UnauthorizedException('Deletion approval expired. Request a new code'); }
+    if (grant.sub !== id || grant.sid !== sid || grant.purpose !== 'DELETE_ACCOUNT' || !Number.isFinite(grant.exp) || typeof grant.email !== 'string') {
+      throw new UnauthorizedException('Invalid deletion approval');
+    }
+    return this.users.deleteAccount(id, grant.email);
+  }
+  removeCard(id: string, cardId: string) { return this.users.removeCard(id, cardId); }
+  accountSettings(id: string) { return this.users.settings(id); }
+  updatePhone(id: string, phone: string) { return this.users.updatePhone(id, phone); }
+  saveBank(id: string, bank: import('./dto/account-settings.dto').BankDto) { return this.users.saveBank(id, bank); }
+  transfer(id: string, dto: import('./dto/account-settings.dto').TransferDto) { return this.users.transfer(id, dto); }
+  async changePassword(id: string, dto: ChangePasswordDto) {
+    await this.users.changePassword(id, dto.current_password, dto.new_password);
+    return { message: 'Password changed successfully' };
   }
   async me(id: string) {
     const user = await this.users.findById(id);

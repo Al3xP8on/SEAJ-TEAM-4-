@@ -1,3 +1,4 @@
+<a class="skip-link" href="#main-content">Skip to main content</a>
 <header class="topbar">
   <a class="brand" routerLink="/"
     ><img class="brand-logo" src="seaj-capital-logo.png" alt="SEAJ Capital" /></a
@@ -17,6 +18,7 @@
       >Orders</a
     >
   </nav>
+  <nav class="account-nav" aria-label="Account navigation"><a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">My Account</a></nav>
   <button class="logout" type="button" (click)="logout()">Logout</button>
 </header>
-<router-outlet />
+<div id="main-content" tabindex="-1"><router-outlet /></div>

@@ -5,8 +5,8 @@
   min-width: 0;
 }
 .panel {
-  background: #fff;
-  border: 1px solid #e0e7e2;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 28px;
   box-shadow: 0 3px 14px #243d2e05;
@@ -25,52 +25,70 @@
   margin-bottom: 18px;
 }
 .eyebrow {
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 1.5px;
   font-weight: 700;
-  color: #62766a;
+  color: var(--foreground);
   margin-bottom: 8px;
 }
 h2 {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
 }
 h2 span {
-  font-size: 11px;
-  color: #768379;
+  font-size: 0.6875rem;
+  color: var(--foreground);
   margin-left: 6px;
 }
 .muted,
 small,
 dt {
-  color: #6b7870;
-  font-size: 12px;
+  color: var(--foreground);
+  font-size: 0.75rem;
   line-height: 1.6;
 }
 .heading .muted {
   margin-top: 5px;
 }
 .asset-class {
-  color: #357151;
-  background: #edf4ef;
-  font-size: 10px;
+  color: var(--foreground);
+  background: var(--muted);
+  font-size: 0.625rem;
   padding: 5px 8px;
   border-radius: 5px;
   white-space: nowrap;
 }
 .close-price {
-  font-size: 30px;
+  font-size: 1.875rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.7px;
 }
 .gain {
-  color: #256342;
-  font-size: 13px;
+  color: var(--foreground);
+  font-size: 0.8125rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .negative {
-  color: #a45643;
+  color: var(--destructive);
+}
+.chart-periods {
+  display: flex;
+  gap: 6px;
+  margin-top: 20px;
+}
+.chart-periods button {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 6px 12px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 0.75rem;
+}
+.chart-periods button[aria-pressed='true'] {
+  background: var(--muted);
+  color: var(--positive);
+  border-color: var(--positive);
 }
 figure {
   margin: 22px 0;
@@ -83,18 +101,42 @@ svg {
   overflow: visible;
 }
 .grid {
-  stroke: #e9efeb;
+  stroke: var(--border);
   stroke-width: 1;
+}
+.session-divider,
+.previous-close {
+  stroke: var(--muted-foreground);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+.previous-close {
+  stroke: var(--positive);
+  stroke-dasharray: 2 4;
+}
+.session-label {
+  fill: var(--foreground);
+  font-size: 10px;
+}
+.close-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.close-legend span {
+  width: 20px;
+  border-top: 2px dotted var(--positive);
 }
 .price-line {
   fill: none;
-  stroke: #2c7350;
+  stroke: var(--chart-1);
   stroke-width: 2.5;
   stroke-linejoin: round;
 }
 .price-point {
-  fill: #2c7350;
-  stroke: #fff;
+  fill: var(--chart-1);
+  stroke: var(--card);
   stroke-width: 1;
 }
 figcaption {
@@ -104,20 +146,20 @@ figcaption {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
-  border-top: 1px solid #edf1ee;
+  border-top: 1px solid var(--border);
   padding-top: 18px;
 }
 dd {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   margin-top: 3px;
   font-variant-numeric: tabular-nums;
 }
 .quote-note {
-  border-top: 1px solid #edf1ee;
+  border-top: 1px solid var(--border);
   padding-top: 16px;
   margin-top: 20px;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .data-date {
   margin-top: 4px;
@@ -127,7 +169,7 @@ dd {
   margin-top: 20px;
 }
 .leaders li + li {
-  border-top: 1px solid #edf1ee;
+  border-top: 1px solid var(--border);
 }
 button {
   font: inherit;
@@ -143,25 +185,25 @@ button {
   text-align: left;
   padding: 15px 0;
   gap: 12px;
-  color: #283b30;
+  color: var(--foreground);
   border-radius: 4px;
 }
 .leaders button:hover {
-  background: #f6f8f6;
+  background: var(--muted);
 }
 .rank {
-  color: #839188;
-  font-size: 11px;
+  color: var(--foreground);
+  font-size: 0.6875rem;
   min-width: 16px;
 }
 .instrument-name {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 small {
   display: block;
-  font-size: 10px;
+  font-size: 0.625rem;
   margin-top: 4px;
 }
 .instrument-name small {
@@ -173,18 +215,18 @@ small {
   text-align: right;
 }
 .empty {
-  color: #6b7870;
+  color: var(--foreground);
   padding: 28px 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.7;
 }
 .footnote {
-  font-size: 11px;
+  font-size: 0.6875rem;
   margin-top: 16px;
 }
 .load-error {
-  font-size: 12px;
-  color: #9b4a35;
+  font-size: 0.75rem;
+  color: var(--destructive);
   line-height: 1.6;
   margin-top: 16px;
 }

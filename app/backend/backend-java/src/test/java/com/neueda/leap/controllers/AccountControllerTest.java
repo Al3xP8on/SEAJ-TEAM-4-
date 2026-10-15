@@ -89,37 +89,11 @@ class AccountControllerTest {
         assertEquals(status, response.getStatusCode().value());
         assertFalse(response.getBody().toString().contains("sensitive"));
     }
-    @Test void returnsNoContentAfterDeletingAccount() throws Exception {
-        Account account = mock(Account.class);
-        when(account.getId()).thenReturn(1L);
-        when(service.getAccountByIdentifier("ACC-001")).thenReturn(account);
-
+    @Test void rejectsDirectDeletionThatWouldBypassEmailVerification() {
         var response = controller().deleteAccount("ACC-001");
-
-        assertEquals(204, response.getStatusCode().value());
-        assertNull(response.getBody());
-        verify(service).deleteAccount(1L);
-    }
-    @Test void returnsNotFoundWhenDeletingMissingAccount() throws Exception {
-        when(service.getAccountByIdentifier("ACC-001")).thenThrow(new AccountNotFoundException("missing"));
-
-        var response = controller().deleteAccount("ACC-001");
-
-        assertEquals(404, response.getStatusCode().value());
-        assertEquals("missing", response.getBody());
-        verify(service, never()).deleteAccount(anyLong());
-    }
-    @Test void reportsUnexpectedDeletionFailure() throws Exception {
-        Account account = mock(Account.class);
-        when(account.getId()).thenReturn(1L);
-        when(service.getAccountByIdentifier("ACC-001")).thenReturn(account);
-        doThrow(new IllegalStateException("offline")).when(service).deleteAccount(1L);
-
-        var response = controller().deleteAccount("ACC-001");
-
-        assertEquals(500, response.getStatusCode().value());
-        assertEquals("offline", response.getBody());
-        verify(service).deleteAccount(1L);
+        assertEquals(403, response.getStatusCode().value());
+        assertTrue(response.getBody().toString().contains("email-verified"));
+        verifyNoInteractions(service);
     }
     @Test void listsAccountsAndHandlesRepositoryFailure() {
         // Mock admin user

@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { AppearanceService } from './appearance/appearance.service';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
@@ -6,4 +7,4 @@ import { RouterOutlet } from '@angular/router';
   selector: 'app-root',
   template: '<router-outlet />',
 })
-export class App {}
+export class App { private readonly appearance = inject(AppearanceService); }

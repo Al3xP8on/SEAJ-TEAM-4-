@@ -14,11 +14,11 @@ export interface LoginPayload {
 @Entity('email_challenges')
 export class EmailChallenge {
   @PrimaryColumn('uuid') id: string;
-  @Column() purpose: 'REGISTER' | 'LOGIN';
+  @Column() purpose: 'REGISTER' | 'LOGIN' | 'EMAIL_CHANGE' | 'DELETE_ACCOUNT';
   @Column() email: string;
   @Column({ name: 'code_hash', select: false }) codeHash: string;
   @Column({ type: 'jsonb', select: false, nullable: true }) payload:
-    RegistrationPayload | LoginPayload | null;
+    RegistrationPayload | LoginPayload | { userId: string; email: string } | null;
   @Column({ name: 'created_at', type: 'timestamptz' }) createdAt: Date;
   @Column({ name: 'expires_at', type: 'timestamptz' }) expiresAt: Date;
   @Column({ default: 0 }) attempts: number;
