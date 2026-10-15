@@ -94,17 +94,6 @@ h2 {
   gap: 16px;
   margin-bottom: 20px;
 }
-.tag {
-  background: var(--surface-soft);
-  border-radius: 5px;
-  padding: 5px 8px;
-  font-size: 0.6875rem;
-  color: var(--foreground);
-}
-fieldset {
-  border: 0;
-  min-width: 0;
-}
 label {
   display: block;
   font-size: 0.75rem;
@@ -126,95 +115,8 @@ select:focus {
   outline: 3px solid var(--ring);
   border-color: transparent;
 }
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-.instrument-picker {
-  position: relative;
-}
-.instrument-options {
-  position: absolute;
-  inset: calc(100% + 6px) 0 auto;
-  z-index: 2;
-  max-height: 270px;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--card);
-  box-shadow: 0 8px 24px #243d2e18;
-  padding: 6px;
-}
-.instrument-options button {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  border: 0;
-  border-radius: 4px;
-  padding: 12px;
-  background: var(--card);
-  color: var(--foreground);
-  text-align: left;
-  font-size: 0.75rem;
-}
-.instrument-options button strong {
-  min-width: 60px;
-  color: var(--foreground);
-}
-.instrument-options button:hover,
-.instrument-options .active-option {
-  background: var(--muted);
-}
-.instrument-options .help {
-  padding: 0 12px;
-}
-.quote-strip {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 15px;
-  margin-top: 12px;
-  border-radius: 6px;
-  background: var(--surface-soft);
-  font-size: 0.75rem;
-}
-.quote-strip span {
-  display: block;
-  color: var(--text);
-  font-size: 0.6875rem;
-  margin-bottom: 5px;
-}
-.quote-strip strong {
-  font-variant-numeric: tabular-nums;
-}
 .help {
   margin: 14px 0;
-}
-.estimate {
-  border-top: 1px solid var(--border);
-  margin-top: 24px;
-  padding-top: 22px;
-}
-.estimate > div {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.8125rem;
-}
-.estimate strong {
-  font-size: 1.625rem;
-  letter-spacing: -0.6px;
-}
-.estimate p {
-  font-size: 0.75rem;
-  color: var(--text);
-  margin: 14px 0 24px;
-}
-.estimate p span {
-  display: block;
-  font-size: 0.6875rem;
-  margin-top: 4px;
 }
 .primary {
   border: 1px solid var(--primary);
@@ -248,10 +150,6 @@ select:focus {
   flex-direction: column;
   gap: 20px;
   min-width: 0;
-}
-.balance-panel {
-  background: var(--surface-soft);
-  border-color: var(--border);
 }
 .cash {
   font-size: 2.375rem;
@@ -413,15 +311,6 @@ small {
   background: var(--surface-soft);
   color: var(--foreground);
 }
-.review {
-  background: var(--surface-soft);
-  border: 1px solid var(--border);
-  padding: 16px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  line-height: 1.8;
-  margin-bottom: 16px;
-}
 footer {
   display: flex;
   justify-content: space-between;
@@ -501,12 +390,6 @@ footer {
   }
   .page-heading h1 {
     font-size: 1.75rem;
-  }
-  .quote-strip {
-    flex-wrap: wrap;
-  }
-  .form-row {
-    gap: 10px;
   }
   footer span {
     display: none;
