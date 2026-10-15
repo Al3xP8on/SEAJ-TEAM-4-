@@ -1,0 +1,16 @@
+<div class="allocation">
+  <!-- Decorative: the legend below carries the same information as text -->
+  <div class="chart" aria-hidden="true">
+    <canvas #canvas></canvas>
+  </div>
+
+  <ul class="legend">
+    @for (slice of legend(); track slice.label) {
+      <li>
+        <span class="swatch" [style.background]="slice.colour" aria-hidden="true"></span>
+        <span class="label">{{ slice.label }}</span>
+        <span class="percent">{{ slice.percent | number: '1.0-1' }}%</span>
+      </li>
+    }
+  </ul>
+</div>

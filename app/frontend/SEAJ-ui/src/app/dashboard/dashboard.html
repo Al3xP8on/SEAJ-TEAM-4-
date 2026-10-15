@@ -36,7 +36,7 @@
         </div>
         <div hlmCardContent>
           <p class="figure holdings-value">{{ holdingsValue() | currency: 'USD' }}</p>
-          <p class="muted">{{ holdings().length }} {{ holdings().length === 1 ? 'holding' : 'holdings' }}, at cost</p>
+          <p class="muted">{{ holdingsLabel() }}, at cost</p>
         </div>
       </section>
 
@@ -51,45 +51,59 @@
       </section>
     </div>
 
-    <section class="panel positions-panel" aria-labelledby="positions-title">
-      <div class="section-heading">
-        <h2 id="positions-title">Positions</h2>
-        <span class="tag">{{ holdings().length }} {{ holdings().length === 1 ? 'holding' : 'holdings' }}</span>
-      </div>
-
-      @if (holdings().length > 0) {
-        <div hlmTableContainer>
-          <table hlmTable class="positions-table">
-            <thead hlmTHead>
-              <tr hlmTr>
-                <th hlmTh scope="col">Symbol</th>
-                <th hlmTh scope="col" class="num">Quantity</th>
-                <th hlmTh scope="col" class="num">Avg cost</th>
-                <th hlmTh scope="col" class="num">Value</th>
-              </tr>
-            </thead>
-            <tbody hlmTBody>
-              @for (holding of holdings(); track holding.positionId) {
-                <tr hlmTr>
-                  <th hlmTh scope="row" class="symbol">{{ holding.symbol }}</th>
-                  <td hlmTd class="num">{{ holding.quantity | number }}</td>
-                  <td hlmTd class="num">{{ holding.averageCost | currency: 'USD' }}</td>
-                  <td hlmTd class="num">{{ holding.value | currency: 'USD' }}</td>
-                </tr>
-              }
-            </tbody>
-            <tfoot hlmTFoot>
-              <tr hlmTr>
-                <th hlmTh scope="row" colspan="3">Total</th>
-                <td hlmTd class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
-              </tr>
-            </tfoot>
-          </table>
+    <div class="holdings-row">
+      <section hlmCard class="positions-card" aria-labelledby="positions-title">
+        <div hlmCardHeader>
+          <h2 hlmCardTitle id="positions-title">Positions</h2>
+          <div hlmCardAction>
+            <span class="tag">{{ holdingsLabel() }}</span>
+          </div>
         </div>
-      } @else {
-        <p class="empty">You don't hold any positions yet.</p>
-      }
-    </section>
+        <div hlmCardContent>
+          @if (holdings().length > 0) {
+            <div hlmTableContainer>
+              <table hlmTable class="positions-table">
+                <thead hlmTHead>
+                  <tr hlmTr>
+                    <th hlmTh scope="col">Symbol</th>
+                    <th hlmTh scope="col" class="num">Quantity</th>
+                    <th hlmTh scope="col" class="num">Avg cost</th>
+                    <th hlmTh scope="col" class="num">Value</th>
+                  </tr>
+                </thead>
+                <tbody hlmTBody>
+                  @for (holding of holdings(); track holding.positionId) {
+                    <tr hlmTr>
+                      <th hlmTh scope="row" class="symbol">{{ holding.symbol }}</th>
+                      <td hlmTd class="num">{{ holding.quantity | number }}</td>
+                      <td hlmTd class="num">{{ holding.averageCost | currency: 'USD' }}</td>
+                      <td hlmTd class="num">{{ holding.value | currency: 'USD' }}</td>
+                    </tr>
+                  }
+                </tbody>
+                <tfoot hlmTFoot>
+                  <tr hlmTr>
+                    <th hlmTh scope="row" colspan="3">Total</th>
+                    <td hlmTd class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          } @else {
+            <p class="empty">You don't hold any positions yet.</p>
+          }
+        </div>
+      </section>
+
+      <section hlmCard class="allocation-card" aria-labelledby="allocation-title">
+        <div hlmCardHeader>
+          <h2 hlmCardTitle id="allocation-title">Allocation</h2>
+        </div>
+        <div hlmCardContent>
+          <app-allocation-chart [slices]="allocation()" />
+        </div>
+      </section>
+    </div>
   }
 </main>
 

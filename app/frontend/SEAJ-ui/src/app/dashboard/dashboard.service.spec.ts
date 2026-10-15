@@ -15,7 +15,11 @@ describe('DashboardService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: AuthService, useValue: auth }],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthService, useValue: auth },
+      ],
     });
     service = TestBed.inject(DashboardService);
     http = TestBed.inject(HttpTestingController);
@@ -30,7 +34,10 @@ describe('DashboardService', () => {
     http.expectOne('/api/v1/accounts/7').flush({ id: 7, holderName: 'Alice' });
     http.expectOne('/api/v1/accounts/7/positions').flush([{ symbol: 'AAPL' }]);
 
-    expect(await result).toEqual({ account: { id: 7, holderName: 'Alice' }, positions: [{ symbol: 'AAPL' }] });
+    expect(await result).toEqual({
+      account: { id: 7, holderName: 'Alice' },
+      positions: [{ symbol: 'AAPL' }],
+    });
   });
 
   it('fails without calling the API when there is no session', async () => {

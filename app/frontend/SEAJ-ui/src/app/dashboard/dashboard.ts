@@ -7,13 +7,14 @@ import { HlmTableImports } from '@spartan-ng/helm/table';
 import { Router } from '@angular/router';
 import { Account, Position } from './dashboard.models';
 import { DashboardService } from './dashboard.service';
+import { AllocationChartComponent, AllocationSlice } from './allocation-chart/allocation-chart';
 
 // Holdings the user still owns; closed and liquidated positions are left out
 const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CurrencyPipe, DecimalPipe, HlmCardImports, HlmTableImports],
+  imports: [CurrencyPipe, DecimalPipe, HlmCardImports, HlmTableImports, AllocationChartComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -36,33 +37,54 @@ export class DashboardComponent implements OnInit {
 
   readonly holdingsValue = computed(() => this.holdings().reduce((total, h) => total + h.value, 0));
 
+  readonly holdingsLabel = computed(() => {
+    const count = this.holdings().length;
+    return `${count} ${count === 1 ? 'holding' : 'holdings'}`;
+  });
+
   readonly totalValue = computed(() => (this.account()?.cashBalance ?? 0) + this.holdingsValue());
+
+  /** Largest four holdings, the rest grouped as "Other", then cash */
+  readonly allocation = computed<AllocationSlice[]>(() => {
+    const ranked = [...this.holdings()].sort((a, b) => b.value - a.value);
+    const slices = ranked.slice(0, 4).map((h) => ({ label: h.symbol, value: h.value }));
+    const other = ranked.slice(4).reduce((total, h) => total + h.value, 0);
+    if (other > 0) {
+      slices.push({ label: 'Other', value: other });
+    }
+    return [...slices, { label: 'Cash', value: this.account()?.cashBalance ?? 0 }];
+  });
 
   ngOnInit(): void {
     this.load();
-    timer(2000, 2000).pipe(
-      exhaustMap(() => this.dashboard.load().pipe(catchError(() => EMPTY))),
-      takeUntilDestroyed(this.destroy),
-    ).subscribe(({ account, positions }) => {
-      this.account.set(account);
-      this.positions.set(positions);
-    });
+    timer(2000, 2000)
+      .pipe(
+        exhaustMap(() => this.dashboard.load().pipe(catchError(() => EMPTY))),
+        takeUntilDestroyed(this.destroy),
+      )
+      .subscribe(({ account, positions }) => {
+        this.account.set(account);
+        this.positions.set(positions);
+      });
   }
 
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.dashboard.load().pipe(takeUntilDestroyed(this.destroy)).subscribe({
-      next: ({ account, positions }) => {
-        this.account.set(account);
-        this.positions.set(positions);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('We couldn’t load your account. Please try again.');
-        this.loading.set(false);
-      },
-    });
+    this.dashboard
+      .load()
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: ({ account, positions }) => {
+          this.account.set(account);
+          this.positions.set(positions);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('We couldn’t load your account. Please try again.');
+          this.loading.set(false);
+        },
+      });
   }
 
   goToOrderTicket(): void {
@@ -72,5 +94,4 @@ export class DashboardComponent implements OnInit {
   goToBlotter(): void {
     this.router.navigate(['/blotter']);
   }
-
 }
