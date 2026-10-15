@@ -21,6 +21,7 @@ class MarketDataConsumerTest {
     }
     private Map<String, Object> payload(Object timestamp) {
         Map<String, Object> payload = new HashMap<>();
+        payload.put("source", "ALPACA_IEX");
         payload.put("symbol", " aapl ");
         payload.put("bidPrice", "10.25");
         payload.put("askPrice", 10.5);
@@ -46,11 +47,10 @@ class MarketDataConsumerTest {
         consumer.consumeMarketData(message(payload((double) millis)), "AAPL");
         verify(store, times(2)).updatePrice(argThat(price -> price.priceTimeStamp().equals(Instant.ofEpochMilli(millis))));
     }
-    @Test void defaultsMissingTimestampToCurrentTime() throws Exception {
-        Instant before = Instant.now();
-        consumer.consumeMarketData(message(payload(null)), "AAPL");
-        Instant after = Instant.now();
-        verify(store).updatePrice(argThat(price -> !price.priceTimeStamp().isBefore(before) && !price.priceTimeStamp().isAfter(after)));
+    @Test void rejectsMissingTimestampInsteadOfMakingAnOldQuoteFresh() throws Exception {
+        String message = message(payload(null));
+        assertThrows(IllegalArgumentException.class, () -> consumer.consumeMarketData(message, "AAPL"));
+        verifyNoInteractions(store);
     }
     @Test void rejectsUnreadableOrEmptyMessagesWithoutUpdatingStore() {
         for (String invalid : new String[]{null, "", "not-json", "null", "{}"}) {
