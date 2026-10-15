@@ -139,6 +139,24 @@ class AccountControllerTest {
         assertEquals("AAPL", controller.getPositions("ACC-001").getBody().get(0).symbol());
         assertEquals(OrderStatus.FILLED, controller.getOrders("ACC-001").getBody().status());
     }
+    @Test void nonAdminCanOnlyAccessOwnAccount() throws Exception {
+        Account account = mock(Account.class);
+        when(account.getId()).thenReturn(1L);
+        when(account.getAccountId()).thenReturn("ACC-001");
+        when(account.getName()).thenReturn("Alice");
+        when(service.getAccountByIdentifier("ACC-001")).thenReturn(account);
+        when(service.getBalance(1L)).thenReturn(BigDecimal.TEN);
+        when(service.getPositions(1L)).thenReturn(List.of());
+        when(service.getOrders(1L)).thenReturn(mock(OrderHistory.class));
+        AccountController controller = controller();
+        when(securityUtilsService.isAdmin()).thenReturn(false);
+        // Should call validateAccountOwnership for non-admin
+        assertEquals(200, controller.getAccount("ACC-001").getStatusCode().value());
+        assertEquals(200, controller.getBalance("ACC-001").getStatusCode().value());
+        assertEquals(200, controller.getPositions("ACC-001").getStatusCode().value());
+        verify(securityUtilsService, atLeast(3)).validateAccountOwnership("ACC-001");
+    }
+
     @Test void returnsNotFoundForMissingAccountResources() throws Exception {
         when(service.getAccountByIdentifier("ACC-001")).thenThrow(new AccountNotFoundException("missing"));
         AccountController controller = controller();

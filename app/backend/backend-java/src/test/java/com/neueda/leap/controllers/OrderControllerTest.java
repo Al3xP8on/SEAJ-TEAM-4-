@@ -371,6 +371,46 @@ public class OrderControllerTest {
     }
 
     @Test
+    @DisplayName("Should return 404 when executing non-existent order")
+    void testExecuteOrderNotFound() throws Exception {
+        UUID nonExistentId = UUID.randomUUID();
+        when(orderService.getOrderById(nonExistentId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/v1/orders/" + nonExistentId + "/execute")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+
+        verify(orderService, never()).executeOrder(any());
+    }
+
+    @Test
+    @DisplayName("Should return 404 when cancelling non-existent order")
+    void testCancelOrderNotFound() throws Exception {
+        UUID nonExistentId = UUID.randomUUID();
+        when(orderService.getOrderById(nonExistentId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/v1/orders/" + nonExistentId + "/cancel")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+
+        verify(orderService, never()).cancelOrder(any());
+    }
+
+    @Test
+    @DisplayName("Should return 404 when rejecting non-existent order")
+    void testRejectOrderNotFound() throws Exception {
+        UUID nonExistentId = UUID.randomUUID();
+        when(orderService.getOrderById(nonExistentId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/v1/orders/" + nonExistentId + "/reject")
+                .param("reason", "Test reason")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+
+        verify(orderService, never()).rejectOrder(any(), any());
+    }
+
+    @Test
     @DisplayName("Should handle internal server error on executeOrder")
     void testExecuteOrderInternalServerError() throws Exception {
         when(orderService.executeOrder(testOrderId))
