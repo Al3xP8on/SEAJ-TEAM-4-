@@ -138,6 +138,7 @@ services:
     profiles: ["observability"]
     image: otel/opentelemetry-collector-contrib:0.111.0
     container_name: seaj_otel_collector
+    mem_limit: 512m   # above the collector's own 400 MiB memory_limiter
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./infra/observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
@@ -153,6 +154,7 @@ services:
     profiles: ["observability"]
     image: grafana/tempo:2.6.0
     container_name: seaj_tempo_init
+    mem_limit: 32m
     user: root
     entrypoint: ["chown", "10001:10001", "/var/tempo"]
     volumes:
@@ -162,6 +164,7 @@ services:
     profiles: ["observability"]
     image: grafana/tempo:2.6.0
     container_name: seaj_tempo
+    mem_limit: 384m
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ./infra/observability/tempo.yaml:/etc/tempo.yaml:ro
@@ -174,6 +177,7 @@ services:
     profiles: ["observability"]
     image: grafana/loki:3.2.0
     container_name: seaj_loki
+    mem_limit: 256m
     command: ["-config.file=/etc/loki/config.yaml"]
     volumes:
       - ./infra/observability/loki.yaml:/etc/loki/config.yaml:ro
@@ -183,6 +187,7 @@ services:
     profiles: ["observability"]
     image: prom/prometheus:v2.54.1
     container_name: seaj_prometheus
+    mem_limit: 384m
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -199,6 +204,7 @@ services:
     profiles: ["observability"]
     image: danielqsj/kafka-exporter:v1.8.0
     container_name: seaj_kafka_exporter
+    mem_limit: 64m
     command: ["--kafka.server=kafka:9092"]
     restart: on-failure
     depends_on:
@@ -209,6 +215,7 @@ services:
     profiles: ["observability"]
     image: grafana/grafana:11.2.2
     container_name: seaj_grafana
+    mem_limit: 256m
     environment:
       GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
