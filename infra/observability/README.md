@@ -12,6 +12,26 @@ docker-compose up -d --build   # app + monitoring
 docker-compose down            # stop both
 ```
 
+### Monitoring only
+
+To work on the stack without the app, SonarQube or the database, name the services. Compose starts only those and their dependencies:
+
+```bash
+docker-compose --profile observability up -d otel-collector tempo loki prometheus grafana
+```
+
+`tempo-init` also runs once to fix Tempo's volume permissions, then exits. To include Kafka consumer lag, add `kafka-exporter`; that also starts `kafka`, which it reads from.
+
+There is no app data in this mode, only the stack's own health on the "Observability Stack Health" dashboard.
+
+Stop them by name too. `docker-compose down` removes every container in the project, including app containers someone else is running on the VM:
+
+```bash
+docker-compose --profile observability stop otel-collector tempo loki prometheus grafana kafka-exporter
+```
+
+`--profile observability` is only needed if your `.env` doesn't set `COMPOSE_PROFILES=observability`.
+
 | UI / endpoint | URL |
 |---|---|
 | Grafana | http://10.9.65.95:8084 (`GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`, default admin/admin) |
