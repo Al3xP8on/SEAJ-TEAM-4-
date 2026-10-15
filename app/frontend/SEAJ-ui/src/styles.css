@@ -1,1 +1,60 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* Tailwind + spartan/ui. Spartan's components rely on Tailwind's preflight reset (e.g. for borders),
+   so it is included; existing page styles set their own headings, buttons and inputs explicitly. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@import '@spartan-ng/brain/hlm-tailwind-preset.css';
+
+/* spartan theme tokens, set to the Orders page palette (orders.css) */
+:root {
+  color-scheme: light;
+
+  --font-sans: Arial, sans-serif;
+  --radius: 0.5rem;
+
+  --background: #ffffff;
+  --foreground: #202f29;
+  --card: #ffffff;
+  --card-foreground: #202f29;
+  --popover: #ffffff;
+  --popover-foreground: #202f29;
+  --primary: #256342;
+  --primary-foreground: #ffffff;
+  --secondary: #edf4ef;
+  --secondary-foreground: #385745;
+  --muted: #f4f6f5;
+  --muted-foreground: #6b7870;
+  --accent: #edf4ef;
+  --accent-foreground: #1a4f33;
+  --destructive: #a3271c;
+  --border: #e0e7e2;
+  --input: #d7e1da;
+  --ring: #256342;
+
+  /* Chart series: brand green first, then distinguishable companions */
+  --chart-1: #256342;
+  --chart-2: #4a926a;
+  --chart-3: #a9d0b9;
+  --chart-4: #c98a1b;
+  --chart-5: #5a6b61;
+
+  --sidebar: #f4f6f5;
+  --sidebar-foreground: #202f29;
+  --sidebar-primary: #256342;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #edf4ef;
+  --sidebar-accent-foreground: #1a4f33;
+  --sidebar-border: #e0e7e2;
+  --sidebar-ring: #256342;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

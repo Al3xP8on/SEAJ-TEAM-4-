@@ -2,6 +2,7 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, catchError, exhaustMap, timer } from 'rxjs';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
+import { HlmCardImports } from '@spartan-ng/helm/card';
 import { Router } from '@angular/router';
 import { Account, Position } from './dashboard.models';
 import { DashboardService } from './dashboard.service';
@@ -11,7 +12,7 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CurrencyPipe, DecimalPipe],
+  imports: [CurrencyPipe, DecimalPipe, HlmCardImports],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -33,6 +34,8 @@ export class DashboardComponent implements OnInit {
   );
 
   readonly holdingsValue = computed(() => this.holdings().reduce((total, h) => total + h.value, 0));
+
+  readonly totalValue = computed(() => (this.account()?.cashBalance ?? 0) + this.holdingsValue());
 
   ngOnInit(): void {
     this.load();
