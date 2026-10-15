@@ -93,8 +93,10 @@ public class TradesConsumer {
 
             // Only validate orders still NEW, so a retried or redelivered event can't overwrite a later status
             if (order.getStatus() != OrderStatus.NEW) {
-                logger.info("Order {} is already {}, skipping duplicate ORDER_PLACED",
-                        LogMaskingUtil.maskId(orderId), order.getStatus());
+                if (logger.isInfoEnabled()) {
+                    logger.info("Order {} is already {}, skipping duplicate ORDER_PLACED",
+                            LogMaskingUtil.maskId(orderId), order.getStatus());
+                }
                 return;
             }
 
@@ -102,12 +104,16 @@ public class TradesConsumer {
             
         } catch (Exception e) {
             logger.error("Failed to process ORDER_PLACED event: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to process ORDER_PLACED event", e);
+            throw new PoisonMessageException("Failed to process ORDER_PLACED event", e);
         }
     }
 
-    private EventEnvelope deserializeMessage(String message) throws Exception {
-        return objectMapper.readValue(message, EventEnvelope.class);
+    private EventEnvelope deserializeMessage(String message) {
+        try {
+            return objectMapper.readValue(message, EventEnvelope.class);
+        } catch (Exception e) {
+            throw new PoisonMessageException("Failed to deserialize ORDER_PLACED message", e);
+        }
     }
 
     private boolean isOrderPlacedEvent(EventEnvelope envelope) {
@@ -133,13 +139,15 @@ public class TradesConsumer {
         history.save(entry);
 
         if (result.newStatus() == OrderStatus.PENDING) {
-            logger.info("Order {} approved for execution: {}", LogMaskingUtil.maskId(orderId), result.reason());
-            // Publish ORDER_ACCEPTED event to trade-events topic
-            publishOrderAccepted(order, orderId, payload);
+            if (logger.isInfoEnabled()) {
+                logger.info("Order {} approved for execution: {}", LogMaskingUtil.maskId(orderId), result.reason());
+            }
+            publishOrderAccepted(orderId, payload);
         } else if (result.newStatus() == OrderStatus.REJECTED) {
-            logger.warn("Order {} rejected: {}", LogMaskingUtil.maskId(orderId), result.reason());
-            // Publish ORDER_REJECTED event to trade-events topic
-            publishOrderRejected(order, orderId, payload, result.reason());
+            if (logger.isWarnEnabled()) {
+                logger.warn("Order {} rejected: {}", LogMaskingUtil.maskId(orderId), result.reason());
+            }
+            publishOrderRejected(orderId, payload, result.reason());
         }
         
         logger.debug("Order {} status updated to {}", LogMaskingUtil.maskId(orderId), order.getStatus());
@@ -148,13 +156,15 @@ public class TradesConsumer {
     /**
      * Publishes ORDER_ACCEPTED event to trade-events topic when order passes pricing validation.
      */
-    private void publishOrderAccepted(Order order, UUID orderId, Map<String, Object> payload) {
+    private void publishOrderAccepted(UUID orderId, Map<String, Object> payload) {
         try {
             String accountId = (String) payload.get("accountId");
             String symbol = (String) payload.get("symbol");
             
             if (accountId == null || symbol == null) {
-                logger.warn("Missing accountId or symbol in ORDER_PLACED payload for order {}", LogMaskingUtil.maskId(orderId));
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Missing accountId or symbol in ORDER_PLACED payload for order {}", LogMaskingUtil.maskId(orderId));
+                }
                 return;
             }
             
@@ -163,19 +173,14 @@ public class TradesConsumer {
             int quantity = ((Number) payload.get("quantity")).intValue();
             
             TradeEvent acceptedEvent = new TradeEvent(
-                orderId,
-                accountId,
-                symbol,
-                side,
-                price,
-                quantity,
-                "ACCEPTED",
-                "GTC",
-                LocalDateTime.now()
+                orderId, accountId, symbol, side, price, quantity,
+                "ACCEPTED", "GTC", LocalDateTime.now()
             );
             
             tradeEventPublisher.publishTradeEvent(acceptedEvent);
-            logger.info("Published ORDER_ACCEPTED event for order: {}", LogMaskingUtil.maskId(orderId));
+            if (logger.isInfoEnabled()) {
+                logger.info("Published ORDER_ACCEPTED event for order: {}", LogMaskingUtil.maskId(orderId));
+            }
         } catch (Exception e) {
             logger.error("Failed to publish ORDER_ACCEPTED event for order {}: {}", LogMaskingUtil.maskId(orderId), e.getMessage(), e);
         }
@@ -184,13 +189,15 @@ public class TradesConsumer {
     /**
      * Publishes ORDER_REJECTED event to trade-events topic when order fails pricing validation.
      */
-    private void publishOrderRejected(Order order, UUID orderId, Map<String, Object> payload, String reason) {
+    private void publishOrderRejected(UUID orderId, Map<String, Object> payload, String reason) {
         try {
             String accountId = (String) payload.get("accountId");
             String symbol = (String) payload.get("symbol");
             
             if (accountId == null || symbol == null) {
-                logger.warn("Missing accountId or symbol in ORDER_PLACED payload for order {}", LogMaskingUtil.maskId(orderId));
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Missing accountId or symbol in ORDER_PLACED payload for order {}", LogMaskingUtil.maskId(orderId));
+                }
                 return;
             }
             
@@ -199,20 +206,15 @@ public class TradesConsumer {
             int quantity = ((Number) payload.get("quantity")).intValue();
             
             TradeEvent rejectedEvent = new TradeEvent(
-                orderId,
-                accountId,
-                symbol,
-                side,
-                price,
-                quantity,
-                "REJECTED",
-                "GTC",
-                LocalDateTime.now()
+                orderId, accountId, symbol, side, price, quantity,
+                "REJECTED", "GTC", LocalDateTime.now()
             );
             
             rejectedEvent.setReason(reason);
             tradeEventPublisher.publishTradeEvent(rejectedEvent);
-            logger.info("Published ORDER_REJECTED event for order: {} - Reason: {}", LogMaskingUtil.maskId(orderId), reason);
+            if (logger.isInfoEnabled()) {
+                logger.info("Published ORDER_REJECTED event for order: {} - Reason: {}", LogMaskingUtil.maskId(orderId), reason);
+            }
         } catch (Exception e) {
             logger.error("Failed to publish ORDER_REJECTED event for order {}: {}", LogMaskingUtil.maskId(orderId), e.getMessage(), e);
         }

@@ -106,6 +106,16 @@ class AccountControllerTest {
         assertEquals(500, response.getStatusCode().value());
         assertEquals("Error retrieving accounts: offline", response.getBody());
     }
+
+    @Test void nonAdminGetAllAccountsReturnsOnlyOwnAccount() {
+        Account account = mock(Account.class);
+        AccountController controller = controller();
+        when(securityUtilsService.isAdmin()).thenReturn(false);
+        when(securityUtilsService.getAuthenticatedUserAccount()).thenReturn(account);
+        var response = controller.getAllAccounts();
+        assertEquals(200, response.getStatusCode().value());
+        assertTrue(((List<?>) response.getBody()).contains(account));
+    }
     @Test void returnsIndividualAccountResources() throws Exception {
         Account account = mock(Account.class);
         List<Positions> positions = List.of(mock(Positions.class));
