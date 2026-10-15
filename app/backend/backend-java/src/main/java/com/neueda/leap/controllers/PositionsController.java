@@ -7,7 +7,9 @@ import com.neueda.leap.exceptions.AccountNotFoundException;
 import com.neueda.leap.exceptions.InsufficientHoldingsException;
 import com.neueda.leap.services.PositionsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,7 +18,8 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/v1/positions")
+@RequestMapping(value = "/v1/positions", produces = MediaType.APPLICATION_JSON_VALUE)
+@Tag(name = "Positions", description = "Positions held in an account")
 public class PositionsController {
     private static final String NOT_FOUND_MESSAGE = " not found";
     private static final String ACCOUNT = "Account ";

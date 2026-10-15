@@ -1,10 +1,13 @@
 package com.neueda.leap.controllers;
 
 import com.neueda.leap.services.AlpacaMarketDataService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/v1/market-data")
+@RequestMapping(value = "/v1/market-data", produces = MediaType.APPLICATION_JSON_VALUE)
+@Tag(name = "Market data", description = "Alpaca market overview and price bars")
 public class MarketDataController {
     private final AlpacaMarketDataService market;
     public MarketDataController(AlpacaMarketDataService market) { this.market = market; }

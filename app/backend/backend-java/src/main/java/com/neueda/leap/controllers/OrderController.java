@@ -17,7 +17,9 @@ import com.neueda.leap.security.SecurityUtilsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,7 +30,8 @@ import java.util.UUID;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/v1/orders")
+@RequestMapping(value = "/v1/orders", produces = MediaType.APPLICATION_JSON_VALUE)
+@Tag(name = "Orders", description = "Order placement, lifecycle and history")
 public class OrderController {
     
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);

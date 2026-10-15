@@ -3,7 +3,9 @@ package com.neueda.leap.controllers;
 import com.neueda.leap.dtos.InstrumentResponse;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.services.InstrumentsService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,7 +13,8 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/v1/instruments")
+@RequestMapping(value = "/v1/instruments", produces = MediaType.APPLICATION_JSON_VALUE)
+@Tag(name = "Instruments", description = "Tradable instruments and live quotes")
 public class InstrumentsController {
     private final InstrumentsService instrumentsService;
 

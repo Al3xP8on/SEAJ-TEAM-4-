@@ -25,6 +25,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/v1/accounts")
+@RequestMapping(value = "/v1/accounts", produces = MediaType.APPLICATION_JSON_VALUE)
 @Tag(name = "Accounts", description = "Account management and authentication endpoints")
 public class AccountController {
 
@@ -176,7 +177,7 @@ public class AccountController {
     }
 
     @GetMapping("/{id}/positions")
-    @Operation(summary = "Get account positions", description = "Retrieve current positions held in an account. You can only access your own positions unless you are an admin.")
+    @Operation(operationId = "getAccountPositions", summary = "Get account positions", description = "Retrieve current positions held in an account. You can only access your own positions unless you are an admin.")
     public ResponseEntity<List<PositionResponse>> getPositions(@PathVariable String id) {
         try {
             Account account = accountService.getAccountByIdentifier(id);
