@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import jakarta.validation.Valid;
 
 @RestController
@@ -120,7 +119,7 @@ public class OrderController {
         securityUtilsService.validateOrderOwnership(existing.get());
         try {
             Order order = orderService.cancelOrder(id);
-            publishCancellationEvent(order, id);
+            publishCancellationEvent(order);
             return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
             logger.error("Failed to cancel order: {}", e.getMessage());
@@ -128,7 +127,7 @@ public class OrderController {
         }
     }
 
-    private void publishCancellationEvent(Order order, UUID id) {
+    private void publishCancellationEvent(Order order) {
         try {
             TradeEvent cancelledEvent = new TradeEvent(
                 order.getId(),

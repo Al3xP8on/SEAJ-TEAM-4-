@@ -59,7 +59,7 @@ public class ExternalMarketDataClient implements MarketDataClient {
             
         } catch (Exception e) {
             logger.error("Error fetching market price for symbol: {}", trimmedSymbol, e);
-            throw new RuntimeException("Failed to fetch market price for symbol: " + trimmedSymbol, e);
+            throw new MarketDataException("Failed to fetch market price for symbol: " + trimmedSymbol, e);
         }
     }
 }

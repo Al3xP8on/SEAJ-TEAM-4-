@@ -65,7 +65,7 @@ public class MarketDataPoller {
             
         } catch (Exception e) {
             logger.error("Failed to poll market data for symbol: {}", symbol, e);
-            throw new RuntimeException("Failed to poll market data for " + symbol, e);
+            throw new MarketDataException("Failed to poll market data for " + symbol, e);
         }
     }
     

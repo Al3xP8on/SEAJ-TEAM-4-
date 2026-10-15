@@ -4,7 +4,6 @@ import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.enums.TimeInForce;
 import com.neueda.leap.models.Order;
 import com.neueda.leap.repositories.OrderRepository;
-import com.neueda.leap.utils.LogMaskingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +34,6 @@ public class PendingOrderRepublisher {
     private final OrderRepository orderRepository;
     private final TradeEventPublisher tradeEventPublisher;
     private final Duration republishAfter;
-    private final Duration republishInterval;
 
     public PendingOrderRepublisher(
             OrderRepository orderRepository,
@@ -45,7 +43,6 @@ public class PendingOrderRepublisher {
         this.orderRepository = orderRepository;
         this.tradeEventPublisher = tradeEventPublisher;
         this.republishAfter = republishAfter;
-        this.republishInterval = republishInterval;
     }
 
     /**
@@ -97,12 +94,9 @@ public class PendingOrderRepublisher {
 
                 // Publish via TradeEventPublisher (which wraps in EventEnvelope)
                 tradeEventPublisher.publishTradeEvent(tradeEvent);
-                
-                logger.debug("Republished order {} for account {}", 
-                    LogMaskingUtil.maskId(order.getId()), LogMaskingUtil.maskAccountId(order.getAccount().getAccountId()));
+                logger.debug("Republished order for account");
             } catch (Exception e) {
-                logger.error("Failed to republish order {}", LogMaskingUtil.maskId(order.getId()), e);
-                // Continue with next order even if one fails
+                logger.error("Failed to republish order", e);
             }
         }
     }

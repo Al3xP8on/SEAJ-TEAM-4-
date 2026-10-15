@@ -7,7 +7,6 @@ import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Order;
 import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.OrderRepository;
-import com.neueda.leap.utils.LogMaskingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,11 +55,9 @@ public class ExecutionListener {
         Order order = orderRepository.findById(event.orderId()).orElseThrow();
         Account account = accountRepository.findByAccountId(event.accountId()).orElseThrow();
 
-        log.info("Execution settled: Order {} FILLED | {} {} @ {} | Account {} balance: ${} | Venue: {}",
-                LogMaskingUtil.maskId(event.orderId()), event.side(), event.quantity(), event.price(),
-                LogMaskingUtil.maskAccountId(event.accountId()), account.getCashBalance(), event.venue());
+        log.info("Execution settled: Order FILLED | {} {} @ {} | Venue: {}",
+                event.side(), event.quantity(), event.price(), event.venue());
         
-        // Publish TRADE_EXECUTED event first (order matched by execution engine)
         try {
             TradeEvent executedEvent = new TradeEvent(
                 event.orderId(),
@@ -74,14 +71,10 @@ public class ExecutionListener {
                 LocalDateTime.now()
             );
             tradeEventPublisher.publishTradeEvent(executedEvent);
-            log.info("Published TRADE_EXECUTED event for order: {}", LogMaskingUtil.maskId(event.orderId()));
         } catch (Exception e) {
-            log.error("Failed to publish TRADE_EXECUTED event for order {}: {}", 
-                LogMaskingUtil.maskId(event.orderId()), e.getMessage(), e);
-            // Don't fail the execution if event publishing fails
+            log.error("Failed to publish TRADE_EXECUTED event: {}", e.getMessage(), e);
         }
         
-        // Publish ORDER_FILLED event to Kafka for complete audit trail
         try {
             TradeEvent filledEvent = new TradeEvent(
                 event.orderId(),
@@ -94,13 +87,9 @@ public class ExecutionListener {
                 "GTC",
                 LocalDateTime.now()
             );
-            
             tradeEventPublisher.publishTradeEvent(filledEvent);
-            log.info("Published ORDER_FILLED event for order: {}", LogMaskingUtil.maskId(event.orderId()));
         } catch (Exception e) {
-            log.error("Failed to publish ORDER_FILLED event for order {}: {}", 
-                LogMaskingUtil.maskId(event.orderId()), e.getMessage(), e);
-            // Don't fail the execution if event publishing fails
+            log.error("Failed to publish ORDER_FILLED event: {}", e.getMessage(), e);
         }
     }
 }
