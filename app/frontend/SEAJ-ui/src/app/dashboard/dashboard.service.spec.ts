@@ -50,6 +50,18 @@ describe('DashboardService', () => {
     http.expectNone(() => true);
   });
 
+  it('returns market prices, or null when they are unavailable', async () => {
+    const prices = firstValueFrom(service.marketPrices());
+    http.expectOne('/api/v1/market-data/overview').flush({ configured: true, snapshots: [] });
+    expect(await prices).toEqual({ configured: true, snapshots: [] });
+
+    const failed = firstValueFrom(service.marketPrices());
+    http
+      .expectOne('/api/v1/market-data/overview')
+      .flush('down', { status: 503, statusText: 'Unavailable' });
+    expect(await failed).toBeNull();
+  });
+
   it('reads the subject from a token and rejects malformed ones', () => {
     expect(accountIdFromToken(tokenFor({ sub: '42' }))).toBe('42');
     expect(accountIdFromToken(tokenFor({ username: 'no-sub' }))).toBeNull();

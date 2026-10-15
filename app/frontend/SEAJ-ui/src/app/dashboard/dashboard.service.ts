@@ -1,9 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin, map, switchMap, throwError } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { Account, Position } from './dashboard.models';
-import { Order } from '../orders/orders.models';
+import { MarketOverview, Order } from '../orders/orders.models';
 
 export interface DashboardData {
   account: Account;
@@ -13,6 +13,7 @@ export interface DashboardData {
 
 const ACCOUNTS_URL = '/api/v1/accounts';
 const ORDERS_URL = '/api/v1/orders/account';
+const MARKET_URL = '/api/v1/market-data/overview';
 
 /** Loads the logged-in user's account, positions and orders from the Java API */
 @Injectable({ providedIn: 'root' })
@@ -35,6 +36,14 @@ export class DashboardService {
         }).pipe(map((rest) => ({ account, ...rest }))),
       ),
     );
+  }
+
+  /**
+   * Latest prices for every tradable instrument. The backend caches Alpaca for all users,
+   * so polling this adds no Alpaca traffic. Failure only means no live prices, never a broken page.
+   */
+  marketPrices(): Observable<MarketOverview | null> {
+    return this.http.get<MarketOverview>(MARKET_URL).pipe(catchError(() => of(null)));
   }
 }
 

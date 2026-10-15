@@ -144,8 +144,6 @@ h2 {
   color: var(--foreground);
 }
 
-
-
 /* Table layout and borders come from spartan's table; only dashboard-specific touches here */
 .data-table {
   width: 100%;
@@ -190,77 +188,26 @@ h2 {
   align-items: stretch;
 }
 
-.link {
-  border: 0;
-  background: none;
-  padding: 0;
+/* The sign and arrow carry the direction; colour only reinforces it */
+.change {
   color: var(--primary);
   font-size: 0.8125rem;
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  margin: 0 0 6px;
 }
 
-.link:hover {
-  color: var(--primary-hover);
+.pnl {
+  color: var(--primary);
 }
 
-.order-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.order {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.order .summary-line {
-  flex: 1;
-  min-width: 0;
-}
-
-.order .side,
-.order .symbol {
-  font-weight: 600;
-}
-
-.order time {
-  color: var(--muted-foreground);
-  font-size: 0.75rem;
-  white-space: nowrap;
+.change.loss,
+.pnl.loss {
+  color: var(--destructive);
 }
 
 .buying-power {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-}
-
-/* Status is spelled out, so colour only reinforces it */
-.badge {
-  display: inline-block;
-  border-radius: 5px;
-  padding: 4px 8px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  background: var(--muted);
-  color: var(--foreground);
-  white-space: nowrap;
-}
-
-.badge[data-status='FILLED'] {
-  background: var(--secondary);
-  color: var(--primary);
-}
-
-.badge[data-status='REJECTED'] {
-  color: var(--destructive);
 }
 
 .empty {

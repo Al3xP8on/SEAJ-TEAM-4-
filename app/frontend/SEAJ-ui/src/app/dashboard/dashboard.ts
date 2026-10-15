@@ -1,18 +1,19 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMPTY, catchError, exhaustMap, timer } from 'rxjs';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { EMPTY, catchError, exhaustMap, interval, startWith, timer } from 'rxjs';
+import { CurrencyPipe, DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmTableImports } from '@spartan-ng/helm/table';
 import { Router } from '@angular/router';
 import { Account, Position } from './dashboard.models';
-import { Order } from '../orders/orders.models';
+import { MarketOverview, MarketSnapshot, Order } from '../orders/orders.models';
 import { DashboardData, DashboardService } from './dashboard.service';
 import { AllocationChartComponent, AllocationSlice } from './allocation-chart/allocation-chart';
 import { PortfolioCheckComponent } from './portfolio-check/portfolio-check';
+import { RecentOrdersComponent } from './recent-orders/recent-orders';
 
-// How many of the latest orders the Recent orders card shows
-const RECENT_ORDER_COUNT = 5;
+// The backend refreshes market prices every 10 seconds, so polling faster gains nothing
+const MARKET_REFRESH_MS = 10_000;
 
 // Orders that can still fill; the backend holds back cash for open BUYs until then
 const OPEN_STATUSES: Order['status'][] = ['NEW', 'PENDING'];
@@ -26,10 +27,12 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     CurrencyPipe,
     DatePipe,
     DecimalPipe,
+    PercentPipe,
     HlmCardImports,
     HlmTableImports,
     AllocationChartComponent,
     PortfolioCheckComponent,
+    RecentOrdersComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
@@ -43,13 +46,34 @@ export class DashboardComponent implements OnInit {
   readonly account = signal<Account | null>(null);
   readonly positions = signal<Position[]>([]);
   readonly orders = signal<Order[]>([]);
+  readonly market = signal<MarketOverview | null>(null);
   readonly loading = signal(true);
   readonly error = signal('');
 
+  private readonly snapshots = computed(
+    () =>
+      new Map<string, MarketSnapshot>((this.market()?.snapshots ?? []).map((m) => [m.symbol, m])),
+  );
+
+  /** Valued at the latest price where there is one, otherwise at cost */
   readonly holdings = computed(() =>
     this.positions()
       .filter((p) => HELD_STATUSES.includes(p.status) && p.quantity > 0)
-      .map((p) => ({ ...p, value: p.quantity * p.averageCost })),
+      .map((p) => {
+        const snapshot = this.snapshots().get(p.symbol);
+        const price = snapshot?.price ?? null;
+        const cost = p.quantity * p.averageCost;
+        const value = price === null ? cost : p.quantity * price;
+        const previousClose = snapshot?.previousClose ?? null;
+        return {
+          ...p,
+          price,
+          value,
+          pnl: price === null ? null : value - cost,
+          dayChange:
+            price === null || previousClose === null ? null : p.quantity * (price - previousClose),
+        };
+      }),
   );
 
   readonly holdingsValue = computed(() => this.holdings().reduce((total, h) => total + h.value, 0));
@@ -59,12 +83,32 @@ export class DashboardComponent implements OnInit {
     return `${count} ${count === 1 ? 'holding' : 'holdings'}`;
   });
 
-  /** Newest first; ISO timestamps sort correctly as strings */
-  readonly recentOrders = computed(() =>
-    [...this.orders()]
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, RECENT_ORDER_COUNT),
-  );
+  readonly valuationNote = computed(() => {
+    const unpriced = this.holdings().filter((h) => h.price === null).length;
+    if (unpriced === 0) {
+      return 'at market price';
+    }
+    return unpriced === this.holdings().length ? 'at cost' : `${unpriced} at cost`;
+  });
+
+  /** Unrealised P&L across holdings that have a price; null when none do */
+  readonly holdingsPnl = computed(() => {
+    const priced = this.holdings().filter((h) => h.pnl !== null);
+    return priced.length === 0 ? null : priced.reduce((total, h) => total + h.pnl!, 0);
+  });
+
+  /** Change since the previous close, over holdings where it is known; null when none are */
+  readonly dayChange = computed(() => {
+    const known = this.holdings().filter((h) => h.dayChange !== null);
+    if (known.length === 0) {
+      return null;
+    }
+    const amount = known.reduce((total, h) => total + h.dayChange!, 0);
+    const start = known.reduce((total, h) => total + h.value, 0) - amount;
+    return { amount, percent: start > 0 ? amount / start : 0 };
+  });
+
+  readonly pricesAsOf = computed(() => this.market()?.updatedAt ?? null);
 
   /** Cash committed to open BUY orders */
   readonly reservedCash = computed(() =>
@@ -99,6 +143,14 @@ export class DashboardComponent implements OnInit {
         takeUntilDestroyed(this.destroy),
       )
       .subscribe((data) => this.show(data));
+    // Prices load with the page, then refresh in step with the backend
+    interval(MARKET_REFRESH_MS)
+      .pipe(
+        startWith(0),
+        exhaustMap(() => this.dashboard.marketPrices()),
+        takeUntilDestroyed(this.destroy),
+      )
+      .subscribe((market) => this.market.set(market));
   }
 
   load(): void {

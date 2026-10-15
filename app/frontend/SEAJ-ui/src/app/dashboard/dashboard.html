@@ -11,7 +11,13 @@
       <div>
         <p class="eyebrow">YOUR ACCOUNT</p>
         <h1 class="welcome">Welcome, {{ account.holderName }}</h1>
-        <p class="muted">Account {{ account.accountId }}</p>
+        <p class="muted">
+          Account {{ account.accountId }}
+          @if (pricesAsOf(); as asOf) {
+            · Prices as of
+            <time class="as-of" [attr.datetime]="asOf">{{ asOf | date: 'HH:mm:ss' }}</time>
+          }
+        </p>
       </div>
       <div class="actions">
         <button type="button" class="primary" (click)="goToOrderTicket()">Place Order</button>
@@ -39,7 +45,15 @@
         </div>
         <div hlmCardContent>
           <p class="figure holdings-value">{{ holdingsValue() | currency: 'USD' }}</p>
-          <p class="muted">{{ holdingsLabel() }}, at cost</p>
+          @if (dayChange(); as change) {
+            <p class="change day-change" [class.loss]="change.amount < 0">
+              <span aria-hidden="true">{{ change.amount < 0 ? '▼' : '▲' }}</span>
+              {{ change.amount > 0 ? '+' : '' }}{{ change.amount | currency: 'USD' }} ({{
+                change.amount > 0 ? '+' : ''
+              }}{{ change.percent | percent: '1.2-2' }}) today
+            </p>
+          }
+          <p class="muted valuation">{{ holdingsLabel() }}, {{ valuationNote() }}</p>
         </div>
       </section>
 
@@ -71,7 +85,9 @@
                     <th hlmTh scope="col">Symbol</th>
                     <th hlmTh scope="col" class="num">Quantity</th>
                     <th hlmTh scope="col" class="num">Avg cost</th>
+                    <th hlmTh scope="col" class="num">Price</th>
                     <th hlmTh scope="col" class="num">Value</th>
+                    <th hlmTh scope="col" class="num">P&amp;L</th>
                   </tr>
                 </thead>
                 <tbody hlmTBody>
@@ -80,14 +96,35 @@
                       <th hlmTh scope="row" class="symbol">{{ holding.symbol }}</th>
                       <td hlmTd class="num">{{ holding.quantity | number }}</td>
                       <td hlmTd class="num">{{ holding.averageCost | currency: 'USD' }}</td>
+                      <td hlmTd class="num price">
+                        @if (holding.price !== null) {
+                          {{ holding.price | currency: 'USD' }}
+                        } @else {
+                          <span aria-hidden="true">—</span>
+                          <span class="sr-only">No live price, valued at cost</span>
+                        }
+                      </td>
                       <td hlmTd class="num">{{ holding.value | currency: 'USD' }}</td>
+                      <td hlmTd class="num pnl" [class.loss]="(holding.pnl ?? 0) < 0">
+                        @if (holding.pnl !== null) {
+                          {{ holding.pnl > 0 ? '+' : '' }}{{ holding.pnl | currency: 'USD' }}
+                        } @else {
+                          <span aria-hidden="true">—</span>
+                        }
+                      </td>
                     </tr>
                   }
                 </tbody>
                 <tfoot hlmTFoot>
                   <tr hlmTr>
-                    <th hlmTh scope="row" colspan="3">Total</th>
+                    <th hlmTh scope="row" colspan="4">Total</th>
                     <td hlmTd class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
+                    <td hlmTd class="num pnl total-pnl" [class.loss]="(holdingsPnl() ?? 0) < 0">
+                      @let pnl = holdingsPnl();
+                      @if (pnl !== null) {
+                        {{ pnl > 0 ? '+' : '' }}{{ pnl | currency: 'USD' }}
+                      }
+                    </td>
                   </tr>
                 </tfoot>
               </table>
@@ -109,36 +146,7 @@
     </div>
 
     <div class="activity-row">
-      <section hlmCard class="orders-card" aria-labelledby="orders-title">
-        <div hlmCardHeader>
-          <h2 hlmCardTitle id="orders-title">Recent orders</h2>
-          <div hlmCardAction>
-            <button type="button" class="link" (click)="goToBlotter()">View all in blotter</button>
-          </div>
-        </div>
-        <div hlmCardContent>
-          @if (recentOrders().length > 0) {
-            <ul class="order-list">
-              @for (order of recentOrders(); track order.orderId) {
-                <li class="order">
-                  <span class="summary-line">
-                    <strong class="side">{{ order.side }}</strong>
-                    {{ order.quantity | number }}
-                    <span class="symbol">{{ order.ticker }}</span> &#64;
-                    {{ order.executionPrice ?? order.price | currency: 'USD' }}
-                  </span>
-                  <time [attr.datetime]="order.createdAt">{{
-                    order.createdAt | date: 'MMM d, HH:mm'
-                  }}</time>
-                  <span class="badge" [attr.data-status]="order.status">{{ order.status }}</span>
-                </li>
-              }
-            </ul>
-          } @else {
-            <p class="empty">You haven't placed any orders yet.</p>
-          }
-        </div>
-      </section>
+      <app-recent-orders [orders]="orders()" />
 
       <app-portfolio-check
         [holdings]="holdings()"

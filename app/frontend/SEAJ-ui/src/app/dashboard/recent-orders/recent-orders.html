@@ -1,0 +1,30 @@
+<section hlmCard class="orders-card" aria-labelledby="orders-title">
+  <div hlmCardHeader>
+    <h2 hlmCardTitle id="orders-title">Recent orders</h2>
+    <div hlmCardAction>
+      <button type="button" class="link" (click)="goToBlotter()">View all in blotter</button>
+    </div>
+  </div>
+  <div hlmCardContent>
+    @if (recentOrders().length > 0) {
+      <ul class="order-list">
+        @for (order of recentOrders(); track order.orderId) {
+          <li class="order">
+            <span class="summary-line">
+              <strong class="side">{{ order.side }}</strong>
+              {{ order.quantity | number }}
+              <span class="symbol">{{ order.ticker }}</span> &#64;
+              {{ order.executionPrice ?? order.price | currency: 'USD' }}
+            </span>
+            <time [attr.datetime]="order.createdAt">{{
+              order.createdAt | date: 'MMM d, HH:mm'
+            }}</time>
+            <span class="badge" [attr.data-status]="order.status">{{ order.status }}</span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="empty">You haven't placed any orders yet.</p>
+    }
+  </div>
+</section>

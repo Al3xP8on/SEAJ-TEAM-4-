@@ -4,7 +4,7 @@ import { Observable, Subject, of, throwError } from 'rxjs';
 import { DashboardComponent } from './dashboard';
 import { DashboardData, DashboardService } from './dashboard.service';
 import { Position } from './dashboard.models';
-import { Order } from '../orders/orders.models';
+import { MarketOverview, MarketSnapshot, Order } from '../orders/orders.models';
 
 const order = (
   orderId: string,
@@ -58,9 +58,32 @@ const DATA: DashboardData = {
   ],
 };
 
+const snapshot = (symbol: string, price: number, previousClose: number | null): MarketSnapshot => ({
+  symbol,
+  price,
+  timestamp: '2026-10-15T14:30:00Z',
+  previousClose,
+  changePercent: null,
+  dailyBar: null,
+  quote: null,
+});
+
+// NVDA has no live price, so it stays at cost
+const MARKET: MarketOverview = {
+  configured: true,
+  feed: 'iex',
+  updatedAt: '2026-10-15T14:30:05Z',
+  message: '',
+  snapshots: [snapshot('AAPL', 190, 185), snapshot('MSFT', 400, 410)],
+  unsupportedSymbols: [],
+};
+
 describe('DashboardComponent', () => {
   const router = { navigate: vi.fn() };
-  const dashboard = { load: vi.fn<() => Observable<DashboardData>>() };
+  const dashboard = {
+    load: vi.fn<() => Observable<DashboardData>>(),
+    marketPrices: vi.fn<() => Observable<MarketOverview | null>>(),
+  };
 
   async function render() {
     const fixture = TestBed.createComponent(DashboardComponent);
@@ -78,6 +101,7 @@ describe('DashboardComponent', () => {
   beforeEach(async () => {
     router.navigate.mockReset();
     dashboard.load.mockReset().mockReturnValue(of(DATA));
+    dashboard.marketPrices.mockReset().mockReturnValue(of(null));
     await TestBed.configureTestingModule({
       imports: [DashboardComponent],
       providers: [
@@ -142,6 +166,60 @@ describe('DashboardComponent', () => {
       ['NVDA', '6.1%'],
       ['Cash', '34.2%'],
     ]);
+  });
+
+  it('values holdings at cost and hides price-based figures without market data', async () => {
+    const { page } = await render();
+
+    expect(page.querySelector('.valuation')?.textContent).toContain('3 holdings, at cost');
+    expect(page.querySelector('.day-change')).toBeNull();
+    expect(page.querySelector('.as-of')).toBeNull();
+    expect(page.querySelector('.total-pnl')?.textContent?.trim()).toBe('');
+  });
+
+  it('values holdings at the latest price, with price and P&L per row', async () => {
+    dashboard.marketPrices.mockReturnValue(of(MARKET));
+    const { page } = await render();
+    const row = (symbol: string) =>
+      Array.from(page.querySelectorAll('.positions-table tbody tr')).find(
+        (r) => r.querySelector('.symbol')?.textContent === symbol,
+      )!;
+
+    expect(row('AAPL').querySelector('.price')?.textContent?.trim()).toBe('$190.00');
+    expect(row('AAPL').textContent).toContain('$9,500.00'); // 50 x 190
+    expect(row('AAPL').querySelector('.pnl')?.textContent?.trim()).toBe('+$380.00');
+    expect(row('MSFT').querySelector('.pnl')?.textContent?.trim()).toBe('-$302.00');
+    expect(row('MSFT').querySelector('.pnl')?.classList).toContain('loss');
+    // No price for NVDA: valued at cost, with the gap explained to screen readers
+    expect(row('NVDA').querySelector('.price')?.textContent).toContain('No live price');
+    expect(row('NVDA').textContent).toContain('$1,781.25');
+
+    // 9,500 + 8,000 + 1,781.25, and P&L over priced holdings only: 380 - 302
+    expect(page.querySelector('.holdings-value')?.textContent?.trim()).toBe('$19,281.25');
+    expect(page.querySelector('.total-pnl')?.textContent?.trim()).toBe('+$78.00');
+    expect(page.querySelector('.valuation')?.textContent).toContain('3 holdings, 1 at cost');
+  });
+
+  it("shows today's change since the previous close and when prices were updated", async () => {
+    dashboard.marketPrices.mockReturnValue(of(MARKET));
+    const { page } = await render();
+
+    // AAPL +5 x 50 and MSFT -10 x 20 = +50, on a 17,450 starting value
+    expect(page.querySelector('.day-change')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      '▲ +$50.00 (+0.29%) today',
+    );
+    expect(page.querySelector('.as-of')?.getAttribute('datetime')).toBe('2026-10-15T14:30:05Z');
+  });
+
+  it('feeds market values into the allocation', async () => {
+    dashboard.marketPrices.mockReturnValue(of(MARKET));
+    const { page } = await render();
+    const percents = Array.from(page.querySelectorAll('app-allocation-chart .legend li')).map(
+      (li) => li.querySelector('.percent')?.textContent?.trim(),
+    );
+
+    // Of the $29,281.25 total: AAPL 9,500, MSFT 8,000, NVDA 1,781.25 (at cost), cash 10,000
+    expect(percents).toEqual(['32.4%', '27.3%', '6.1%', '34.2%']);
   });
 
   it('shows a message instead of the table when there are no holdings', async () => {
