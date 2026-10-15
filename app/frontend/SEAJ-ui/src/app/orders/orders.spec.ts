@@ -48,7 +48,8 @@ describe('OrdersComponent', () => {
     cancel: vi.fn(),
     reject: vi.fn(),
     history: vi.fn(),
-    priceHistory: vi.fn(),
+    marketOverview: vi.fn(),
+    marketBars: vi.fn(),
   };
   const auth = { getToken: vi.fn(), logout: vi.fn() };
   const token = (roles: string[]) =>
@@ -74,7 +75,16 @@ describe('OrdersComponent', () => {
       }),
     );
     service.quote.mockReturnValue(of(quote));
-    service.priceHistory.mockReturnValue(of([]));
+    service.marketOverview.mockReturnValue(
+      of({
+        configured: false,
+        feed: 'iex',
+        updatedAt: null,
+        message: 'Alpaca market data is not connected yet.',
+        snapshots: [],
+        unsupportedSymbols: [],
+      }),
+    );
     service.place.mockReturnValue(of(order));
     service.cancel.mockReturnValue(of({ ...order, status: 'CANCELLED' }));
     service.history.mockReturnValue(
@@ -97,7 +107,30 @@ describe('OrdersComponent', () => {
     const form = fixture.debugElement.query(By.directive(NgForm)).injector.get(NgForm);
     return { fixture, component, form, page: fixture.nativeElement as HTMLElement };
   }
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+  it('pauses the trading desk while hidden and refreshes every ten seconds when visible', async () => {
+    const { fixture } = await render();
+    vi.useFakeTimers();
+    let hidden = true;
+    vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden);
+    document.dispatchEvent(new Event('visibilitychange'));
+    const calls = service.orders.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(service.orders).toHaveBeenCalledTimes(calls);
+    hidden = false;
+    document.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(1);
+    expect(service.orders).toHaveBeenCalledTimes(calls + 1);
+    await vi.advanceTimersByTimeAsync(9_998);
+    expect(service.orders).toHaveBeenCalledTimes(calls + 1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(service.orders).toHaveBeenCalledTimes(calls + 2);
+    fixture.destroy();
+  });
   it('submits a confirmed buy when randomUUID is unavailable on an HTTP origin', async () => {
     vi.stubGlobal('crypto', {
       getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto),
@@ -331,21 +364,28 @@ describe('OrdersComponent', () => {
     const { fixture, component, page } = await render();
     const input = page.querySelector<HTMLInputElement>('#instrument')!;
     expect(page.querySelector('.instrument-detail')).toBeNull();
+    expect(page.querySelector('.portfolio .market-overview')).not.toBeNull();
+    expect(page.querySelector('.ticket-column .market-overview')).toBeNull();
     input.focus();
     input.value = ' MICRO ';
     input.dispatchEvent(new Event('input'));
     await fixture.whenStable();
     expect(page.querySelectorAll('[role="option"]')).toHaveLength(1);
     expect(page.querySelector('[role="option"]')?.textContent).toContain('MSFT');
+    expect(page.querySelector('.portfolio .market-overview')).not.toBeNull();
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await fixture.whenStable();
     expect(component.symbol).toBe('MSFT');
     expect(service.quote).toHaveBeenLastCalledWith('MSFT');
     expect(input.getAttribute('aria-expanded')).toBe('false');
     expect(page.querySelector('.instrument-detail')?.textContent).toContain('MSFT');
-    const cards = Array.from(page.querySelector('app-market-data')!.children);
-    expect(cards[0].classList.contains('instrument-detail')).toBe(true);
-    expect(cards[1].classList.contains('market-overview')).toBe(true);
+    const ticketColumn = page.querySelector('.ticket-column')!;
+    expect(ticketColumn.children[0].classList.contains('ticket')).toBe(true);
+    expect(ticketColumn.children[1].classList.contains('market-overview')).toBe(true);
+    expect(page.querySelector('.portfolio .instrument-detail')?.textContent).toContain('MSFT');
+    expect(page.querySelector('.portfolio .market-overview')).toBeNull();
+    expect(page.querySelectorAll('.market-overview')).toHaveLength(1);
+    expect(page.querySelectorAll('app-market-data')).toHaveLength(1);
     input.focus();
     component.openInstrumentPicker();
     input.value = 'aapl';

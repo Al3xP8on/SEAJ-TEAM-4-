@@ -35,7 +35,8 @@ public class KafkaErrorHandlingConfig {
     public DefaultErrorHandler kafkaErrorHandler(KafkaTemplate<String, String> kafkaTemplateString,
             @Value("${trading.kafka.topics.market-data}") String marketData) {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplateString,
-                (consumerRecord, ex) -> new TopicPartition(consumerRecord.topic() + DLT_SUFFIX, KEY_BASED_PARTITION));
+                (record, ex) -> new TopicPartition(record.topic() + DLT_SUFFIX, KEY_BASED_PARTITION));
+        recoverer.setFailIfSendResultIsError(true);
 
         ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(MAX_RETRIES);
         backOff.setInitialInterval(INITIAL_BACKOFF.toMillis());
@@ -43,7 +44,7 @@ public class KafkaErrorHandlingConfig {
 
         DefaultErrorHandler handler = new DefaultErrorHandler(recoverer, backOff);
         // A newer price arrives within seconds, so retrying a stale one only delays it
-        handler.setBackOffFunction((consumerRecord, ex) -> marketData.equals(consumerRecord.topic()) ? NO_RETRIES : null);
+        handler.setBackOffFunction((record, ex) -> marketData.equals(record.topic()) ? NO_RETRIES : null);
         handler.addNotRetryableExceptions(
                 PoisonMessageException.class,
                 JsonProcessingException.class,

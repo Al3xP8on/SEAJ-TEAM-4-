@@ -1,31 +1,36 @@
 :host {
-  --account-text: #111111;
-  --account-border: #dfe6e1;
+  --account-text: var(--foreground);
+  --account-border: var(--border);
   display: block;
   min-height: calc(100dvh - var(--app-nav-height, 80px));
-  background: var(--surface-soft);
+  background: var(--background);
   color: var(--account-text);
   font-family: Arial, sans-serif;
+  font-size: .8125rem;
 }
-:host-context([data-theme='dark']) { --account-text: #ffffff; --account-border: #66786c; }
-main { padding: 42px 32px; scroll-margin-top: 130px; }
-.account-page { max-width: 1130px; margin: auto; }
-h1 { font-size: 2.125rem; margin-bottom: 12px; }
-.intro { margin-bottom: 24px; line-height: 1.5; }
+main { max-width: 1320px; margin: auto; padding: 42px 32px; scroll-margin-top: 130px; }
+.account-page { width: 100%; }
+h1 { font-size: 2.125rem; font-weight: 600; letter-spacing: -1px; margin: 0 0 10px; }
+.intro { font-size: .8125rem; margin: 0; line-height: 1.6; }
+.page-heading { margin-bottom: 28px; }
+.eyebrow { font-size: .6875rem; letter-spacing: 1.7px; font-weight: 700; margin: 0 0 10px; }
 .cards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.account-settings-grid { align-items: stretch; }
 .card { background: var(--surface); color: var(--account-text); padding: 28px; border: 1px solid var(--account-border); border-radius: 12px; box-shadow: 0 3px 14px #243d2e05; min-width: 0; }
-h2 { font-size: 1.25rem; margin-bottom: 20px; }
-dt { font-size: .875rem; margin-top: 20px; }
+h2 { font-size: 1.125rem; font-weight: 600; margin: 0 0 20px; }
+.card-heading h2 { margin: 0; }
+.cash-card { background: var(--muted); }
+dt { font-size: .8125rem; margin-top: 20px; }
 dd { margin-top: 6px; overflow-wrap: anywhere; line-height: 1.5; }
-.balance { font-size: 2.25rem; font-weight: 600; overflow-wrap: anywhere; }
-.hint { font-size: .875rem; line-height: 1.6; margin: 8px 0 16px; }
+.balance { font-size: 2.375rem; letter-spacing: -1.2px; margin: 12px 0 8px; font-weight: 600; overflow-wrap: anywhere; }
+.hint { font-size: .8125rem; line-height: 1.6; margin: 8px 0 16px; }
 fieldset { border: 0; min-width: 0; }
-legend { font-weight: bold; margin: 12px 0; }
+legend:not(.sr-only) { font-weight: bold; margin: 12px 0; }
 label { display: block; margin: 16px 0 8px; font-weight: 600; }
 input, select { width: 100%; min-height: 44px; border: 1px solid #66786c; border-radius: 6px; padding: 10px; font: inherit; background: var(--surface); color: var(--account-text); transition: background-color .15s ease, border-color .15s ease; }
 input:not(:disabled):hover, select:not(:disabled):hover { background: var(--surface-soft); border-color: #246342; }
-button { min-height: 44px; padding: 12px 18px; background: #246342; color: #ffffff; border: 1px solid #246342; border-radius: 6px; font: inherit; cursor: pointer; margin-top: 16px; transition: background-color .15s ease, box-shadow .15s ease; }
-button:not(:disabled):hover { background: #194b31; border-color: #194b31; box-shadow: 0 3px 8px #0003; }
+button { min-height: 44px; padding: 12px 18px; background: var(--primary); color: #ffffff; border: 1px solid var(--primary); border-radius: 6px; font: inherit; font-size: .8125rem; font-weight: 600; cursor: pointer; margin-top: 16px; transition: background-color .15s ease, box-shadow .15s ease; }
+button:not(:disabled):hover { background: var(--primary-hover); border-color: var(--primary-hover); box-shadow: 0 3px 8px #0003; }
 button:disabled { opacity: .65; cursor: not-allowed; }
 input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .error { color: var(--error); line-height: 1.5; margin: 12px 0; }
@@ -48,14 +53,8 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .details-subheading { margin: 28px 0 12px; font-size: 1.125rem; }
 .expiry-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 .theme-setting { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 24px 0; }
-.theme-toggle { background: #ffffff; width: 64px; height: 36px; min-height: 36px; padding: 4px; margin: 0; border-radius: 24px; border: 2px solid #246342; display: inline-flex; align-items: center; flex-shrink: 0; }
-.toggle-thumb { display: block; width: 24px; height: 24px; border-radius: 50%; background: #246342; transition: transform .15s ease; }
-.theme-toggle[aria-checked=true] .toggle-thumb { transform: translateX(28px); }
-.theme-toggle:not(:disabled):hover { background: #edf4ef; }
-.theme-toggle[aria-checked=true] { background: #246342; border-color: #a5dfb7; }
-.theme-toggle[aria-checked=true] .toggle-thumb { background: #ffffff; }
-.theme-toggle[aria-checked=true]:not(:disabled):hover { background: #194b31; }
-.edit-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.edit-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; width: 100%; margin-top: 16px; }
+.edit-actions > button { width: 100%; min-width: 0; margin-top: 0; }
 @media (max-width: 700px) { main { padding: 24px 16px; } .cards { grid-template-columns: 1fr; } .card { padding: 24px; } }
 @media (max-width: 400px) { .expiry-fields { grid-template-columns: 1fr; } }
 
@@ -65,5 +64,20 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 
 .saved-card { padding: 16px; margin-top: 16px; border: 1px solid var(--account-border); border-radius: 8px; background: var(--surface-soft); }
 .saved-card dt:first-child { margin-top: 0; }
-.deletion-section { grid-column: 1 / -1; }
+.deletion-section, .card-details-section { grid-column: 1 / -1; }
 .deletion-section form { max-width: 480px; }
+
+.appearance-card { display: block; }
+
+.secondary { border-color: var(--border); background: var(--card); color: var(--foreground); }
+.secondary:not(:disabled):hover { border-color: var(--input); background: var(--muted); }
+@media (max-width: 800px) { main { padding: 28px 16px; } }
+
+footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; max-width: 1320px; margin: auto; padding: 20px 32px 30px; color: var(--foreground); font-size: .6875rem; }
+
+.account-fields dt label { margin: 0; font-weight: inherit; }
+.saved-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; margin-top: 20px; }
+.saved-cards:empty { display: none; }
+.saved-cards .saved-card { margin-top: 0; }
+.card-details-section form { width: 100%; }
+.card-inputs { max-width: 480px; }

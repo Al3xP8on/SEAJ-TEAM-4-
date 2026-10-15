@@ -5,7 +5,7 @@
       <h1>Place an order</h1>
       <p class="muted">Put your next investment in motion.</p>
     </div>
-    <span class="live"><span></span> Updates every 2 seconds</span>
+    <span class="live"><span></span> Updates every 10 seconds</span>
   </div>
   @if (loading()) {
     <p class="panel">Loading your trading desk…</p>
@@ -26,208 +26,215 @@
   }
   @if (accounts().length) {
     <div class="workspace">
-      <section class="panel ticket" aria-labelledby="ticket-title">
-        <div class="section-heading">
-          <h2 id="ticket-title">Order ticket</h2>
-          <span class="tag">{{ selectedInstrument()?.currency }}</span>
-        </div>
-        <form #ticket="ngForm" (ngSubmit)="submit(ticket)">
-          <fieldset [disabled]="submitting()">
-            @if (isAdmin) {
-              <label for="account">Trading account</label>
-              <select
-                id="account"
-                name="account"
-                [(ngModel)]="accountId"
-                (ngModelChange)="changeAccount()"
-                required
-              >
-                @for (a of accounts(); track a.accountId) {
-                  <option [value]="a.accountId">
-                    {{ a.name }} · {{ a.accountId
-                    }}{{ a.status !== 'ACTIVE' ? ' (' + a.status + ')' : '' }}
-                  </option>
-                }
-              </select>
-            }
-            <label for="instrument">Instrument</label>
-            <div class="instrument-picker" (focusout)="closeInstrumentPicker($event)">
-              <input
-                id="instrument"
-                type="text"
-                role="combobox"
-                autocomplete="off"
-                aria-autocomplete="list"
-                aria-controls="instrument-options"
-                [attr.aria-expanded]="pickerOpen()"
-                [attr.aria-activedescendant]="
-                  pickerOpen() && filteredInstruments().length
-                    ? 'instrument-option-' + activeInstrument()
-                    : null
-                "
-                placeholder="Search by symbol or instrument name"
-                [ngModel]="
-                  pickerOpen()
-                    ? instrumentSearch()
-                    : symbol + ' — ' + (selectedInstrument()?.name ?? '')
-                "
-                [ngModelOptions]="{ standalone: true }"
-                (ngModelChange)="searchInstruments($event)"
-                (focus)="openInstrumentPicker()"
-                (click)="!pickerOpen() && openInstrumentPicker()"
-                (keydown)="instrumentKey($event)"
-              />
-              @if (pickerOpen()) {
-                <div
-                  id="instrument-options"
-                  class="instrument-options"
-                  role="listbox"
-                  aria-label="Instruments"
-                >
-                  @for (i of filteredInstruments(); track i.symbol; let index = $index) {
-                    <button
-                      type="button"
-                      role="option"
-                      tabindex="-1"
-                      [id]="'instrument-option-' + index"
-                      [attr.aria-selected]="i.symbol === symbol"
-                      [class.active-option]="index === activeInstrument()"
-                      (pointerdown)="$event.preventDefault()"
-                      (click)="selectInstrument(i.symbol)"
-                    >
-                      <strong>{{ i.symbol }}</strong
-                      ><span>{{ i.name }}</span>
-                    </button>
-                  } @empty {
-                    <p class="help">No instruments match your search.</p>
-                  }
-                </div>
-              }
-            </div>
-            <div class="quote-strip">
-              @if (quote(); as q) {
-                <div>
-                  <span>Bid</span><strong>{{ q.bidPrice | currency }}</strong>
-                </div>
-                <div>
-                  <span>Ask</span><strong>{{ q.askPrice | currency }}</strong>
-                </div>
-                <div>
-                  <span>Quote time</span><strong>{{ q.priceTimeStamp | date: 'HH:mm:ss' }}</strong>
-                </div>
-              } @else {
-                <p>No current quote. You can still place a limit order.</p>
-              }
-            </div>
-            <div class="form-row">
-              <div>
-                <label for="side">Direction</label
-                ><select id="side" name="side" [(ngModel)]="side" (ngModelChange)="edited()">
-                  <option value="BUY">Buy</option>
-                  <option value="SELL">Sell</option>
-                </select>
-              </div>
-              <div>
-                <label for="type">Order type</label
-                ><select id="type" name="type" [(ngModel)]="orderType" (ngModelChange)="edited()">
-                  <option value="MARKET">Market</option>
-                  <option value="LIMIT">Limit</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-              <div>
-                <label for="quantity">Quantity</label
-                ><input
-                  id="quantity"
-                  name="quantity"
-                  type="number"
-                  min="1"
-                  max="2147483647"
-                  step="1"
+      <div class="ticket-column">
+        <section class="panel ticket" aria-labelledby="ticket-title">
+          <div class="section-heading">
+            <h2 id="ticket-title">Order ticket</h2>
+            <span class="tag">{{ selectedInstrument()?.currency }}</span>
+          </div>
+          <form #ticket="ngForm" (ngSubmit)="submit(ticket)">
+            <fieldset [disabled]="submitting()">
+              <legend class="sr-only">Order ticket</legend>
+              @if (isAdmin) {
+                <label for="account">Trading account</label>
+                <select
+                  id="account"
+                  name="account"
+                  [(ngModel)]="accountId"
+                  (ngModelChange)="changeAccount()"
                   required
-                  [(ngModel)]="quantity"
-                  (ngModelChange)="edited()"
+                >
+                  @for (a of accounts(); track a.accountId) {
+                    <option [value]="a.accountId">
+                      {{ a.name }} · {{ a.accountId
+                      }}{{ a.status !== 'ACTIVE' ? ' (' + a.status + ')' : '' }}
+                    </option>
+                  }
+                </select>
+              }
+              <label for="instrument">Instrument</label>
+              <div class="instrument-picker" (focusout)="closeInstrumentPicker($event)">
+                <input
+                  id="instrument"
+                  type="text"
+                  role="combobox"
+                  autocomplete="off"
+                  aria-autocomplete="list"
+                  aria-controls="instrument-options"
+                  [attr.aria-expanded]="pickerOpen()"
+                  [attr.aria-activedescendant]="
+                    pickerOpen() && filteredInstruments().length
+                      ? 'instrument-option-' + activeInstrument()
+                      : null
+                  "
+                  placeholder="Search by symbol or instrument name"
+                  [ngModel]="
+                    pickerOpen()
+                      ? instrumentSearch()
+                      : symbol + ' — ' + (selectedInstrument()?.name ?? '')
+                  "
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="searchInstruments($event)"
+                  (focus)="openInstrumentPicker()"
+                  (click)="!pickerOpen() && openInstrumentPicker()"
+                  (keydown)="instrumentKey($event)"
                 />
+                @if (pickerOpen()) {
+                  <div
+                    id="instrument-options"
+                    class="instrument-options"
+                    role="listbox"
+                    aria-label="Instruments"
+                  >
+                    @for (i of filteredInstruments(); track i.symbol; let index = $index) {
+                      <button
+                        type="button"
+                        role="option"
+                        tabindex="-1"
+                        [id]="'instrument-option-' + index"
+                        [attr.aria-selected]="i.symbol === symbol"
+                        [class.active-option]="index === activeInstrument()"
+                        (pointerdown)="$event.preventDefault()"
+                        (click)="selectInstrument(i.symbol)"
+                      >
+                        <strong>{{ i.symbol }}</strong
+                        ><span>{{ i.name }}</span>
+                      </button>
+                    } @empty {
+                      <p class="help">No instruments match your search.</p>
+                    }
+                  </div>
+                }
               </div>
-              @if (orderType === 'LIMIT') {
+              <div class="quote-strip">
+                @if (quote(); as q) {
+                  <div>
+                    <span>Bid</span><strong>{{ q.bidPrice | currency }}</strong>
+                  </div>
+                  <div>
+                    <span>Ask</span><strong>{{ q.askPrice | currency }}</strong>
+                  </div>
+                  <div>
+                    <span>Quote time</span
+                    ><strong>{{ q.priceTimeStamp | date: 'HH:mm:ss' }}</strong>
+                  </div>
+                } @else {
+                  <p>No current quote. You can still place a limit order.</p>
+                }
+              </div>
+              <div class="form-row">
                 <div>
-                  <label for="price">Limit price ($)</label
+                  <label for="side">Direction</label
+                  ><select id="side" name="side" [(ngModel)]="side" (ngModelChange)="edited()">
+                    <option value="BUY">Buy</option>
+                    <option value="SELL">Sell</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="type">Order type</label
+                  ><select id="type" name="type" [(ngModel)]="orderType" (ngModelChange)="edited()">
+                    <option value="MARKET">Market</option>
+                    <option value="LIMIT">Limit</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div>
+                  <label for="quantity">Quantity</label
                   ><input
-                    id="price"
-                    name="price"
+                    id="quantity"
+                    name="quantity"
                     type="number"
-                    min="0.01"
-                    step="0.01"
+                    min="1"
+                    max="2147483647"
+                    step="1"
                     required
-                    [(ngModel)]="limitPrice"
+                    [(ngModel)]="quantity"
                     (ngModelChange)="edited()"
-                    placeholder="0.00"
                   />
                 </div>
-              }
-            </div>
-            <p class="help">
-              @if (orderType === 'MARKET') {
-                Market orders use the available quote. The final execution price may differ.
-              } @else {
-                {{ side === 'BUY' ? 'Buy at or below' : 'Sell at or above' }} your limit. Your order
-                stays pending until a matching quote is available or you cancel it.
-              }
-            </p>
-            <div class="estimate">
-              <div>
-                <span>{{
-                  orderType === 'MARKET' ? 'Estimated order value' : 'Value at limit price'
-                }}</span
-                ><strong>{{ estimatedTotal() | currency }}</strong>
-              </div>
-              <p>
-                {{ side === 'BUY' ? 'Available cash' : 'Available units' }}:
-                @if (side === 'BUY') {
-                  {{ availableCash() | currency }}
-                } @else {
-                  {{ availableHolding() | number }}
+                @if (orderType === 'LIMIT') {
+                  <div>
+                    <label for="price">Limit price ($)</label
+                    ><input
+                      id="price"
+                      name="price"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      required
+                      [(ngModel)]="limitPrice"
+                      (ngModelChange)="edited()"
+                      placeholder="0.00"
+                    />
+                  </div>
                 }
-                <span>After pending orders</span>
-              </p>
-            </div>
-            @if (review) {
-              <div class="review" role="status">
-                <strong>Review your {{ side.toLowerCase() }} order</strong>
-                <p>
-                  {{ quantity }} units of {{ symbol }} · {{ orderType.toLowerCase() }} ·
-                  {{ accountId }}
-                </p>
-                <p>Good till cancelled. Check these details before submitting.</p>
               </div>
-            }
-            <button
-              class="primary full"
-              type="submit"
-              [disabled]="
-                loading() ||
-                !account() ||
-                account()?.status !== 'ACTIVE' ||
-                (orderType === 'MARKET' && !quote())
-              "
-            >
-              {{
-                submitting()
-                  ? 'Submitting…'
-                  : review
-                    ? 'Confirm ' + side.toLowerCase() + ' order'
-                    : 'Review order'
-              }}
-            </button>
-            @if (review) {
-              <button class="quiet full" type="button" (click)="review = false">
-                Back to editing
+              <p class="help">
+                @if (orderType === 'MARKET') {
+                  Market orders use the available quote. The final execution price may differ.
+                } @else {
+                  {{ side === 'BUY' ? 'Buy at or below' : 'Sell at or above' }} your limit. Your
+                  order stays pending until a matching quote is available or you cancel it.
+                }
+              </p>
+              <div class="estimate">
+                <div>
+                  <span>{{
+                    orderType === 'MARKET' ? 'Estimated order value' : 'Value at limit price'
+                  }}</span
+                  ><strong>{{ estimatedTotal() | currency }}</strong>
+                </div>
+                <p>
+                  {{ side === 'BUY' ? 'Available cash' : 'Available units' }}:
+                  @if (side === 'BUY') {
+                    {{ availableCash() | currency }}
+                  } @else {
+                    {{ availableHolding() | number }}
+                  }
+                  <span>After pending orders</span>
+                </p>
+              </div>
+              @if (review) {
+                <div class="review" role="status">
+                  <strong>Review your {{ side.toLowerCase() }} order</strong>
+                  <p>
+                    {{ quantity }} units of {{ symbol }} · {{ orderType.toLowerCase() }} ·
+                    {{ accountId }}
+                  </p>
+                  <p>Good till cancelled. Check these details before submitting.</p>
+                </div>
+              }
+              <button
+                class="primary full"
+                type="submit"
+                [disabled]="
+                  loading() ||
+                  !account() ||
+                  account()?.status !== 'ACTIVE' ||
+                  (orderType === 'MARKET' && !quote())
+                "
+              >
+                {{
+                  submitting()
+                    ? 'Submitting…'
+                    : review
+                      ? 'Confirm ' + side.toLowerCase() + ' order'
+                      : 'Review order'
+                }}
               </button>
-            }
-          </fieldset>
-        </form>
-      </section>
+              @if (review) {
+                <button class="quiet full" type="button" (click)="review = false">
+                  Back to editing
+                </button>
+              }
+            </fieldset>
+          </form>
+        </section>
+        @if (marketSymbol()) {
+          <ng-container [ngTemplateOutlet]="marketData.overviewTemplate() ?? null" />
+        }
+      </div>
       <aside class="portfolio">
         <section class="panel balance-panel">
           <p class="eyebrow">ACCOUNT CASH</p>
@@ -245,9 +252,10 @@
           </p>
         </section>
         <app-market-data
+          #marketData
           [instruments]="instruments()"
           [selectedSymbol]="marketSymbol()"
-          [quote]="quote()"
+          [showOverview]="!marketSymbol()"
           (choose)="selectInstrument($event)"
         />
         <div class="desk-note">
@@ -255,7 +263,8 @@
           <div>
             <strong>A little clarity before you trade</strong>
             <p>
-              Only whole units are supported. Quotes and executions are simulated by the platform.
+              Only whole units are supported. Our execution engine uses live Alpaca bid and ask
+              prices.
             </p>
           </div>
         </div>
@@ -302,6 +311,9 @@
       </div>
       <div class="table-scroll" role="region" aria-label="Order data table" tabindex="0">
         <table class="order-table">
+          <caption class="sr-only">
+            Orders matching the current filters, including prices, status and available actions
+          </caption>
           <thead>
             <tr>
               <th>Instrument</th>

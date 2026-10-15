@@ -6,6 +6,9 @@ package com.neueda.leap.messaging;
 public enum EventType {
     ORDER_PLACED("Event for order placement"),
     ORDER_ACCEPTED("Event for accepted/pending orders"),
+    ORDER_RECEIVED("Execution engine received the order"),
+    ORDER_WAITING("Order is waiting for a fresh quote or its limit"),
+    PORTFOLIO_UPDATED("Cash and holdings settled atomically"),
     TRADE_EXECUTED("Event for executed trades"),
     ORDER_FILLED("Event for filled orders"),
     ORDER_REJECTED("Event for rejected orders"),

@@ -50,12 +50,19 @@ describe('My Account', () => {
   it('allows a deposit above the former demo payment balance', () => {
     component.amount = '20000'; component.reviewCash(); expect(component.cashError()).toBe(''); expect(component.review()?.amount).toBe('20000.00');
   });
-  it('shows immutable identifiers outside the edit form and hides card fields until requested', () => {
+  it('keeps identifiers read-only, edits contact fields in place and hides card inputs until requested', () => {
     const fixture = TestBed.createComponent(AccountComponent); fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
     expect(root.querySelector('#card-number')).toBeNull(); expect(root.querySelector('#phone')).toBeNull();
     fixture.componentInstance.editAccount(); fixture.detectChanges();
-    expect(root.querySelector('#phone')).not.toBeNull(); expect(root.querySelector('input[name="username"]')).toBeNull(); expect(root.querySelector('input[name="accountId"]')).toBeNull();
+    expect(root.querySelector('#phone')).not.toBeNull();
+    const details = root.querySelector('[aria-labelledby="details-title"]')!;
+    expect(details.querySelectorAll('input[name="email"]')).toHaveLength(1);
+    expect(details.querySelectorAll('input[name="phone"]')).toHaveLength(1);
+    expect(details.querySelector('#email')?.closest('dd')).not.toBeNull();
+    expect(details.querySelector('#phone')?.closest('dd')).not.toBeNull();
+    expect(details.textContent).not.toContain('alice@example.com');
+    expect(root.querySelector('input[name="username"]')).toBeNull(); expect(root.querySelector('input[name="accountId"]')).toBeNull();
     fixture.componentInstance.addingCard.set(true); fixture.detectChanges(); expect(root.querySelector('#card-number')).not.toBeNull();
   });
   it('keeps the current email until the new email is verified', () => {
@@ -87,6 +94,14 @@ describe('My Account', () => {
   it('removes only the selected card and refreshes the saved-card list', () => {
     component.settings.set({ ...settings, cards: [{ ...settings.bank, id: 'card-1' }] }); component.paymentChoice = 'card-1';
     component.removeCard('card-1'); expect(service.removeCard).toHaveBeenCalledWith('card-1'); expect(component.savedCards()).toHaveLength(0); expect(component.paymentChoice).toBe('new');
+  });
+  it('uses the Spartan switch to apply and clear dark mode at the app root', () => {
+    const fixture = TestBed.createComponent(AccountComponent); fixture.componentInstance.appearance.setTheme('light'); fixture.componentInstance.section.set('appearance'); fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+    const toggle = root.querySelector<HTMLButtonElement>('hlm-switch button[role="switch"]')!;
+    expect(toggle).not.toBeNull(); expect(toggle.getAttribute('aria-checked')).toBe('false');
+    toggle.click(); fixture.detectChanges(); expect(document.documentElement.classList.contains('dark')).toBe(true); expect(toggle.getAttribute('aria-checked')).toBe('true');
+    toggle.click(); fixture.detectChanges(); expect(document.documentElement.classList.contains('dark')).toBe(false);
   });
   it('retains the existing balance when a cash request fails', () => {
     service.cash.mockReturnValue(throwError(() => new Error('offline')));

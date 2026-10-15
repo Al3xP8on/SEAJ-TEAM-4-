@@ -8,6 +8,7 @@ import com.neueda.leap.exceptions.OrderException;
 import com.neueda.leap.exceptions.DuplicateOrderException;
 import com.neueda.leap.messaging.TradeEvent;
 import com.neueda.leap.messaging.TradeEventPublisher;
+import com.neueda.leap.utils.LogMaskingUtil;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Order;
 import com.neueda.leap.models.OrderHistory;
@@ -36,10 +37,10 @@ public class OrderController {
     private OrderService orderService;
 
     @Autowired
-    private TradeEventPublisher tradeEventPublisher;
+    private SecurityUtilsService securityUtilsService;
 
     @Autowired
-    private SecurityUtilsService securityUtilsService;
+    private TradeEventPublisher tradeEventPublisher;
 
     @GetMapping
     public ResponseEntity<List<OrderResponse>> getAllOrders() {
@@ -105,6 +106,7 @@ public class OrderController {
         securityUtilsService.validateOrderOwnership(existing.get());
         try {
             Order order = orderService.executeOrder(id);
+            logger.info("Order queued for Kafka execution: {}", LogMaskingUtil.maskId(id));
             return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
             logger.error("Failed to execute order: {}", e.getMessage());
@@ -121,6 +123,7 @@ public class OrderController {
         try {
             Order order = orderService.cancelOrder(id);
             publishCancellationEvent(order);
+            logger.info("Order cancelled: {}", LogMaskingUtil.maskId(id));
             return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
             logger.error("Failed to cancel order: {}", e.getMessage());

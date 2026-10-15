@@ -19,6 +19,11 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaTopics {
 
     @Bean
+    public NewTopic orderLifecycleTopic(@Value("${trading.kafka.topics.order-lifecycle:order-lifecycle}") String name) {
+        return TopicBuilder.name(name).partitions(3).replicas(1).build();
+    }
+
+    @Bean
     public NewTopic tradesTopic(@Value("${trading.kafka.topics.trades}") String name,
                                @Value("${trading.kafka.partitions.trades}") int partitions) {
         return TopicBuilder.name(name).partitions(partitions).replicas(1).build();

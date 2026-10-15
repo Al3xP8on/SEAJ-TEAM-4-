@@ -1,4 +1,8 @@
 spring:
+  task:
+    scheduling:
+      pool:
+        size: 3
   datasource:
     url: jdbc:postgresql://localhost:5432/SEAJ_db
     username: postgres
@@ -27,6 +31,7 @@ trading:
       market-data: market-data
       orders: orders
       executions: executions
+      order-lifecycle: order-lifecycle
     partitions:
       trades: 2
       trade-events: 3
@@ -39,6 +44,12 @@ market:
   data:
     poll:
       symbols: "*"
-      interval: 5000
+      interval: 10000
     staleness:
       threshold-seconds: 60
+
+alpaca:
+  enabled: ${ALPACA_ENABLED:true}
+  key-id: ${ALPACA_API_KEY_ID:}
+  secret-key: ${ALPACA_API_SECRET_KEY:}
+  feed: ${ALPACA_DATA_FEED:iex}

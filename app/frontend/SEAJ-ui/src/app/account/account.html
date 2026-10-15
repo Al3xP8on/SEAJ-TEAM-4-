@@ -1,5 +1,5 @@
 <main><div class="account-page">
-  <h1>My Account</h1><p class="intro">Manage your account, payments and appearance.</p>
+  <div class="page-heading"><p class="eyebrow">YOUR ACCOUNT</p><h1>{{ profile()?.username || 'My Account' }}</h1><p class="intro">Manage your account, payments and appearance.</p></div>
   @if (loading()) { <p role="status" class="intro">Loading your account…</p> }
   @if (loadError()) { <section class="card"><p role="alert">{{ loadError() }}</p><button (click)="load()" type="button">Try again</button></section> }
   <nav class="section-nav" aria-label="Account sections">
@@ -8,13 +8,11 @@
     <button type="button" [attr.aria-pressed]="section() === 'appearance'" (click)="section.set('appearance')">Appearance</button>
   </nav>
   @if (section() === 'appearance') {
-    <section class="card" aria-labelledby="appearance-title">
-      <h2 id="appearance-title">Appearance</h2><p class="hint">These preferences apply to every page and are saved in this browser.</p>
+    <section hlmCard class="card appearance-card" aria-labelledby="appearance-title">
+      <h2 hlmCardTitle id="appearance-title">Appearance</h2><p class="hint">These preferences apply to every page and are saved in this browser.</p>
       <div class="theme-setting">
         <span id="theme-label">Dark mode</span>
-        <button class="theme-toggle" type="button" role="switch" aria-labelledby="theme-label" [attr.aria-checked]="appearance.theme() === 'dark'" (click)="appearance.setTheme(appearance.theme() === 'dark' ? 'light' : 'dark')">
-          <span class="toggle-thumb" aria-hidden="true"></span>
-        </button>
+        <hlm-switch aria-labelledby="theme-label" [checked]="appearance.theme() === 'dark'" (checkedChange)="appearance.setTheme($event ? 'dark' : 'light')" />
         <span aria-hidden="true">{{ appearance.theme() === 'dark' ? 'On' : 'Off' }}</span>
       </div>
       <label for="text-size">Text size across the application</label>
@@ -25,35 +23,29 @@
   }
   @if (account(); as account) {
     @if (section() === 'settings') {
-      <div class="cards">
+      <div class="cards account-settings-grid">
         <section class="card" aria-labelledby="details-title">
           <div class="card-heading"><h2 id="details-title">Account information</h2><button type="button" class="secondary" id="edit-account-button" (click)="editAccount()" [disabled]="editing()">Edit</button></div>
-          <dl><dt>Username</dt><dd>{{ profile()?.username }}</dd><dt>Account ID</dt><dd>{{ account.accountId }}</dd><dt>Email</dt><dd>{{ profile()?.email }}</dd><dt>Phone number</dt><dd>{{ settings()?.phone || 'Not added' }}</dd><dt>Status</dt><dd>{{ account.status }}</dd></dl>
-          @if (editing()) {
-            <form (ngSubmit)="saveAccount()" aria-label="Edit account information"><fieldset [disabled]="settingsBusy() || !!emailChallenge()">
-              <p class="hint">Username and account ID cannot be changed. A new email must be verified before it replaces your current email.</p>
-              <label for="email">Email (required)</label><input id="email" name="email" type="email" required maxlength="255" autocomplete="email" [(ngModel)]="email" aria-describedby="settings-error">
-              <label for="phone">Phone number (optional)</label><input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="20" [(ngModel)]="phone" aria-describedby="phone-hint settings-error"><p id="phone-hint" class="hint">7–20 characters. Leave blank to remove your phone number.</p>
-              <div class="edit-actions"><button type="submit">Save changes</button><button type="button" class="secondary" (click)="cancelEdit()" [disabled]="settingsBusy()">Cancel editing</button></div>
-            </fieldset></form>
-            @if (emailChallenge()) { <form (ngSubmit)="verifyEmail()" aria-label="Verify new email"><label for="email-code">Email verification code</label><input id="email-code" name="emailCode" required pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" maxlength="6" [(ngModel)]="emailCode" aria-describedby="settings-error"><button type="submit" [disabled]="settingsBusy()">Verify new email</button></form> }
-            @if (emailChallenge()) { <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="settingsBusy()">Cancel editing</button> }
-          }
-          <div class="card-heading details-subheading"><h3>Card details</h3><button type="button" class="secondary" id="edit-card-button" [attr.aria-expanded]="addingCard()" aria-controls="card-editor" (click)="toggleCard()">Edit Card Details</button></div>
-          @for (card of savedCards(); track card.id ?? card.account_last4) {
-            <div class="saved-card"><dl><dt>{{ card.kind === 'card' ? 'Cardholder' : 'Account holder' }}</dt><dd>{{ card.holder_name }}</dd><dt>{{ card.kind === 'card' ? 'Card number' : 'Bank account' }}</dt><dd>•••• {{ card.account_last4 }}</dd>
-              @if (card.expiry_month) { <dt>Expiry</dt><dd>{{ card.expiry_month }}/{{ card.expiry_year }}</dd> }
-            </dl>@if (addingCard() && card.id) { <button type="button" [disabled]="settingsBusy() || cashBusy()" (click)="removeCard(card.id)" [attr.aria-label]="'Remove card ending ' + card.account_last4">Remove card</button> }</div>
-          }
-          @if (addingCard()) {
-            <div id="card-editor"><h4 class="details-subheading">Add a card</h4><p class="hint">Use fictitious card details for this simulation. Only the last four digits and expiry are saved. No security code is required.</p>
-              <form (ngSubmit)="saveBank()" aria-label="Save optional card details"><fieldset [disabled]="settingsBusy() || cashBusy()">
-                <label for="card-holder">Cardholder name (required)</label><input id="card-holder" name="cardHolder" required maxlength="100" [(ngModel)]="bankInput.holder_name" aria-describedby="settings-error">
-                <label for="card-number">Card number (required)</label><input id="card-number" name="cardNumber" required inputmode="numeric" pattern="[0-9]{13,19}" maxlength="19" autocomplete="off" [(ngModel)]="bankInput.card_number" aria-describedby="card-hint settings-error"><p id="card-hint" class="hint">13–19 digits, without spaces. Use fictitious details.</p>
-                <div class="expiry-fields"><div><label for="card-month">Expiry month</label><input id="card-month" name="cardMonth" type="number" required min="1" max="12" [(ngModel)]="bankInput.expiry_month"></div><div><label for="card-year">Expiry year</label><input id="card-year" name="cardYear" type="number" required min="2026" max="2100" [(ngModel)]="bankInput.expiry_year"></div></div>
-                <button type="submit">Save card details</button>
-              </fieldset></form><button type="button" class="secondary" (click)="toggleCard()" [disabled]="settingsBusy()">Cancel</button>
-            </div>
+          <form (ngSubmit)="saveAccount()" aria-label="Account information">
+            <fieldset [disabled]="settingsBusy() || !!emailChallenge()">
+              <legend class="sr-only">Account information</legend>
+              <dl class="account-fields">
+                <dt>Username</dt><dd>{{ profile()?.username }}</dd>
+                <dt>Account ID</dt><dd>{{ account.accountId }}</dd>
+                <dt>@if (editing()) { <label for="email">Email (required)</label> } @else { Email }</dt>
+                <dd>@if (editing()) { <input id="email" name="email" type="email" required maxlength="255" autocomplete="email" [(ngModel)]="email" aria-describedby="settings-error"> } @else { {{ profile()?.email }} }</dd>
+                <dt>@if (editing()) { <label for="phone">Phone number (optional)</label> } @else { Phone number }</dt>
+                <dd>@if (editing()) { <input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="20" [(ngModel)]="phone" aria-describedby="phone-hint settings-error"><p id="phone-hint" class="hint">7–20 characters. Leave blank to remove your phone number.</p> } @else { {{ settings()?.phone || 'Not added' }} }</dd>
+                <dt>Status</dt><dd>{{ account.status }}</dd>
+              </dl>
+              @if (editing()) {
+                <div class="edit-actions"><button type="submit">Save changes</button><button type="button" class="secondary" (click)="cancelEdit()" [disabled]="settingsBusy()">Cancel editing</button></div>
+              }
+            </fieldset>
+          </form>
+          @if (editing() && emailChallenge()) {
+            <form (ngSubmit)="verifyEmail()" aria-label="Verify new email"><label for="email-code">Email verification code</label><input id="email-code" name="emailCode" required pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" maxlength="6" [(ngModel)]="emailCode" aria-describedby="settings-error"><button type="submit" [disabled]="settingsBusy()">Verify new email</button></form>
+            <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="settingsBusy()">Cancel editing</button>
           }
           <p id="settings-error" class="error" role="alert">{{ settingsError() }}</p><p role="status">{{ settingsMessage() }}</p>
         </section>
@@ -61,11 +53,36 @@
           <h2 id="password-title">Change password</h2><p id="password-hint" class="hint">Use at least 8 characters</p>
           <p role="status">{{ passwordMessage() }}</p><p id="password-error" role="alert" class="error">{{ passwordError() }}</p>
           <form (ngSubmit)="submitPassword()" aria-labelledby="password-title"><fieldset [disabled]="passwordBusy()">
+            <legend class="sr-only">Change password</legend>
             <label for="current-password">Current password</label><input id="current-password" name="currentPassword" type="password" required autocomplete="current-password" [(ngModel)]="currentPassword" aria-describedby="password-error">
             <label for="new-password">New password</label><input id="new-password" name="newPassword" type="password" required minlength="8" autocomplete="new-password" [(ngModel)]="newPassword" aria-describedby="password-hint password-error">
             <label for="confirm-password">Confirm new password</label><input id="confirm-password" name="confirmPassword" type="password" required autocomplete="new-password" [(ngModel)]="confirmPassword" aria-describedby="password-error">
             <button type="submit">{{ passwordBusy() ? 'Changing password…' : 'Change password' }}</button>
           </fieldset></form>
+        </section>
+        <section class="card card-details-section" aria-labelledby="cards-title">
+          <div class="card-heading"><h2 id="cards-title">Card details</h2><button type="button" class="secondary" id="edit-card-button" [attr.aria-expanded]="addingCard()" aria-controls="card-editor" (click)="toggleCard()">Edit Card Details</button></div>
+          <div class="saved-cards">
+          @for (card of savedCards(); track card.id ?? card.account_last4) {
+            <div class="saved-card"><dl><dt>{{ card.kind === 'card' ? 'Cardholder' : 'Account holder' }}</dt><dd>{{ card.holder_name }}</dd><dt>{{ card.kind === 'card' ? 'Card number' : 'Bank account' }}</dt><dd>•••• {{ card.account_last4 }}</dd>
+              @if (card.expiry_month) { <dt>Expiry</dt><dd>{{ card.expiry_month }}/{{ card.expiry_year }}</dd> }
+            </dl>@if (addingCard() && card.id) { <button type="button" [disabled]="settingsBusy() || cashBusy()" (click)="removeCard(card.id)" [attr.aria-label]="'Remove card ending ' + card.account_last4">Remove card</button> }</div>
+          }
+          </div>
+          @if (addingCard()) {
+            <div id="card-editor"><h3 class="details-subheading">Add a card</h3>
+              <form (ngSubmit)="saveBank()" aria-label="Save optional card details"><fieldset [disabled]="settingsBusy() || cashBusy()">
+                <legend class="sr-only">Add a card</legend>
+                <div class="card-inputs">
+                <label for="card-holder">Cardholder name (required)</label><input id="card-holder" name="cardHolder" required maxlength="100" [(ngModel)]="bankInput.holder_name" aria-describedby="card-settings-error">
+                <label for="card-number">Card number (required)</label><input id="card-number" name="cardNumber" required inputmode="numeric" pattern="[0-9]{13,19}" maxlength="19" autocomplete="off" [(ngModel)]="bankInput.card_number" aria-describedby="card-hint card-settings-error"><p id="card-hint" class="hint">13–19 digits, without spaces. Use fictitious details.</p>
+                <div class="expiry-fields"><div><label for="card-month">Expiry month</label><input id="card-month" name="cardMonth" type="number" required min="1" max="12" [(ngModel)]="bankInput.expiry_month"></div><div><label for="card-year">Expiry year</label><input id="card-year" name="cardYear" type="number" required min="2026" max="2100" [(ngModel)]="bankInput.expiry_year"></div></div>
+                </div>
+                <div class="edit-actions"><button type="submit">Save card details</button><button type="button" class="secondary" (click)="toggleCard()" [disabled]="settingsBusy()">Cancel</button></div>
+              </fieldset></form>
+            </div>
+          }
+          <p id="card-settings-error" class="error" role="alert">{{ cardError() }}</p><p role="status">{{ cardMessage() }}</p>
         </section>
         <section class="card deletion-section" aria-labelledby="delete-title">
           <h2 id="delete-title">Delete account</h2><p class="hint">Deletion removes your personal and payment details and ends access to this account</p>
@@ -80,7 +97,7 @@
       </div>
     }
     @if (section() === 'cash') {
-      <div class="cards"><section class="card" aria-labelledby="cash-title"><h2 id="cash-title">Cash balance</h2><p class="balance">{{ account.cashBalance | currency:'USD' }}</p>
+      <div class="cards"><section class="card cash-card" aria-labelledby="cash-title"><h2 id="cash-title" class="eyebrow">Cash balance</h2><p class="balance">{{ account.cashBalance | currency:'USD' }}</p>
         <p role="status">{{ cashMessage() }}</p><p id="cash-error" role="alert" class="error">{{ cashError() }}</p>
         <form (ngSubmit)="reviewCash()" aria-labelledby="cash-title" [attr.aria-busy]="cashBusy()"><fieldset [disabled]="cashBusy() || settingsBusy() || account.status !== 'ACTIVE'">
           <legend>Manage cash</legend>
@@ -104,3 +121,5 @@
     }
   }
 </div></main>
+
+<footer>© 2026 SEAJ Capital <span>Trade with a clearer view.</span></footer>

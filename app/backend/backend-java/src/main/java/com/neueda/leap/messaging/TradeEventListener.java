@@ -64,6 +64,7 @@ public class TradeEventListener {
     @KafkaListener(
             topics = "${trading.kafka.topics.trade-events}",
             groupId = "trade-event-processor",
+            autoStartup = "${trading.legacy-listeners.enabled:false}",
             concurrency = "3"
     )
     @Transactional
