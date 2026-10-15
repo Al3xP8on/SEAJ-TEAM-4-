@@ -35,7 +35,11 @@ export class AccountComponent {
   readonly emailChallenge = signal<string | null>(null);
   paymentChoice = 'new';
   saveTransferCard = false;
-  savedCards(): Bank[] { const settings = this.settings(); return settings?.cards?.length ? settings.cards : settings?.bank ? [settings.bank] : []; }
+  savedCards(): Bank[] {
+    const settings = this.settings();
+    if (settings?.cards?.length) return settings.cards;
+    return settings?.bank ? [settings.bank] : [];
+  }
   get useSavedCard() { return this.paymentChoice !== 'new'; }
   set useSavedCard(value: boolean) { this.paymentChoice = value ? this.savedCards()[0]?.id ?? 'legacy' : 'new'; }
   private selectedCard() { return this.savedCards().find(card => (card.id ?? 'legacy') === this.paymentChoice); }
@@ -105,13 +109,19 @@ export class AccountComponent {
     const challenge = this.emailChallenge(); if (!challenge || this.settingsBusy()) return;
     this.settingsBusy.set(true);
     this.service.verifyEmail(challenge, this.emailCode).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: result => { const profile = this.profile(); if (profile) this.profile.set({ ...profile, email: result.email }); this.settingsBusy.set(false); this.emailChallenge.set(null); this.editing.set(false); this.focus('#edit-account-button'); this.emailCode = ''; this.settingsMessage.set('Account information saved.'); },
+      next: result => {
+        const profile = this.profile();
+        if (profile) {
+          this.profile.set({ ...profile, email: result.email });
+        }
+        this.settingsBusy.set(false); this.emailChallenge.set(null); this.editing.set(false); this.focus('#edit-account-button'); this.emailCode = ''; this.settingsMessage.set('Account information saved.');
+      },
       error: error => { this.settingsBusy.set(false); this.settingsError.set(this.errorMessage(error, 'Unable to verify your new email.')); },
     });
   }
   private validCard(card: BankInput): boolean {
     const now = new Date();
-    return !!card.holder_name.trim() && /^[0-9]{13,19}$/.test(card.card_number) && Number(card.expiry_month) >= 1 && Number(card.expiry_month) <= 12 && (Number(card.expiry_year) > now.getUTCFullYear() || (Number(card.expiry_year) === now.getUTCFullYear() && Number(card.expiry_month) >= now.getUTCMonth() + 1));
+    return !!card.holder_name.trim() && /^\d{13,19}$/.test(card.card_number) && Number(card.expiry_month) >= 1 && Number(card.expiry_month) <= 12 && (Number(card.expiry_year) > now.getUTCFullYear() || (Number(card.expiry_year) === now.getUTCFullYear() && Number(card.expiry_month) >= now.getUTCMonth() + 1));
   }
   saveBank() {
     if (this.settingsBusy() || this.cashBusy()) return;
@@ -129,7 +139,13 @@ export class AccountComponent {
     if (!cardId || this.settingsBusy() || this.cashBusy()) return;
     this.settingsBusy.set(true); this.cardError.set(''); this.cardMessage.set(''); this.review.set(null);
     this.service.removeCard(cardId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: settings => { this.applySettings(settings); if (!this.selectedCard()) this.paymentChoice = settings.cards?.[0]?.id ?? 'new'; this.settingsBusy.set(false); this.cardMessage.set('Card removed.'); this.focus('#edit-card-button'); },
+      next: settings => {
+        this.applySettings(settings);
+        if (!this.selectedCard()) {
+          this.paymentChoice = settings.cards?.[0]?.id ?? 'new';
+        }
+        this.settingsBusy.set(false); this.cardMessage.set('Card removed.'); this.focus('#edit-card-button');
+      },
       error: error => { this.settingsBusy.set(false); this.cardError.set(this.errorMessage(error, 'Unable to remove card.')); },
     });
   }
@@ -197,7 +213,13 @@ export class AccountComponent {
     const review = this.review(); if (!review || this.cashBusy()) return;
     this.cashBusy.set(true); this.cashError.set('');
     this.service.cash(review.action, review.amount, review.requestId, review.card, review.cardId, !!review.card && this.saveTransferCard).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: settings => { this.applySettings(settings); if (review.card && this.saveTransferCard) this.paymentChoice = settings.bank?.id ?? 'legacy'; this.saveTransferCard = false; this.cashBusy.set(false); this.review.set(null); this.amount = ''; this.transferCard.card_number = ''; this.focus('#amount'); this.cashMessage.set('Transfer completed. Your cash balance has been updated.'); },
+      next: settings => {
+        this.applySettings(settings);
+        if (review.card && this.saveTransferCard) {
+          this.paymentChoice = settings.bank?.id ?? 'legacy';
+        }
+        this.saveTransferCard = false; this.cashBusy.set(false); this.review.set(null); this.amount = ''; this.transferCard.card_number = ''; this.focus('#amount'); this.cashMessage.set('Transfer completed. Your cash balance has been updated.');
+      },
       error: error => { this.cashBusy.set(false); this.cashError.set(this.errorMessage(error, 'Cash transfer failed. Check your balance before trying again.')); },
     });
   }

@@ -37,6 +37,20 @@
   --chart-3: #779b87;
   --chart-4: #946012;
   --chart-5: #5a6b61;
+  --surface: var(--card);
+  --surface-soft: var(--muted);
+  --text: var(--foreground);
+  --on-brand: var(--primary-foreground);
+  --error: var(--destructive);
+  --focus: var(--ring);
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 :root.dark {
   color-scheme: dark;
@@ -66,22 +80,7 @@
   --chart-4: #ffd58a;
   --chart-5: #cfbbef;
 }
-:root {
-  --surface: var(--card);
-  --surface-soft: var(--muted);
-  --text: var(--foreground);
-  --on-brand: var(--primary-foreground);
-  --error: var(--destructive);
-  --focus: var(--ring);
-  --sidebar: var(--background);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--accent-foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
-}
+
 @layer base {
   * { @apply border-border; box-sizing: border-box; }
   body { @apply bg-background text-foreground; font-family: var(--font-sans); }

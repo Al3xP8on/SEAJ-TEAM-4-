@@ -321,11 +321,8 @@ export class OrdersComponent {
     return this.instruments().find((i) => i.symbol === this.symbol);
   }
   unitPrice(): number | null {
-    return this.orderType === 'LIMIT'
-      ? this.limitPrice
-      : this.side === 'BUY'
-        ? (this.quote()?.askPrice ?? null)
-        : (this.quote()?.bidPrice ?? null);
+    if (this.orderType === 'LIMIT') return this.limitPrice;
+    return this.side === 'BUY' ? (this.quote()?.askPrice ?? null) : (this.quote()?.bidPrice ?? null);
   }
   estimatedTotal(): number {
     return (this.unitPrice() ?? 0) * (this.quantity ?? 0);
@@ -381,25 +378,10 @@ export class OrdersComponent {
       this.error.set('Select an active trading account.');
       return;
     }
-    const price = this.unitPrice();
-    if (!price || price <= 0 || !Number.isFinite(price)) {
-      this.error.set(
-        this.orderType === 'MARKET'
-          ? 'No current quote. Choose a limit order or wait for a quote.'
-          : 'Enter a positive limit price.',
-      );
-      return;
-    }
-    if (this.orderType === 'LIMIT' && Math.abs(price * 100 - Math.round(price * 100)) > 0.000001) {
-      this.error.set('Limit prices allow up to two decimal places.');
-      return;
-    }
-    if (this.side === 'BUY' && this.estimatedTotal() > this.availableCash()) {
-      this.error.set('This order exceeds your available cash.');
-      return;
-    }
-    if (this.side === 'SELL' && this.quantity > this.availableHolding()) {
-      this.error.set('This order exceeds your available holdings.');
+    const price = this.unitPrice() ?? 0;
+    const validationError = this.priceAndBalanceError(price);
+    if (validationError) {
+      this.error.set(validationError);
       return;
     }
     if (!this.review) {
@@ -425,7 +407,7 @@ export class OrdersComponent {
         return;
       }
     }
-    const request: OrderRequest = { ...draft, idempotencyKey: this.submission!.key };
+    const request: OrderRequest = { ...draft, idempotencyKey: this.submission.key };
     this.submitting.set(true);
     this.error.set('');
     this.notice.set('');
@@ -456,6 +438,24 @@ export class OrdersComponent {
             ),
           ),
       });
+  }
+
+  private priceAndBalanceError(price: number): string {
+    if (price <= 0 || !Number.isFinite(price)) {
+      return this.orderType === 'MARKET'
+        ? 'No current quote. Choose a limit order or wait for a quote.'
+        : 'Enter a positive limit price.';
+    }
+    if (this.orderType === 'LIMIT' && Math.abs(price * 100 - Math.round(price * 100)) > 0.000001) {
+      return 'Limit prices allow up to two decimal places.';
+    }
+    if (this.side === 'BUY' && this.estimatedTotal() > this.availableCash()) {
+      return 'This order exceeds your available cash.';
+    }
+    if (this.side === 'SELL' && (this.quantity ?? 0) > this.availableHolding()) {
+      return 'This order exceeds your available holdings.';
+    }
+    return '';
   }
 
   private createSubmissionKey(): string {
@@ -553,11 +553,9 @@ export class OrdersComponent {
     error: { error?: { message?: string }; status?: number },
     fallback: string,
   ): string {
-    return typeof error.error?.message === 'string'
-      ? error.error.message
-      : error.status === 403
-        ? 'You do not have access to this account or order.'
-        : fallback;
+    if (typeof error.error?.message === 'string') return error.error.message;
+    if (error.status === 403) return 'You do not have access to this account or order.';
+    return fallback;
   }
   private readAdmin(): boolean {
     try {

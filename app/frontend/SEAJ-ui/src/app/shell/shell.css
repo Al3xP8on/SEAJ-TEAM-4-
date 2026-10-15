@@ -1,5 +1,5 @@
 :host {
-  --app-nav-height: 80px;
+  --app-nav-height: 5rem;
   display: block;
   min-height: 100dvh;
   font-family: Arial, sans-serif;
@@ -8,11 +8,13 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  height: var(--app-nav-height);
+  height: auto;
+  min-height: 5rem;
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 48px;
-  padding: 0 5%;
+  padding: 12px 5%;
   background: var(--surface);
   color: var(--foreground);
   border-bottom: 1px solid var(--border);
@@ -35,19 +37,32 @@ button {
   display: block;
   width: 146px;
   height: auto;
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 4px;
 }
 nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 28px;
   font-size: 0.875rem;
 }
 nav a {
-  padding: 9px 0;
-  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: .9375rem;
+  font-weight: 600;
+  color: var(--foreground);
+  transition: background-color .15s ease;
 }
+nav a:hover { background: var(--muted); }
 nav .active {
   color: var(--foreground);
-  border-bottom: 2px solid #246342;
+  background: var(--muted);
+  border-bottom: 3px solid var(--positive);
 }
 .logout {
   margin-left: 0;
@@ -57,7 +72,7 @@ nav .active {
   padding: 9px 15px;
   border-radius: 6px;
   font: inherit;
-  font-size: 0.75rem;
+  font-size: .875rem;
   cursor: pointer;
 }
 .logout:hover {
@@ -65,16 +80,13 @@ nav .active {
 }
 @media (max-width: 900px) {
   .topbar {
-    gap: 20px;
+    gap: 12px 20px;
   }
 }
 @media (max-width: 520px) {
-  :host {
-    --app-nav-height: 64px;
-  }
   .topbar {
-    gap: 12px;
-    padding: 0 12px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
   .brand-logo {
     width: 112px;
@@ -85,15 +97,13 @@ nav .active {
   }
   .logout {
     padding: 7px 8px;
-    font-size: 0.6875rem;
   }
 }
 
 .skip-link { position: fixed; top: -100px; left: 12px; z-index: 20; padding: 12px; background: var(--surface); color: var(--foreground); }
 .skip-link:focus { top: 8px; }
 @media (max-width: 600px) {
-  :host { --app-nav-height: 112px; }
-  .topbar { height: auto; min-height: 112px; flex-wrap: wrap; gap: 8px 16px; padding: 12px; }
+  .topbar { padding: 12px; }
   nav { order: 3; width: 100%; gap: 24px; }
   nav a, .logout { min-height: 44px; display: inline-flex; align-items: center; }
 }
@@ -103,13 +113,3 @@ nav .active {
   .account-nav { order: 0; width: auto; margin-left: auto; }
   .brand > span:last-child { display: none; }
 }
-.topbar { height: auto; min-height: 5rem; flex-wrap: wrap; padding-top: 12px; padding-bottom: 12px; }
-:host { --app-nav-height: 5rem; }
-nav { flex-wrap: wrap; }
-@media (max-width: 900px) { .topbar { gap: 12px 20px; } }
-
-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 12px; border-radius: 6px; font-size: .9375rem; font-weight: 600; color: var(--foreground); transition: background-color .15s ease; }
-nav a:hover { background: var(--muted); }
-nav .active { color: var(--foreground); background: var(--muted); border-bottom: 3px solid var(--positive); }
-.logout { color: var(--foreground); font-size: .875rem; }
-.brand-logo { background: #ffffff; border-radius: 4px; padding: 4px; }

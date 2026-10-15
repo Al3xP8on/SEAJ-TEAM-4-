@@ -44,8 +44,8 @@ export class MarketDataComponent {
         return { instrument, latest: prices.at(-1), gain: this.dailyGain(prices) };
       })
       // Rank a single trading date rather than mix older closes into today's list.
-      .filter((entry) => entry.latest?.priceDate === this.latestDate() && entry.gain !== null)
-      .sort((a, b) => b.gain! - a.gain! || a.instrument.symbol.localeCompare(b.instrument.symbol))
+      .filter((entry): entry is typeof entry & { gain: number } => entry.latest?.priceDate === this.latestDate() && entry.gain !== null)
+      .sort((a, b) => b.gain - a.gain || a.instrument.symbol.localeCompare(b.instrument.symbol))
       .slice(0, 5),
   );
   readonly chart = computed(() => {

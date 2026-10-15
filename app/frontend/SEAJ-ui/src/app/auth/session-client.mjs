@@ -125,23 +125,10 @@ class AuthService {
             try {
                 const { status, result } = await this.request(this.loginUrl.replace(/\/login$/, '/refresh'), { refresh_token: refreshToken });
                 if (generation !== this.generation) throw new Error('Session refresh was cancelled.');
-                try {
-                    this.storeSession(status, result);
-                } catch (error) {
-                    error.invalidSession = true;
-                    throw error;
-                }
+                this.storeRefreshedSession(status, result);
                 return result;
             } catch (error) {
-                if (generation === this.generation) {
-                    if (error.invalidSession || [400, 401, 403].includes(error.status)) {
-                        this.logout();
-                        this.onSessionExpired();
-                    } else {
-                        // Preserve the rotating token during transient network/server failures.
-                        this.scheduleRefresh(5000);
-                    }
-                }
+                this.handleRefreshFailure(error, generation);
                 throw error;
             } finally {
                 if (this.refreshPromise === pending) this.refreshPromise = null;
@@ -149,6 +136,26 @@ class AuthService {
         })();
         this.refreshPromise = pending;
         return pending;
+    }
+
+    storeRefreshedSession(status, result) {
+        try {
+            this.storeSession(status, result);
+        } catch (error) {
+            error.invalidSession = true;
+            throw error;
+        }
+    }
+
+    handleRefreshFailure(error, generation) {
+        if (generation !== this.generation) return;
+        if (error.invalidSession || [400, 401, 403].includes(error.status)) {
+            this.logout();
+            this.onSessionExpired();
+            return;
+        }
+        // Preserve the rotating token during transient network/server failures.
+        this.scheduleRefresh(5000);
     }
 
     isUsableToken(token) {
