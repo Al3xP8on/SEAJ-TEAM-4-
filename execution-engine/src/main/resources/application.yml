@@ -7,6 +7,9 @@ spring:
       acks: all
       properties:
         enable.idempotence: true
+        max.block.ms: 5000
+        request.timeout.ms: 5000
+        delivery.timeout.ms: 15000
     consumer:
       group-id: execution-engine
       auto-offset-reset: earliest
@@ -25,12 +28,11 @@ management:
         include: health,info
 
 engine:
-  min-delay: ${ENGINE_MIN_DELAY:500ms}
-  max-delay: ${ENGINE_MAX_DELAY:2000ms}
-  max-price-improvement-bps: ${ENGINE_MAX_PRICE_IMPROVEMENT_BPS:50}
-  venue: SIM
+  quote-max-age: 60s
   topics:
     orders: orders
     executions: executions
     trades: trades
+    market-data: market-data
+    order-lifecycle: order-lifecycle
     partitions: 3
