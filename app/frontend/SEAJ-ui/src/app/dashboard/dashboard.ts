@@ -9,16 +9,28 @@ import { Account, Position } from './dashboard.models';
 import { Order } from '../orders/orders.models';
 import { DashboardData, DashboardService } from './dashboard.service';
 import { AllocationChartComponent, AllocationSlice } from './allocation-chart/allocation-chart';
+import { PortfolioCheckComponent } from './portfolio-check/portfolio-check';
 
 // How many of the latest orders the Recent orders card shows
 const RECENT_ORDER_COUNT = 5;
+
+// Orders that can still fill; the backend holds back cash for open BUYs until then
+const OPEN_STATUSES: Order['status'][] = ['NEW', 'PENDING'];
 
 // Holdings the user still owns; closed and liquidated positions are left out
 const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, HlmCardImports, HlmTableImports, AllocationChartComponent],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    DecimalPipe,
+    HlmCardImports,
+    HlmTableImports,
+    AllocationChartComponent,
+    PortfolioCheckComponent,
+  ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -52,6 +64,18 @@ export class DashboardComponent implements OnInit {
     [...this.orders()]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, RECENT_ORDER_COUNT),
+  );
+
+  /** Cash committed to open BUY orders */
+  readonly reservedCash = computed(() =>
+    this.orders()
+      .filter((o) => o.side === 'BUY' && OPEN_STATUSES.includes(o.status))
+      .reduce((total, o) => total + o.totalValue, 0),
+  );
+
+  /** What a new order can spend, matching the backend's check when placing one */
+  readonly buyingPower = computed(() =>
+    Math.max(0, (this.account()?.cashBalance ?? 0) - this.reservedCash()),
   );
 
   readonly totalValue = computed(() => (this.account()?.cashBalance ?? 0) + this.holdingsValue());

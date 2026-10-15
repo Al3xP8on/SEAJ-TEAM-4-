@@ -6,7 +6,12 @@ import { DashboardData, DashboardService } from './dashboard.service';
 import { Position } from './dashboard.models';
 import { Order } from '../orders/orders.models';
 
-const order = (orderId: string, ticker: string, createdAt: string, extra: Partial<Order> = {}): Order => ({
+const order = (
+  orderId: string,
+  ticker: string,
+  createdAt: string,
+  extra: Partial<Order> = {},
+): Order => ({
   orderId,
   accountId: 'ACC-0001',
   accountHolderName: 'Alice Johnson',
@@ -152,7 +157,7 @@ describe('DashboardComponent', () => {
 
   it('lists the five most recent orders, newest first', async () => {
     const { page } = await render();
-    const rows = Array.from(page.querySelectorAll('.orders-table tbody tr'));
+    const rows = Array.from(page.querySelectorAll('.order-list .order'));
 
     // o1 (AAPL, the oldest) drops off
     expect(rows.map((r) => r.querySelector('.symbol')?.textContent)).toEqual([
@@ -169,7 +174,7 @@ describe('DashboardComponent', () => {
 
   it('shows the execution price for filled orders, otherwise the order price', async () => {
     const { page } = await render();
-    const nvda = Array.from(page.querySelectorAll('.orders-table tbody tr')).find(
+    const nvda = Array.from(page.querySelectorAll('.order-list .order')).find(
       (r) => r.querySelector('.symbol')?.textContent === 'NVDA',
     )!;
 
@@ -177,11 +182,31 @@ describe('DashboardComponent', () => {
     expect(nvda.textContent).not.toContain('$120.00');
   });
 
-  it('shows a message instead of the orders table when there are no orders', async () => {
+  it('shows buying power as cash less open buy orders', async () => {
+    // MSFT is an open SELL and does not hold back cash; add an open BUY worth $2,500
+    const orders = [
+      ...DATA.orders,
+      order('o7', 'AMD', '2026-09-01T09:00:00', { status: 'NEW', totalValue: 2500 }),
+    ];
+    dashboard.load.mockReturnValue(of({ ...DATA, orders }));
+    const { page } = await render();
+
+    expect(page.querySelector('.buying-power')?.textContent?.trim()).toBe('$7,500.00');
+  });
+
+  it('passes holdings, totals and reserved cash to the portfolio check', async () => {
+    const { page } = await render();
+
+    // AAPL is 31.2% of the $29,203.25 portfolio and MSFT 28.4%, both above 25%
+    const warnings = Array.from(page.querySelectorAll('app-portfolio-check .check.warning p'));
+    expect(warnings.map((p) => p.textContent?.trim().split(' ')[0])).toEqual(['AAPL', 'MSFT']);
+  });
+
+  it('shows a message instead of the order list when there are no orders', async () => {
     dashboard.load.mockReturnValue(of({ ...DATA, orders: [] }));
     const { page } = await render();
 
-    expect(page.querySelector('.orders-table')).toBeNull();
+    expect(page.querySelector('.order-list')).toBeNull();
     expect(page.querySelector('.orders-card .empty')?.textContent).toContain(
       "haven't placed any orders",
     );
@@ -218,7 +243,7 @@ describe('DashboardComponent', () => {
   it.each([
     ['Place Order', '/order'],
     ['Order History', '/blotter'],
-    ['View all', '/blotter'],
+    ['View all in blotter', '/blotter'],
   ])('%s button navigates to %s', async (label, path) => {
     const { page } = await render();
 

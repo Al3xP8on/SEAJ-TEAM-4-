@@ -1,0 +1,47 @@
+<section hlmCard class="check-card" aria-labelledby="check-title">
+  <div hlmCardHeader>
+    <h2 hlmCardTitle id="check-title">Portfolio check</h2>
+    <div hlmCardAction>
+      <span class="count" [class.has-warnings]="warningCount() > 0">{{ warningLabel() }}</span>
+    </div>
+  </div>
+  <div hlmCardContent>
+    <ul class="checks">
+      @for (holding of concentrated(); track holding.symbol) {
+        <li class="check warning">
+          <h3><span aria-hidden="true">⚠</span> Concentration</h3>
+          <p>
+            {{ holding.symbol }} is {{ holding.share | percent }} of your portfolio, above the
+            {{ limit | percent }} guideline.
+          </p>
+        </li>
+      } @empty {
+        <li class="check ok">
+          <h3><span aria-hidden="true">✓</span> Diversification</h3>
+          <p>No single holding is above {{ limit | percent }} of your portfolio.</p>
+        </li>
+      }
+
+      @if (coversOpenOrders()) {
+        <li class="check ok">
+          <h3><span aria-hidden="true">✓</span> Buying power</h3>
+          @if (reserved() > 0) {
+            <p>Cash covers your open orders ({{ reserved() | currency: 'USD' }} reserved).</p>
+          } @else {
+            <p>You have no open buy orders.</p>
+          }
+        </li>
+      } @else {
+        <li class="check warning">
+          <h3><span aria-hidden="true">⚠</span> Buying power</h3>
+          <p>
+            Open buy orders ({{ reserved() | currency: 'USD' }}) are more than your cash ({{
+              cash() | currency: 'USD'
+            }}).
+          </p>
+        </li>
+      }
+    </ul>
+    <p class="note">Educational information, not investment advice.</p>
+  </div>
+</section>

@@ -26,7 +26,10 @@
         </div>
         <div hlmCardContent>
           <p class="balance">{{ account.cashBalance | currency: 'USD' }}</p>
-          <p class="muted">Available to trade</p>
+          <p class="muted">
+            Available to trade · Buying power
+            <span class="buying-power">{{ buyingPower() | currency: 'USD' }}</span>
+          </p>
         </div>
       </section>
 
@@ -105,54 +108,45 @@
       </section>
     </div>
 
-    <section hlmCard class="orders-card" aria-labelledby="orders-title">
-      <div hlmCardHeader>
-        <h2 hlmCardTitle id="orders-title">Recent orders</h2>
-        <div hlmCardAction>
-          <button type="button" class="quiet small" (click)="goToBlotter()">View all</button>
-        </div>
-      </div>
-      <div hlmCardContent>
-        @if (recentOrders().length > 0) {
-          <div hlmTableContainer>
-            <table hlmTable class="data-table orders-table">
-              <thead hlmTHead>
-                <tr hlmTr>
-                  <th hlmTh scope="col">Symbol</th>
-                  <th hlmTh scope="col">Side</th>
-                  <th hlmTh scope="col" class="num">Quantity</th>
-                  <th hlmTh scope="col" class="num">Price</th>
-                  <th hlmTh scope="col">Status</th>
-                  <th hlmTh scope="col">Placed</th>
-                </tr>
-              </thead>
-              <tbody hlmTBody>
-                @for (order of recentOrders(); track order.orderId) {
-                  <tr hlmTr>
-                    <th hlmTh scope="row" class="symbol">{{ order.ticker }}</th>
-                    <td hlmTd>{{ order.side }}</td>
-                    <td hlmTd class="num">{{ order.quantity | number }}</td>
-                    <td hlmTd class="num">
-                      {{ order.executionPrice ?? order.price | currency: 'USD' }}
-                    </td>
-                    <td hlmTd>
-                      <span class="badge" [attr.data-status]="order.status">{{ order.status }}</span>
-                    </td>
-                    <td hlmTd>
-                      <time [attr.datetime]="order.createdAt">{{
-                        order.createdAt | date: 'MMM d, HH:mm'
-                      }}</time>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+    <div class="activity-row">
+      <section hlmCard class="orders-card" aria-labelledby="orders-title">
+        <div hlmCardHeader>
+          <h2 hlmCardTitle id="orders-title">Recent orders</h2>
+          <div hlmCardAction>
+            <button type="button" class="link" (click)="goToBlotter()">View all in blotter</button>
           </div>
-        } @else {
-          <p class="empty">You haven't placed any orders yet.</p>
-        }
-      </div>
-    </section>
+        </div>
+        <div hlmCardContent>
+          @if (recentOrders().length > 0) {
+            <ul class="order-list">
+              @for (order of recentOrders(); track order.orderId) {
+                <li class="order">
+                  <span class="summary-line">
+                    <strong class="side">{{ order.side }}</strong>
+                    {{ order.quantity | number }}
+                    <span class="symbol">{{ order.ticker }}</span> &#64;
+                    {{ order.executionPrice ?? order.price | currency: 'USD' }}
+                  </span>
+                  <time [attr.datetime]="order.createdAt">{{
+                    order.createdAt | date: 'MMM d, HH:mm'
+                  }}</time>
+                  <span class="badge" [attr.data-status]="order.status">{{ order.status }}</span>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty">You haven't placed any orders yet.</p>
+          }
+        </div>
+      </section>
+
+      <app-portfolio-check
+        [holdings]="holdings()"
+        [totalValue]="totalValue()"
+        [cash]="account.cashBalance"
+        [reserved]="reservedCash()"
+      />
+    </div>
   }
 </main>
 
