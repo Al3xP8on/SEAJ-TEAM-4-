@@ -300,6 +300,10 @@ public class PriceHistoryControllerTest {
 
         verify(priceHistoryService, times(1)).savePriceHistory(any(PriceHistory.class));
     }
+
+    @Test
+    @DisplayName("Should handle error when saving price history")
+    void testSavePriceHistoryError() throws Exception {
         when(priceHistoryService.savePriceHistory(any(PriceHistory.class)))
             .thenThrow(new RuntimeException("Database error"));
 
