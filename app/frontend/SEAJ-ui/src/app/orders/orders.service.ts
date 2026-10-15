@@ -4,6 +4,8 @@ import { catchError, forkJoin, of } from 'rxjs';
 import { Account, Position } from '../dashboard/dashboard.models';
 import {
   DailyPrice,
+  MarketOverview,
+  MarketChart,
   Instrument,
   Order,
   OrderHistory,
@@ -36,8 +38,16 @@ export class OrdersService {
       .get<Quote | null>(`/api/v1/instruments/${encodeURIComponent(symbol)}/quote`)
       .pipe(catchError(() => of(null)));
   }
+  marketOverview() {
+    return this.http.get<MarketOverview>('/api/v1/market-data/overview');
+  }
   priceHistory(symbol: string) {
     return this.http.get<DailyPrice[]>(`/api/v1/price-history/${encodeURIComponent(symbol)}`);
+  }
+  marketBars(symbol: string, timeframe: '1Min' | '1Day') {
+    return this.http.get<MarketChart>(`/api/v1/market-data/${encodeURIComponent(symbol)}/bars`, {
+      params: { timeframe },
+    });
   }
   place(request: OrderRequest) {
     return this.http.post<Order>('/api/v1/orders', request);

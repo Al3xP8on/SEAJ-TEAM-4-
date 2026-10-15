@@ -17,6 +17,7 @@ public class MarketDataPoller {
     
     private final ExternalMarketDataClient marketDataClient;
     private final MarketDataProducer marketDataProducer;
+    private final com.neueda.leap.services.AlpacaMarketDataService alpaca;
     private final EventType eventType = EventType.PRICE_UPDATE;
     
     @org.springframework.beans.factory.annotation.Autowired
@@ -26,18 +27,35 @@ public class MarketDataPoller {
     private String symbols;
     
     public MarketDataPoller(ExternalMarketDataClient marketDataClient, 
-                           MarketDataProducer marketDataProducer) {
+                           MarketDataProducer marketDataProducer,
+                           com.neueda.leap.services.AlpacaMarketDataService alpaca) {
         this.marketDataClient = marketDataClient;
         this.marketDataProducer = marketDataProducer;
+        this.alpaca = alpaca;
     }
     
-    @Scheduled(fixedDelayString = "${market.data.poll.interval:5000}")
+    @Scheduled(fixedDelayString = "${market.data.poll.interval:10000}")
     public void pollMarketData() {
         if (symbols == null || symbols.isEmpty()) {
             logger.warn("No symbols configured for market data polling");
             return;
         }
         
+        if (alpaca.isConfigured()) {
+            var data = alpaca.overview();
+            if (!data.message().isEmpty()) {
+                logger.warn("Alpaca market data: {}", data.message());
+                return;
+            }
+            var requested = java.util.Arrays.stream(symbols.split(",")).map(s -> s.trim().toUpperCase(java.util.Locale.ROOT)).collect(java.util.stream.Collectors.toSet());
+            for (var snapshot : data.snapshots()) {
+                if ((requested.contains("*") || requested.contains(snapshot.symbol())) && snapshot.quote() != null) {
+                    marketDataProducer.publishMarketData(createEventEnvelope(MarketDataPayload.fromMarketPrice(snapshot.quote())));
+                }
+            }
+            return;
+        }
+
         String[] symbolArray = symbols.trim().equals("*")
             ? instruments.findByTradable(true).stream().map(com.neueda.leap.models.Instrument::getSymbol).toArray(String[]::new)
             : symbols.split(",");

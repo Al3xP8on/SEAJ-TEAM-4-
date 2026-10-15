@@ -20,6 +20,23 @@ export interface Quote {
   lastPrice: number;
   priceTimeStamp: string;
 }
+export interface MarketBar {
+  timestamp: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+export interface MarketSnapshot {
+  symbol: string;
+  price: number;
+  timestamp: string;
+  previousClose: number | null;
+  changePercent: number | null;
+  dailyBar: MarketBar | null;
+  quote: Quote | null;
+}
 export interface DailyPrice {
   symbol: string;
   priceDate: string;
@@ -28,6 +45,21 @@ export interface DailyPrice {
   low: number;
   close: number;
   volume: number;
+}
+export interface MarketOverview {
+  configured: boolean;
+  feed: string;
+  updatedAt: string | null;
+  message: string;
+  snapshots: MarketSnapshot[];
+  unsupportedSymbols: string[];
+}
+export interface MarketChart {
+  symbol: string;
+  feed: string;
+  timeframe: '1Min' | '1Day';
+  bars: MarketBar[];
+  message: string;
 }
 export interface Order {
   orderId: string;
