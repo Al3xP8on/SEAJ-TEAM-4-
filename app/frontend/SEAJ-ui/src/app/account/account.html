@@ -12,11 +12,11 @@
       <h2 hlmCardTitle id="appearance-title">Appearance</h2><p class="hint">These preferences apply to every page and are saved in this browser.</p>
       <div class="theme-setting">
         <span id="theme-label">Dark mode</span>
-        <hlm-switch aria-labelledby="theme-label" [checked]="appearance.theme() === 'dark'" (checkedChange)="appearance.setTheme($event ? 'dark' : 'light')" />
+        <hlm-switch aria-labelledby="theme-label" [checked]="appearance.theme() === 'dark'" (checkedChange)="appearance.setTheme($event ? 'dark' : 'light'); notifications.show('Appearance updated.')" />
         <span aria-hidden="true">{{ appearance.theme() === 'dark' ? 'On' : 'Off' }}</span>
       </div>
       <label for="text-size">Text size across the application</label>
-      <select id="text-size" [ngModel]="appearance.textSize()" (ngModelChange)="appearance.setTextSize($event)">
+      <select id="text-size" [ngModel]="appearance.textSize()" (ngModelChange)="appearance.setTextSize($event); notifications.show('Text size updated.')">
         <option [ngValue]="100">Default (100%)</option><option [ngValue]="125">Larger (125%)</option><option [ngValue]="150">Large (150%)</option><option [ngValue]="200">Largest (200%)</option>
       </select><p role="status" class="hint">{{ appearance.theme() === 'light' ? 'Light' : 'Dark' }} mode · text size {{ appearance.textSize() }}%</p>
     </section>
