@@ -1,12 +1,14 @@
 <main><div class="account-page">
-  <div class="page-heading"><p class="eyebrow">YOUR ACCOUNT</p><h1>{{ profile()?.username || 'My Account' }}</h1><p class="intro">Manage your account, payments and appearance.</p></div>
+  <div class="page-heading">
+    <div><p class="eyebrow">YOUR ACCOUNT</p><h1>{{ profile()?.username || 'My Account' }}</h1><p class="intro">Manage your account, payments and appearance.</p></div>
+    <nav class="section-nav" aria-label="Account sections">
+      <button type="button" [attr.aria-pressed]="section() === 'settings'" (click)="section.set('settings')">Account settings</button>
+      <button type="button" [attr.aria-pressed]="section() === 'cash'" (click)="section.set('cash')">Cash &amp; transfers</button>
+      <button type="button" [attr.aria-pressed]="section() === 'appearance'" (click)="section.set('appearance')">Appearance</button>
+    </nav>
+  </div>
   @if (loading()) { <p role="status" class="intro">Loading your account…</p> }
   @if (loadError()) { <section class="card"><p role="alert">{{ loadError() }}</p><button (click)="load()" type="button">Try again</button></section> }
-  <nav class="section-nav" aria-label="Account sections">
-    <button type="button" [attr.aria-pressed]="section() === 'settings'" (click)="section.set('settings')">Account settings</button>
-    <button type="button" [attr.aria-pressed]="section() === 'cash'" (click)="section.set('cash')">Cash &amp; transfers</button>
-    <button type="button" [attr.aria-pressed]="section() === 'appearance'" (click)="section.set('appearance')">Appearance</button>
-  </nav>
   @if (section() === 'appearance') {
     <section hlmCard class="card appearance-card" aria-labelledby="appearance-title">
       <h2 hlmCardTitle id="appearance-title">Appearance</h2><p class="hint">These preferences apply to every page and are saved in this browser.</p>
