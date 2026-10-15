@@ -16,6 +16,7 @@ export class AppearanceService {
   setTheme(theme: 'light' | 'dark') { this.theme.set(theme); this.apply(); }
   setTextSize(size: number) { if ([100, 125, 150, 200].includes(Number(size))) { this.textSize.set(Number(size)); this.apply(); } }
   private apply() {
+    this.document.documentElement.classList.toggle('dark', this.theme() === 'dark');
     this.document.documentElement.dataset['theme'] = this.theme();
     this.document.documentElement.dataset['textSize'] = String(this.textSize());
     this.document.documentElement.style.fontSize = `${this.textSize()}%`;

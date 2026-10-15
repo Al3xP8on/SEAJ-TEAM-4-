@@ -14,8 +14,8 @@
   gap: 48px;
   padding: 0 5%;
   background: var(--surface);
-  color: var(--accent);
-  border-bottom: 1px solid #dfe6e1;
+  color: var(--foreground);
+  border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 8px #243d2e08;
 }
 a {
@@ -46,14 +46,14 @@ nav a {
   color: var(--text);
 }
 nav .active {
-  color: var(--accent);
+  color: var(--foreground);
   border-bottom: 2px solid #246342;
 }
 .logout {
   margin-left: 0;
-  border: 1px solid #dbe4dd;
+  border: 1px solid var(--border);
   background: var(--surface);
-  color: var(--accent);
+  color: var(--foreground);
   padding: 9px 15px;
   border-radius: 6px;
   font: inherit;
@@ -89,7 +89,7 @@ nav .active {
   }
 }
 
-.skip-link { position: fixed; top: -100px; left: 12px; z-index: 20; padding: 12px; background: var(--surface); color: var(--accent); }
+.skip-link { position: fixed; top: -100px; left: 12px; z-index: 20; padding: 12px; background: var(--surface); color: var(--foreground); }
 .skip-link:focus { top: 8px; }
 @media (max-width: 600px) {
   :host { --app-nav-height: 112px; }
@@ -107,3 +107,9 @@ nav .active {
 :host { --app-nav-height: 5rem; }
 nav { flex-wrap: wrap; }
 @media (max-width: 900px) { .topbar { gap: 12px 20px; } }
+
+nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 12px; border-radius: 6px; font-size: .9375rem; font-weight: 600; color: var(--foreground); transition: background-color .15s ease; }
+nav a:hover { background: var(--muted); }
+nav .active { color: var(--foreground); background: var(--muted); border-bottom: 3px solid var(--positive); }
+.logout { color: var(--foreground); font-size: .875rem; }
+.brand-logo { background: #ffffff; border-radius: 4px; padding: 4px; }

@@ -1,3 +1,5 @@
+import { HlmSwitch } from '@spartan-ng/helm/switch';
+import { HlmCardImports } from '@spartan-ng/helm/card';
 import { Component, DestroyRef, ElementRef, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,7 +10,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { AppearanceService } from '../appearance/appearance.service';
 import { Account } from '../dashboard/dashboard.models';
-@Component({ selector: 'app-account', imports: [FormsModule, CurrencyPipe, DatePipe], templateUrl: './account.html', styleUrl: './account.css' })
+@Component({ selector: 'app-account', imports: [FormsModule, CurrencyPipe, DatePipe, HlmSwitch, HlmCardImports], templateUrl: './account.html', styleUrl: './account.css' })
 export class AccountComponent {
   private readonly element: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly service = inject(AccountService);
@@ -41,6 +43,8 @@ export class AccountComponent {
   readonly section = signal<'settings' | 'cash' | 'appearance'>('settings');
   readonly settings = signal<Settings | null>(null);
   readonly settingsBusy = signal(false);
+  readonly cardError = signal('');
+  readonly cardMessage = signal('');
   readonly settingsError = signal('');
   readonly settingsMessage = signal('');
   phone = '';
@@ -73,7 +77,7 @@ export class AccountComponent {
     if (account) this.account.set({ ...account, cashBalance: Number(settings.cash_balance) });
   }
   private focus(selector: string) { setTimeout(() => this.element.nativeElement.querySelector<HTMLElement>(selector)?.focus()); }
-  toggleCard() { this.addingCard.update(open => !open); this.focus(this.addingCard() ? '#card-holder' : '#edit-card-button'); }
+  toggleCard() { this.cardError.set(''); this.cardMessage.set(''); this.addingCard.update(open => !open); this.focus(this.addingCard() ? '#card-holder' : '#edit-card-button'); }
   editAccount() { this.focus('#email'); this.phone = this.settings()?.phone ?? ''; this.email = this.profile()?.email ?? ''; this.editing.set(true); this.settingsError.set(''); this.settingsMessage.set(''); }
   cancelEdit() { this.focus('#edit-account-button'); this.editing.set(false); this.emailChallenge.set(null); this.emailCode = ''; this.settingsError.set(''); }
   saveAccount() {
@@ -111,22 +115,22 @@ export class AccountComponent {
   }
   saveBank() {
     if (this.settingsBusy() || this.cashBusy()) return;
-    this.settingsError.set(''); this.settingsMessage.set('');
+    this.cardError.set(''); this.cardMessage.set('');
     if (!this.validCard(this.bankInput)) {
-      this.settingsError.set('Enter a cardholder name, a 13–19 digit card number and a future expiry date.'); return;
+      this.cardError.set('Enter a cardholder name, a 13–19 digit card number and a future expiry date.'); return;
     }
     this.settingsBusy.set(true); this.review.set(null);
     this.service.saveBank({ ...this.bankInput, holder_name: this.bankInput.holder_name.trim() }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: settings => { this.applySettings(settings); this.bankInput.card_number = ''; this.addingCard.set(false); this.focus('#edit-card-button'); this.paymentChoice = settings.bank?.id ?? 'legacy'; this.settingsBusy.set(false); this.settingsMessage.set('Card details saved.'); },
-      error: error => { this.settingsBusy.set(false); this.settingsError.set(this.errorMessage(error, 'Unable to save card details.')); },
+      next: settings => { this.applySettings(settings); this.bankInput.card_number = ''; this.addingCard.set(false); this.focus('#edit-card-button'); this.paymentChoice = settings.bank?.id ?? 'legacy'; this.settingsBusy.set(false); this.cardMessage.set('Card details saved.'); },
+      error: error => { this.settingsBusy.set(false); this.cardError.set(this.errorMessage(error, 'Unable to save card details.')); },
     });
   }
   removeCard(cardId: string | undefined) {
     if (!cardId || this.settingsBusy() || this.cashBusy()) return;
-    this.settingsBusy.set(true); this.settingsError.set(''); this.settingsMessage.set(''); this.review.set(null);
+    this.settingsBusy.set(true); this.cardError.set(''); this.cardMessage.set(''); this.review.set(null);
     this.service.removeCard(cardId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: settings => { this.applySettings(settings); if (!this.selectedCard()) this.paymentChoice = settings.cards?.[0]?.id ?? 'new'; this.settingsBusy.set(false); this.settingsMessage.set('Card removed.'); this.focus('#edit-card-button'); },
-      error: error => { this.settingsBusy.set(false); this.settingsError.set(this.errorMessage(error, 'Unable to remove card.')); },
+      next: settings => { this.applySettings(settings); if (!this.selectedCard()) this.paymentChoice = settings.cards?.[0]?.id ?? 'new'; this.settingsBusy.set(false); this.cardMessage.set('Card removed.'); this.focus('#edit-card-button'); },
+      error: error => { this.settingsBusy.set(false); this.cardError.set(this.errorMessage(error, 'Unable to remove card.')); },
     });
   }
   cancelDeletion() {
