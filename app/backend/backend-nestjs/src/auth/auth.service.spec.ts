@@ -34,6 +34,9 @@ describe('AuthService: username/password plus email code', () => {
     findCredentialsById: jest.Mock;
     prepareRegistration: jest.Mock;
     registerVerified: jest.Mock;
+    updateEmail: jest.Mock;
+    deletionAccount: jest.Mock;
+    deleteAccount: jest.Mock;
   };
   let passwords: { verify: jest.Mock };
   let sessions: {
@@ -74,6 +77,9 @@ describe('AuthService: username/password plus email code', () => {
           passwordHash: user.password,
         }),
       registerVerified: jest.fn().mockResolvedValue(user),
+      updateEmail: jest.fn().mockResolvedValue({ email: 'new@example.com' }),
+      deletionAccount: jest.fn().mockResolvedValue({ ...user, cashBalance: '0.00' }),
+      deleteAccount: jest.fn().mockResolvedValue({ message: 'Account deleted' }),
     };
     passwords = { verify: jest.fn().mockResolvedValue(true) };
     sessions = {
@@ -242,4 +248,41 @@ describe('AuthService: username/password plus email code', () => {
     );
     expect(sessions.revokeSession).toHaveBeenCalledWith('session-id');
   });
+  it('sends an email-change code without changing the existing account email', async () => {
+    await service.changeEmail('42', 'New@example.com');
+    expect(challenges.issue).toHaveBeenCalledWith('EMAIL_CHANGE', 'new@example.com', { userId: '42', email: 'new@example.com' });
+    expect(users.updateEmail).not.toHaveBeenCalled();
+  });
+  it('ties email verification to the logged-in account', async () => {
+    challenges.verify.mockImplementation(async (_dto: unknown, _purpose: unknown, complete: (challenge: EmailChallenge, manager: EntityManager) => Promise<unknown>) =>
+      complete(Object.assign(new EmailChallenge(), { payload: { userId: '42', email: 'new@example.com' } }), manager));
+    await expect(service.verifyEmailChange('43', dto)).rejects.toThrow();
+    expect(users.updateEmail).not.toHaveBeenCalled();
+    await expect(service.verifyEmailChange('42', dto)).resolves.toEqual({ email: 'new@example.com' });
+    expect(users.updateEmail).toHaveBeenCalledWith('42', 'new@example.com', manager);
+  });
+
+  it('checks the balance before sending a deletion email and issues no approval at that stage', async () => {
+    await service.startDeletion('42'); expect(users.deletionAccount).toHaveBeenCalledWith('42');
+    expect(challenges.issue).toHaveBeenCalledWith('DELETE_ACCOUNT', user.email, { userId: '42', email: user.email });
+    expect(users.deleteAccount).not.toHaveBeenCalled();
+    users.deletionAccount.mockRejectedValue(new Error('Withdraw all cash first'));
+    challenges.issue.mockClear(); await expect(service.startDeletion('42')).rejects.toThrow(); expect(challenges.issue).not.toHaveBeenCalled();
+  });
+  it('binds deletion approval to the verified account and session and requires final confirmation', async () => {
+    const result = await service.verifyDeletion('42', 'session-id', dto);
+    expect(jwt.verify(result.deletion_token)).toMatchObject({ sub: '42', sid: 'session-id', purpose: 'DELETE_ACCOUNT' });
+    expect(users.deleteAccount).not.toHaveBeenCalled();
+    await expect(service.confirmDeletion('43', 'session-id', result.deletion_token)).rejects.toThrow();
+    await expect(service.confirmDeletion('42', 'other-session', result.deletion_token)).rejects.toThrow();
+    expect(users.deleteAccount).not.toHaveBeenCalled();
+    await service.confirmDeletion('42', 'session-id', result.deletion_token); expect(users.deleteAccount).toHaveBeenCalledWith('42', user.email);
+  });
+  it('rejects unverified access tokens and expired deletion approvals', async () => {
+    const access = jwt.sign({ sub: '42', sid: 'session-id', role: 'USER' });
+    const expired = jwt.sign({ sub: '42', sid: 'session-id', purpose: 'DELETE_ACCOUNT', email: user.email }, { expiresIn: -1 });
+    await expect(service.confirmDeletion('42', 'session-id', access)).rejects.toThrow();
+    await expect(service.confirmDeletion('42', 'session-id', expired)).rejects.toThrow(); expect(users.deleteAccount).not.toHaveBeenCalled();
+  });
+
 });

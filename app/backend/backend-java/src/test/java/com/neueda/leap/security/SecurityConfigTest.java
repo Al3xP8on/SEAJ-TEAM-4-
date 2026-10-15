@@ -71,6 +71,11 @@ class SecurityConfigTest {
 
     @BeforeEach
     void setUp() {
+        var repository = applicationContext.getBean(com.neueda.leap.repositories.AccountRepository.class);
+        org.mockito.Mockito.reset(repository);
+        var account = org.mockito.Mockito.mock(com.neueda.leap.models.Account.class);
+        org.mockito.Mockito.when(account.isActive()).thenReturn(true);
+        org.mockito.Mockito.when(repository.findByUsername("alice")).thenReturn(java.util.Optional.of(account));
         mockMvc = MockMvcBuilders.webAppContextSetup(applicationContext)
                 .addFilters(applicationContext.getBean("springSecurityFilterChain", Filter.class))
                 .build();
@@ -84,6 +89,7 @@ class SecurityConfigTest {
     private SecurityConfig config() {
         SecurityConfig config = new SecurityConfig();
         ReflectionTestUtils.setField(config, "sharedSecret", SECRET);
+        ReflectionTestUtils.setField(config, "accountRepository", applicationContext.getBean(com.neueda.leap.repositories.AccountRepository.class));
         return config;
     }
     private String token(String secret, Instant expiresAt) throws Exception {
@@ -105,6 +111,11 @@ class SecurityConfigTest {
         var jwt = config().jwtDecoder().decode(token(SECRET, Instant.now().plusSeconds(3600)));
         assertEquals("alice", jwt.getSubject());
         assertEquals(List.of("TRADER"), jwt.getClaimAsStringList("roles"));
+    }
+    @Test void rejectsTokensForDeletedAccountsIncludingAdminRoles() throws Exception {
+        var repository = applicationContext.getBean(com.neueda.leap.repositories.AccountRepository.class);
+        org.mockito.Mockito.when(repository.findByUsername("alice")).thenReturn(java.util.Optional.empty());
+        assertThrows(JwtException.class, () -> config().jwtDecoder().decode(token(SECRET, Instant.now().plusSeconds(3600), List.of("ADMIN"))));
     }
     @Test void rejectsSignedTokenWithoutEmailSecondFactor() throws Exception {
         JWTClaimsSet claims = new JWTClaimsSet.Builder().subject("alice").expirationTime(Date.from(Instant.now().plusSeconds(3600))).build();
@@ -320,6 +331,10 @@ class SecurityConfigTest {
     @EnableWebMvc
     @Import(SecurityConfig.class)
     static class TestApplication {
+        @Bean
+        com.neueda.leap.repositories.AccountRepository accountRepository() {
+            return org.mockito.Mockito.mock(com.neueda.leap.repositories.AccountRepository.class);
+        }
         @Bean
         TestEndpoints testEndpoints() {
             return new TestEndpoints();

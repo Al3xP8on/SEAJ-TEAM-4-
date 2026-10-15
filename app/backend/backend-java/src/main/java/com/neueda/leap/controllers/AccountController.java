@@ -116,15 +116,8 @@ public class AccountController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAccount(@PathVariable String id) {
-        try {
-            Account account = accountService.getAccountByIdentifier(id);
-            accountService.deleteAccount(account.getId());
-            return ResponseEntity.noContent().build();
-        } catch (AccountNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", "Use the email-verified account deletion flow in My Account"));
     }
 
     @GetMapping

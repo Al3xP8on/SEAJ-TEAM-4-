@@ -226,3 +226,6 @@ footer {
     padding: 28px 16px;
   }
 }
+
+.card { min-width: 0; } .positions-scroll { overflow-x: auto; }
+@media (max-width: 520px) { main { padding: 1rem; } .card { padding: 1rem; } }
