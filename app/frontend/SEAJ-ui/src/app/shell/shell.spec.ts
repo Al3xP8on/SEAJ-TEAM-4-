@@ -57,7 +57,7 @@ describe('Shared navigation', () => {
   it('marks overview and both order routes correctly in the navigation', async () => {
     const { fixture, router, page } = await render('/dashboard');
     const active = () => page.querySelector('nav [aria-current="page"]')?.textContent?.trim();
-    expect(active()).toBe('Overview');
+    expect(active()).toBe('Portfolio');
     await router.navigateByUrl('/order');
     await fixture.whenStable();
     expect(active()).toBe('Orders');

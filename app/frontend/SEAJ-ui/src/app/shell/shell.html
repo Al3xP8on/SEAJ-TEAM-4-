@@ -9,7 +9,7 @@
       routerLinkActive="active"
       [routerLinkActiveOptions]="{ exact: true }"
       ariaCurrentWhenActive="page"
-      >Overview</a
+      >Portfolio</a
     >
     <a
       routerLink="/order"
@@ -18,7 +18,7 @@
       >Orders</a
     >
   </nav>
-  <nav class="account-nav" aria-label="Account navigation"><a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">My Account</a></nav>
+  <nav class="account-nav" aria-label="Account navigation"><a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">Settings</a></nav>
   <button class="logout" type="button" (click)="logout()">Logout</button>
 </header>
 <div id="main-content" tabindex="-1"><router-outlet /></div>
