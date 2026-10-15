@@ -87,6 +87,26 @@ describe('Angular email authentication', () => {
     expect(component.registerMessage()).toContain('valid phone number');
     expect(component.registerMessageType()).toBe('error');
   });
+  it.each([
+    'missing-at.example.com', 'alice@@example.com', '@example.com',
+    'alice@example', 'alice@.com', 'alice@example.', 'alice@example..com',
+    'alice@exam ple.com', `${'a'.repeat(100_000)}@example.com`,
+  ])('blocks malformed or oversized registration email %#', (email) => {
+    component.showView('register'); component.regUsername = 'alice'; component.regPassword = 'SecurePass123!';
+    component.regEmail = email;
+    component.onRegister();
+    http.expectNone('/auth/register');
+    expect(component.registerLoading()).toBe(false);
+    expect(component.registerMessageType()).toBe('error');
+  });
+  it('accepts plus addressing and subdomains after trimming email input', () => {
+    component.showView('register'); component.regUsername = 'alice'; component.regPassword = 'SecurePass123!';
+    component.regEmail = ' alice+trading@mail.example.com ';
+    component.onRegister();
+    const request = http.expectOne('/auth/register');
+    expect(request.request.body.email).toBe('alice+trading@mail.example.com');
+    request.flush(challenge, { status: 202, statusText: 'Accepted' });
+  });
   it('requires email at signup and shows account creation only after verification', async () => {
     component.showView('register'); component.regUsername = 'alice'; component.regPassword = 'SecurePass123!';
     component.onRegister(); http.expectNone('/auth/register');
