@@ -48,6 +48,15 @@
   --sidebar-accent-foreground: #1a4f33;
   --sidebar-border: #e0e7e2;
   --sidebar-ring: #256342;
+
+  /* Compatibility aliases used by the page-level stylesheets. */
+  --surface: var(--background);
+  --surface-soft: var(--muted);
+  --text: var(--foreground);
+  --accent: var(--primary);
+  --on-brand: var(--primary-foreground);
+  --error: var(--destructive);
+  --focus: var(--ring);
 }
 
 @layer base {
