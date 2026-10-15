@@ -4,7 +4,7 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { firstValueFrom } from 'rxjs';
-import { Router } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { LoginComponent } from './login';
 import { AuthService } from '../auth/auth.service';
 
@@ -14,15 +14,16 @@ const pair = (refresh = 'refresh-1') => ({
   refresh_token: refresh, expires_in: 120, token_type: 'Bearer',
 });
 describe('Angular email authentication', () => {
-  const router = { navigate: vi.fn() };
+  let router: Router;
   let fixture: ComponentFixture<LoginComponent>;
   let component: LoginComponent;
   let auth: AuthService;
   let http: HttpTestingController;
   beforeEach(() => {
     sessionStorage.clear();
-    router.navigate.mockReset();
-    TestBed.configureTestingModule({ imports: [LoginComponent], providers: [provideHttpClient(), provideHttpClientTesting(), { provide: Router, useValue: router }] });
+    TestBed.configureTestingModule({ imports: [LoginComponent], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
     auth = TestBed.inject(AuthService);
