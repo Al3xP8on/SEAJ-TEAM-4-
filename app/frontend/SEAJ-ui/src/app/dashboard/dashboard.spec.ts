@@ -68,6 +68,13 @@ describe('DashboardComponent', () => {
     expect(page.querySelector('.total')?.textContent?.trim()).toBe('$19,203.25');
   });
 
+  it('summarises holdings value and total portfolio (cash + holdings)', async () => {
+    const { page } = await render();
+
+    expect(page.querySelector('.holdings-value')?.textContent?.trim()).toBe('$19,203.25');
+    expect(page.querySelector('.total-value')?.textContent?.trim()).toBe('$29,203.25'); // 10,000 + 19,203.25
+  });
+
   it('shows a message instead of the table when there are no holdings', async () => {
     const closedOnly: Position[] = [{ positionId: 9, symbol: 'TSLA', quantity: 0, averageCost: 240, status: 'CLOSED' }];
     dashboard.load.mockReturnValue(of({ ...DATA, positions: closedOnly }));

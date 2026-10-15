@@ -1,88 +1,172 @@
+/* Matches the Orders page (orders.css) so every page inside the shell looks the same */
 :host {
-  display: flex;
-  flex-direction: column;
+  display: block;
   min-height: calc(100dvh - var(--app-nav-height, 0px));
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: linear-gradient(135deg, #316442 0%, #316442 100%);
+  background: #f4f6f5;
+  color: #202f29;
+  font-family: Arial, sans-serif;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  outline-offset: 4px;
 }
 
 main {
-  flex: 1;
+  max-width: 1320px;
+  margin: auto;
+  padding: 42px 32px;
+}
+
+.page-heading {
   display: flex;
-  justify-content: center;
-  padding: 2rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
 }
 
-.dashboard {
-  width: 100%;
-  max-width: 960px;
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 1.7px;
+  font-weight: 700;
+  color: #5a6b61;
+  margin: 0 0 10px;
 }
 
-.welcome {
-  color: var(--on-brand);
-  font-size: 1.75rem;
-  font-weight: 300;
-  margin-bottom: 1.5rem;
+h1 {
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  margin: 0 0 10px;
 }
 
-.cards {
+h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.muted {
+  color: #6b7870;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.primary {
+  border: 1px solid #256342;
+  background: #256342;
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.primary:hover {
+  background: #1a4f33;
+}
+
+.quiet {
+  border: 1px solid #dbe4dd;
+  background: #fff;
+  color: #385745;
+  padding: 12px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.quiet:hover {
+  background: #edf4ef;
+}
+
+.summary {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 2fr;
-  gap: 1.5rem;
-  align-items: start;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-bottom: 24px;
 }
 
-.card {
-  background: var(--surface);
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+/* Tinted like the Orders page balance panel */
+.cash-card {
+  background: #eaf2ed;
 }
 
-.card h3 {
-  color: var(--text);
-  font-size: 0.9rem;
+.figure {
+  font-size: 26px;
+  letter-spacing: -0.6px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 1rem;
-}
-
-.balance {
-  color: var(--accent);
-  font-size: 2.5rem;
-  font-weight: 600;
-  line-height: 1.2;
+  margin: 8px 0 6px;
+  font-variant-numeric: tabular-nums;
   word-break: break-word;
 }
 
-.caption {
-  color: var(--text);
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
+.panel {
+  background: #fff;
+  border: 1px solid #e0e7e2;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 3px 14px #243d2e05;
+}
+
+.balance {
+  font-size: 38px;
+  letter-spacing: -1.2px;
+  font-weight: 600;
+  color: #245f40;
+  margin: 12px 0 8px;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.tag {
+  background: #edf4ef;
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: #357151;
+}
+
+.table-scroll {
+  overflow-x: auto;
 }
 
 .positions-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.95rem;
+  font-size: 13px;
 }
 
 .positions-table th,
 .positions-table td {
-  padding: 0.65rem 0.5rem;
+  padding: 13px 8px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #edf1ee;
 }
 
 .positions-table thead th {
-  color: var(--text);
+  font-size: 11px;
+  color: #6b7870;
   font-weight: 500;
-  border-bottom: 2px solid #ddd;
-}
-
-.positions-table td {
-  color: var(--text);
+  white-space: nowrap;
 }
 
 .positions-table .num {
@@ -92,101 +176,55 @@ main {
 
 .positions-table .symbol {
   font-weight: 600;
-  color: var(--accent);
+  color: #256342;
 }
 
 .positions-table tfoot th,
 .positions-table tfoot td {
   border-bottom: none;
   font-weight: 600;
-  color: var(--text);
 }
 
 .empty {
-  color: var(--text);
-  font-style: italic;
+  text-align: center;
+  padding: 32px;
+  color: #6b7870;
+  margin: 0;
 }
 
 .status {
-  color: var(--on-brand);
-  font-size: 1.1rem;
-  font-weight: 300;
-  margin-bottom: 1.5rem;
+  color: #6b7870;
+  font-size: 15px;
+  margin: 0;
 }
 
-.error-card {
-  margin-bottom: 1.5rem;
+.error-panel {
+  max-width: 560px;
 }
 
-.error-card p {
-  color: var(--error);
-  margin-bottom: 1rem;
-}
-
-.retry-btn {
-  flex: none;
-  background: linear-gradient(135deg, #316442 0%, #316442 100%);
-  color: var(--on-brand);
-  padding: 0.6rem 1.25rem;
-}
-
-.actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.submit-btn,
-.secondary-btn {
-  flex: 1;
-  padding: 0.75rem;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.submit-btn {
-  background: var(--surface);
-  color: var(--accent);
-  border: none;
-}
-
-.secondary-btn {
-  background: none;
-  color: var(--on-brand);
-  border: 2px solid white;
-}
-
-.submit-btn:hover,
-.secondary-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
+.error-panel p {
+  color: #a3271c;
+  margin: 0 0 16px;
 }
 
 footer {
-  background-color: rgba(0, 0, 0, 0.3);
-  padding: 1.5rem;
-  text-align: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  max-width: 1320px;
+  margin: auto;
+  padding: 20px 32px 30px;
+  color: #6b7870;
+  font-size: 11px;
 }
 
-footer p {
-  color: var(--on-brand);
-  font-size: 0.9rem;
-  font-style: italic;
-}
-
-@media (max-width: 700px) {
-  .cards {
+@media (max-width: 800px) {
+  .summary {
     grid-template-columns: 1fr;
   }
 
-  .actions {
-    flex-direction: column;
+  main {
+    padding: 28px 16px;
   }
-
 }
 
 .card { min-width: 0; } .positions-scroll { overflow-x: auto; }

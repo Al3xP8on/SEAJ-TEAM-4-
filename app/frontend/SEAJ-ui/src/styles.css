@@ -1,40 +1,60 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* Tailwind + spartan/ui. Spartan's components rely on Tailwind's preflight reset (e.g. for borders),
+   so it is included; existing page styles set their own headings, buttons and inputs explicitly. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css' layer(utilities);
 
+@import '@spartan-ng/brain/hlm-tailwind-preset.css';
+
+/* spartan theme tokens, set to the Orders page palette (orders.css) */
 :root {
   color-scheme: light;
-  --surface: #ffffff;
-  --surface-soft: #edf4ef;
-  --text: #24362b;
-  --accent: #246342;
-  --error: #a51d23;
-  --on-brand: #ffffff;
-  --page-background: #316442;
-  --focus: #174ca8;
+
+  --font-sans: Arial, sans-serif;
+  --radius: 0.5rem;
+
+  --background: #ffffff;
+  --foreground: #202f29;
+  --card: #ffffff;
+  --card-foreground: #202f29;
+  --popover: #ffffff;
+  --popover-foreground: #202f29;
+  --primary: #256342;
+  --primary-foreground: #ffffff;
+  --secondary: #edf4ef;
+  --secondary-foreground: #385745;
+  --muted: #f4f6f5;
+  --muted-foreground: #6b7870;
+  --accent: #edf4ef;
+  --accent-foreground: #1a4f33;
+  --destructive: #a3271c;
+  --border: #e0e7e2;
+  --input: #d7e1da;
+  --ring: #256342;
+
+  /* Chart series: brand green first, then distinguishable companions */
+  --chart-1: #256342;
+  --chart-2: #4a926a;
+  --chart-3: #a9d0b9;
+  --chart-4: #c98a1b;
+  --chart-5: #5a6b61;
+
+  --sidebar: #f4f6f5;
+  --sidebar-foreground: #202f29;
+  --sidebar-primary: #256342;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #edf4ef;
+  --sidebar-accent-foreground: #1a4f33;
+  --sidebar-border: #e0e7e2;
+  --sidebar-ring: #256342;
 }
-:root[data-theme='dark'] {
-  color-scheme: dark;
-  --surface: #202c25;
-  --surface-soft: #293a30;
-  --text: #edf4ef;
-  --accent: #a5dfb7;
-  --error: #ffb6bb;
-  --page-background: #101c14;
-  --focus: #9ac7ff;
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
-body { color: var(--text); background: var(--page-background); }
-app-dashboard, app-login { background: var(--page-background) !important; }
-app-orders, app-account { background: var(--surface-soft) !important; }
-:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
-button, input, select, a { scroll-margin-top: 10rem; }
-button, input, select { min-height: 2.75rem; }
-button { white-space: normal; }
-html[data-theme='dark'] input, html[data-theme='dark'] select, html[data-theme='dark'] textarea {
-  background: var(--surface-soft); color: var(--text); border-color: #91a699;
-}
-html[data-theme='dark'] .topbar { background: var(--surface); }
-html[data-theme='dark'] th, html[data-theme='dark'] td { border-color: #66786c; }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
-}
-html:not([data-text-size='100']) .topbar { position: static; }
-html[data-theme='dark'] nav .active { border-color: var(--accent); }
