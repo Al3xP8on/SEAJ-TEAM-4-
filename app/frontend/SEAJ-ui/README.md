@@ -82,6 +82,27 @@ npm test -- --watch=false
 npm run build
 ```
 
+### SonarQube coverage
+
+Generate coverage before scanning. SonarQube imports the LCOV report; running
+tests without coverage does not populate its coverage metrics.
+
+```bash
+npm run test:coverage
+read -rsp "SonarQube token: " SQ_SCAN_TOKEN
+echo
+env -u SONAR_TOKEN npx --yes @sonar/scan \
+  -Dsonar.host.url=http://localhost:8088 \
+  -Dsonar.login="$SQ_SCAN_TOKEN" \
+  -Dsonar.qualitygate.wait=true
+unset SQ_SCAN_TOKEN
+```
+
+The project settings in `sonar-project.properties` import
+`coverage/SEAJ-ui/lcov.info`. Reports are ignored by Git. The scan fails the
+quality gate if measured coverage is below the configured threshold, even when
+all tests pass. Review any security hotspots separately in SonarQube.
+
 From repository root, run the preserved browser-session regression tests:
 
 ```bash
