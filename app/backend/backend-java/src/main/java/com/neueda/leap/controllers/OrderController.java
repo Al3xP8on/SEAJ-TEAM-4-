@@ -63,15 +63,20 @@ public class OrderController {
 
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponse> getOrder(@PathVariable UUID id) {
-        logger.info("GET /v1/orders/{} - Fetching order by ID", LogMaskingUtil.maskId(id));
+        if (logger.isInfoEnabled()) {
+            logger.info("GET /v1/orders/{} - Fetching order by ID", LogMaskingUtil.maskId(id));
+        }
         Optional<Order> order = orderService.getOrderById(id);
         if (order.isPresent()) {
-            // Validate user owns this order
             securityUtilsService.validateOrderOwnership(order.get());
-            logger.info("Order found: {}", LogMaskingUtil.maskId(id));
+            if (logger.isInfoEnabled()) {
+                logger.info("Order found: {}", LogMaskingUtil.maskId(id));
+            }
             return ResponseEntity.ok(OrderResponse.from(order.get()));
         }
-        logger.warn("Order not found: {}", LogMaskingUtil.maskId(id));
+        if (logger.isWarnEnabled()) {
+            logger.warn("Order not found: {}", LogMaskingUtil.maskId(id));
+        }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
@@ -116,13 +121,17 @@ public class OrderController {
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/execute")
     public ResponseEntity<OrderResponse> executeOrder(@PathVariable UUID id) {
-        logger.info("PUT /v1/orders/{}/execute - Executing order", LogMaskingUtil.maskId(id));
+        if (logger.isInfoEnabled()) {
+            logger.info("PUT /v1/orders/{}/execute - Executing order", LogMaskingUtil.maskId(id));
+        }
         Optional<Order> existing = orderService.getOrderById(id);
         if (existing.isEmpty()) return ResponseEntity.notFound().build();
         securityUtilsService.validateOrderOwnership(existing.get());
         try {
             Order order = orderService.executeOrder(id);
-            logger.info("Order executed: {}", LogMaskingUtil.maskId(id));
+            if (logger.isInfoEnabled()) {
+                logger.info("Order executed: {}", LogMaskingUtil.maskId(id));
+            }
             return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
             logger.error("Failed to execute order {}: {}", LogMaskingUtil.maskId(id), e.getMessage());
@@ -132,14 +141,17 @@ public class OrderController {
 
     @PutMapping("/{id}/cancel")
     public ResponseEntity<OrderResponse> cancelOrder(@PathVariable UUID id) {
-        logger.info("PUT /v1/orders/{}/cancel - Cancelling order", LogMaskingUtil.maskId(id));
+        if (logger.isInfoEnabled()) {
+            logger.info("PUT /v1/orders/{}/cancel - Cancelling order", LogMaskingUtil.maskId(id));
+        }
         Optional<Order> existing = orderService.getOrderById(id);
         if (existing.isEmpty()) return ResponseEntity.notFound().build();
         securityUtilsService.validateOrderOwnership(existing.get());
         try {
             Order order = orderService.cancelOrder(id);
-            logger.info("Order cancelled: {}", LogMaskingUtil.maskId(id));
-            
+            if (logger.isInfoEnabled()) {
+                logger.info("Order cancelled: {}", LogMaskingUtil.maskId(id));
+            }
             // Publish CANCELLED trade event to Kafka
             try {
                 TradeEvent cancelledEvent = new TradeEvent(
@@ -150,16 +162,16 @@ public class OrderController {
                     order.getPrice(),
                     order.getQuantity(),
                     "CANCELLED",
-                    "GTC",  // timeInForce
+                    "GTC",
                     LocalDateTime.now()
                 );
                 tradeEventPublisher.publishTradeEvent(cancelledEvent);
-                logger.info("Cancellation event published for order: {}", LogMaskingUtil.maskId(id));
+                if (logger.isInfoEnabled()) {
+                    logger.info("Cancellation event published for order: {}", LogMaskingUtil.maskId(id));
+                }
             } catch (Exception e) {
                 logger.error("Failed to publish cancellation event for order {}: {}", LogMaskingUtil.maskId(id), LogMaskingUtil.sanitize(e));
-                // Don't fail the cancellation if Kafka publishing fails
             }
-            
             return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
             logger.error("Failed to cancel order {}: {}", LogMaskingUtil.maskId(id), e.getMessage());
@@ -172,13 +184,17 @@ public class OrderController {
     public ResponseEntity<OrderResponse> rejectOrder(
             @PathVariable UUID id,
             @RequestParam String reason) {
-        logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", LogMaskingUtil.maskId(id), LogMaskingUtil.sanitize(reason));
+        if (logger.isInfoEnabled()) {
+            logger.info("PUT /v1/orders/{}/reject - Rejecting order with reason: {}", LogMaskingUtil.maskId(id), LogMaskingUtil.sanitize(reason));
+        }
         Optional<Order> existing = orderService.getOrderById(id);
         if (existing.isEmpty()) return ResponseEntity.notFound().build();
         securityUtilsService.validateOrderOwnership(existing.get());
         try {
             Order order = orderService.rejectOrder(id, reason);
-            logger.info("Order rejected: {}", LogMaskingUtil.maskId(id));
+            if (logger.isInfoEnabled()) {
+                logger.info("Order rejected: {}", LogMaskingUtil.maskId(id));
+            }
             return ResponseEntity.ok(OrderResponse.from(order));
         } catch (OrderException e) {
             logger.error("Failed to reject order {}: {}", LogMaskingUtil.maskId(id), e.getMessage());
