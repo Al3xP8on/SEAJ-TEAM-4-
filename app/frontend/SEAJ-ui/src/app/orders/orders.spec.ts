@@ -227,6 +227,30 @@ describe('OrdersComponent', () => {
       expect.objectContaining({ price: 98, orderType: 'LIMIT' }),
     );
   });
+  it('requires a fresh review and submits a sell after changing direction with the ticket buttons', async () => {
+    service.place.mockReturnValue(of({ ...order, side: 'SELL', quantity: 1, orderType: 'MARKET' }));
+    const { fixture, component, page } = await render();
+    const submit = page.querySelector<HTMLButtonElement>('.ticket button[type="submit"]')!;
+    submit.click();
+    await fixture.whenStable();
+    expect(submit.textContent).toContain('Confirm buy order');
+
+    page.querySelector<HTMLButtonElement>('.sell-option')!.click();
+    await fixture.whenStable();
+    expect(component.review).toBe(false);
+    expect(submit.textContent).toContain('Review sell order');
+    expect(page.querySelector('.selected-quote')?.textContent).toContain('Bid');
+    expect(service.place).not.toHaveBeenCalled();
+
+    submit.click();
+    await fixture.whenStable();
+    submit.click();
+    await fixture.whenStable();
+    expect(service.place).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ side: 'SELL', quantity: 1, orderType: 'MARKET' }),
+    );
+    expect(page.querySelector('.notice')?.textContent).toContain('Sell order submitted');
+  });
   it('reserves cash for pending buy orders', async () => {
     service.orders.mockReturnValue(of([{ ...order, quantity: 9 }]));
     const { component, form } = await render();

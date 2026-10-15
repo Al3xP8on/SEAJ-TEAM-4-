@@ -48,7 +48,7 @@ import { MarketDataComponent } from './market-data';
     NgTemplateOutlet,
   ],
   templateUrl: './orders.html',
-  styleUrl: './orders.css',
+  styleUrls: ['./orders.css', './order-ticket.css'],
 })
 export class OrdersComponent {
   private readonly document = inject(DOCUMENT);
