@@ -145,7 +145,7 @@ h2 {
 }
 
 /* Table layout and borders come from spartan's table; only dashboard-specific touches here */
-.positions-table thead th {
+.data-table thead th {
   font-size: 12px;
   color: #6b7870;
 }
@@ -154,39 +154,69 @@ h2 {
   overflow-x: auto;
 }
 
-.positions-table {
+.data-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8125rem;
 }
 
-.positions-table th,
-.positions-table td {
+.data-table th,
+.data-table td {
   padding: 13px 8px;
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
-.positions-table thead th {
+.data-table thead th {
   font-size: 0.6875rem;
   color: var(--foreground);
   font-weight: 500;
   white-space: nowrap;
 }
 
-.positions-table .num {
+.data-table .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.positions-table .symbol {
+.data-table .symbol {
   font-weight: 600;
   color: var(--foreground);
 }
 
-.positions-table tfoot th,
-.positions-table tfoot td {
+.data-table tfoot th,
+.data-table tfoot td {
   font-weight: 600;
+}
+
+.orders-card {
+  margin-top: 24px;
+}
+
+.quiet.small {
+  padding: 7px 12px;
+  font-size: 0.75rem;
+}
+
+/* Status is spelled out, so colour only reinforces it */
+.badge {
+  display: inline-block;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--muted);
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+.badge[data-status='FILLED'] {
+  background: var(--secondary);
+  color: var(--primary);
+}
+
+.badge[data-status='REJECTED'] {
+  color: var(--destructive);
 }
 
 .empty {

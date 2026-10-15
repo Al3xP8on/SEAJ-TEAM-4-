@@ -27,16 +27,19 @@ describe('DashboardService', () => {
 
   afterEach(() => http.verify());
 
-  it('loads the logged-in account and its positions using the id from the token', async () => {
+  it('loads the logged-in account, then its positions and orders', async () => {
     auth.getToken.mockReturnValue(tokenFor({ sub: '7', username: 'alice' }));
 
     const result = firstValueFrom(service.load());
-    http.expectOne('/api/v1/accounts/7').flush({ id: 7, holderName: 'Alice' });
+    http.expectOne('/api/v1/accounts/7').flush({ id: 7, accountId: 'ACC-0007' });
     http.expectOne('/api/v1/accounts/7/positions').flush([{ symbol: 'AAPL' }]);
+    // Orders are looked up by the ACC- id from the account, not the token's numeric id
+    http.expectOne('/api/v1/orders/account/ACC-0007').flush([{ orderId: 'o1' }]);
 
     expect(await result).toEqual({
-      account: { id: 7, holderName: 'Alice' },
+      account: { id: 7, accountId: 'ACC-0007' },
       positions: [{ symbol: 'AAPL' }],
+      orders: [{ orderId: 'o1' }],
     });
   });
 

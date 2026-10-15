@@ -1,20 +1,24 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, catchError, exhaustMap, timer } from 'rxjs';
-import { CurrencyPipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmTableImports } from '@spartan-ng/helm/table';
 import { Router } from '@angular/router';
 import { Account, Position } from './dashboard.models';
-import { DashboardService } from './dashboard.service';
+import { Order } from '../orders/orders.models';
+import { DashboardData, DashboardService } from './dashboard.service';
 import { AllocationChartComponent, AllocationSlice } from './allocation-chart/allocation-chart';
+
+// How many of the latest orders the Recent orders card shows
+const RECENT_ORDER_COUNT = 5;
 
 // Holdings the user still owns; closed and liquidated positions are left out
 const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CurrencyPipe, DecimalPipe, HlmCardImports, HlmTableImports, AllocationChartComponent],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, HlmCardImports, HlmTableImports, AllocationChartComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -26,6 +30,7 @@ export class DashboardComponent implements OnInit {
 
   readonly account = signal<Account | null>(null);
   readonly positions = signal<Position[]>([]);
+  readonly orders = signal<Order[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
 
@@ -41,6 +46,13 @@ export class DashboardComponent implements OnInit {
     const count = this.holdings().length;
     return `${count} ${count === 1 ? 'holding' : 'holdings'}`;
   });
+
+  /** Newest first; ISO timestamps sort correctly as strings */
+  readonly recentOrders = computed(() =>
+    [...this.orders()]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, RECENT_ORDER_COUNT),
+  );
 
   readonly totalValue = computed(() => (this.account()?.cashBalance ?? 0) + this.holdingsValue());
 
@@ -62,10 +74,7 @@ export class DashboardComponent implements OnInit {
         exhaustMap(() => this.dashboard.load().pipe(catchError(() => EMPTY))),
         takeUntilDestroyed(this.destroy),
       )
-      .subscribe(({ account, positions }) => {
-        this.account.set(account);
-        this.positions.set(positions);
-      });
+      .subscribe((data) => this.show(data));
   }
 
   load(): void {
@@ -75,9 +84,8 @@ export class DashboardComponent implements OnInit {
       .load()
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
-        next: ({ account, positions }) => {
-          this.account.set(account);
-          this.positions.set(positions);
+        next: (data) => {
+          this.show(data);
           this.loading.set(false);
         },
         error: () => {
@@ -85,6 +93,12 @@ export class DashboardComponent implements OnInit {
           this.loading.set(false);
         },
       });
+  }
+
+  private show({ account, positions, orders }: DashboardData): void {
+    this.account.set(account);
+    this.positions.set(positions);
+    this.orders.set(orders);
   }
 
   goToOrderTicket(): void {

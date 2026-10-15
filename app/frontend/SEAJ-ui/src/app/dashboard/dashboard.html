@@ -62,7 +62,7 @@
         <div hlmCardContent>
           @if (holdings().length > 0) {
             <div hlmTableContainer>
-              <table hlmTable class="positions-table">
+              <table hlmTable class="data-table positions-table">
                 <thead hlmTHead>
                   <tr hlmTr>
                     <th hlmTh scope="col">Symbol</th>
@@ -104,6 +104,55 @@
         </div>
       </section>
     </div>
+
+    <section hlmCard class="orders-card" aria-labelledby="orders-title">
+      <div hlmCardHeader>
+        <h2 hlmCardTitle id="orders-title">Recent orders</h2>
+        <div hlmCardAction>
+          <button type="button" class="quiet small" (click)="goToBlotter()">View all</button>
+        </div>
+      </div>
+      <div hlmCardContent>
+        @if (recentOrders().length > 0) {
+          <div hlmTableContainer>
+            <table hlmTable class="data-table orders-table">
+              <thead hlmTHead>
+                <tr hlmTr>
+                  <th hlmTh scope="col">Symbol</th>
+                  <th hlmTh scope="col">Side</th>
+                  <th hlmTh scope="col" class="num">Quantity</th>
+                  <th hlmTh scope="col" class="num">Price</th>
+                  <th hlmTh scope="col">Status</th>
+                  <th hlmTh scope="col">Placed</th>
+                </tr>
+              </thead>
+              <tbody hlmTBody>
+                @for (order of recentOrders(); track order.orderId) {
+                  <tr hlmTr>
+                    <th hlmTh scope="row" class="symbol">{{ order.ticker }}</th>
+                    <td hlmTd>{{ order.side }}</td>
+                    <td hlmTd class="num">{{ order.quantity | number }}</td>
+                    <td hlmTd class="num">
+                      {{ order.executionPrice ?? order.price | currency: 'USD' }}
+                    </td>
+                    <td hlmTd>
+                      <span class="badge" [attr.data-status]="order.status">{{ order.status }}</span>
+                    </td>
+                    <td hlmTd>
+                      <time [attr.datetime]="order.createdAt">{{
+                        order.createdAt | date: 'MMM d, HH:mm'
+                      }}</time>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="empty">You haven't placed any orders yet.</p>
+        }
+      </div>
+    </section>
   }
 </main>
 

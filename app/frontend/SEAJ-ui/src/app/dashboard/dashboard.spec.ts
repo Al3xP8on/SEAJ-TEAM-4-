@@ -4,6 +4,24 @@ import { Observable, Subject, of, throwError } from 'rxjs';
 import { DashboardComponent } from './dashboard';
 import { DashboardData, DashboardService } from './dashboard.service';
 import { Position } from './dashboard.models';
+import { Order } from '../orders/orders.models';
+
+const order = (orderId: string, ticker: string, createdAt: string, extra: Partial<Order> = {}): Order => ({
+  orderId,
+  accountId: 'ACC-0001',
+  accountHolderName: 'Alice Johnson',
+  ticker,
+  instrumentName: ticker,
+  side: 'BUY',
+  quantity: 10,
+  price: 100,
+  totalValue: 1000,
+  status: 'FILLED',
+  createdAt,
+  orderType: 'LIMIT',
+  executionPrice: null,
+  ...extra,
+});
 
 const DATA: DashboardData = {
   account: {
@@ -24,6 +42,14 @@ const DATA: DashboardData = {
       status: 'PARTIALLY_CLOSED',
     },
     { positionId: 4, symbol: 'TSLA', quantity: 0, averageCost: 240, status: 'CLOSED' },
+  ],
+  orders: [
+    order('o1', 'AAPL', '2026-10-01T09:00:00'),
+    order('o2', 'MSFT', '2026-10-06T14:30:00', { side: 'SELL', status: 'PENDING' }),
+    order('o3', 'NVDA', '2026-10-02T09:00:00', { executionPrice: 118.75, price: 120 }),
+    order('o4', 'TSLA', '2026-10-03T09:00:00', { status: 'REJECTED' }),
+    order('o5', 'AMZN', '2026-10-04T09:00:00'),
+    order('o6', 'META', '2026-10-05T09:00:00', { status: 'CANCELLED' }),
   ],
 };
 
@@ -124,6 +150,43 @@ describe('DashboardComponent', () => {
     expect(page.querySelector('.empty')?.textContent).toContain("don't hold any positions");
   });
 
+  it('lists the five most recent orders, newest first', async () => {
+    const { page } = await render();
+    const rows = Array.from(page.querySelectorAll('.orders-table tbody tr'));
+
+    // o1 (AAPL, the oldest) drops off
+    expect(rows.map((r) => r.querySelector('.symbol')?.textContent)).toEqual([
+      'MSFT',
+      'META',
+      'AMZN',
+      'TSLA',
+      'NVDA',
+    ]);
+    expect(rows[0].textContent).toContain('SELL');
+    expect(rows[0].querySelector('.badge')?.textContent).toBe('PENDING');
+    expect(rows[0].querySelector('time')?.getAttribute('datetime')).toBe('2026-10-06T14:30:00');
+  });
+
+  it('shows the execution price for filled orders, otherwise the order price', async () => {
+    const { page } = await render();
+    const nvda = Array.from(page.querySelectorAll('.orders-table tbody tr')).find(
+      (r) => r.querySelector('.symbol')?.textContent === 'NVDA',
+    )!;
+
+    expect(nvda.textContent).toContain('$118.75');
+    expect(nvda.textContent).not.toContain('$120.00');
+  });
+
+  it('shows a message instead of the orders table when there are no orders', async () => {
+    dashboard.load.mockReturnValue(of({ ...DATA, orders: [] }));
+    const { page } = await render();
+
+    expect(page.querySelector('.orders-table')).toBeNull();
+    expect(page.querySelector('.orders-card .empty')?.textContent).toContain(
+      "haven't placed any orders",
+    );
+  });
+
   it('shows a loading message until the data arrives', async () => {
     const pending = new Subject<DashboardData>();
     dashboard.load.mockReturnValue(pending);
@@ -155,6 +218,7 @@ describe('DashboardComponent', () => {
   it.each([
     ['Place Order', '/order'],
     ['Order History', '/blotter'],
+    ['View all', '/blotter'],
   ])('%s button navigates to %s', async (label, path) => {
     const { page } = await render();
 
