@@ -8,6 +8,7 @@ import com.neueda.leap.models.OrderHistory;
 import com.neueda.leap.repositories.OrderHistoryRepository;
 import com.neueda.leap.repositories.OrderRepository;
 import com.neueda.leap.services.OrderPricingValidator;
+import com.neueda.leap.observability.OrderTelemetry;
 import com.neueda.leap.utils.LogMaskingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,6 +139,7 @@ public class TradesConsumer {
             publishOrderAccepted(order, orderId, payload);
         } else if (result.newStatus() == OrderStatus.REJECTED) {
             logger.warn("Order {} rejected: {}", LogMaskingUtil.maskId(orderId), result.reason());
+            OrderTelemetry.rejected(order, OrderTelemetry.RejectStage.PRICING);
             // Publish ORDER_REJECTED event to trade-events topic
             publishOrderRejected(order, orderId, payload, result.reason());
         }

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Order;
+import com.neueda.leap.observability.OrderTelemetry;
 import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.OrderRepository;
 import com.neueda.leap.utils.LogMaskingUtil;
@@ -182,6 +183,7 @@ public class TradeEventListener {
         if (!order.getStatus().canBeCancelled()) return;
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
+        OrderTelemetry.cancelled(order);
         
         logger.info("Order {} marked as CANCELLED. Reason: {}", event.getTradeId(), event.getReason());
     }

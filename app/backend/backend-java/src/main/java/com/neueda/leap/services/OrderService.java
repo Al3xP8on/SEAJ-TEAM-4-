@@ -4,6 +4,7 @@ import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.models.Order;
 import com.neueda.leap.models.OrderHistory;
+import com.neueda.leap.observability.OrderTelemetry;
 import com.neueda.leap.enums.OrderSide;
 import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.enums.OrderErrorCode;
@@ -114,6 +115,7 @@ public class OrderService {
         order.setStatus(OrderStatus.PENDING);
         orderRepository.save(order);
         recordOrderHistory(order.getId(), OrderStatus.PENDING);
+        OrderTelemetry.placed(order);
         return order;
     }
 
@@ -172,6 +174,7 @@ public class OrderService {
 
         Order cancelledOrder = orderRepository.save(order);
         recordOrderHistory(orderId, OrderStatus.CANCELLED);
+        OrderTelemetry.cancelled(cancelledOrder);
 
         return cancelledOrder;
     }
@@ -188,6 +191,7 @@ public class OrderService {
         OrderHistory entry = new OrderHistory(orderId, OrderStatus.REJECTED);
         entry.setReason(reason);
         orderHistoryRepository.save(entry);
+        OrderTelemetry.rejected(rejectedOrder, OrderTelemetry.RejectStage.ADMIN);
 
         return rejectedOrder;
     }
