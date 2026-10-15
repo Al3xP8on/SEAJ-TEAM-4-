@@ -25,7 +25,7 @@ dd { margin-top: 6px; overflow-wrap: anywhere; line-height: 1.5; }
 .balance { font-size: 2.375rem; letter-spacing: -1.2px; margin: 12px 0 8px; font-weight: 600; overflow-wrap: anywhere; }
 .hint { font-size: .8125rem; line-height: 1.6; margin: 8px 0 16px; }
 fieldset { border: 0; min-width: 0; }
-legend { font-weight: bold; margin: 12px 0; }
+legend:not(.sr-only) { font-weight: bold; margin: 12px 0; }
 label { display: block; margin: 16px 0 8px; font-weight: 600; }
 input, select { width: 100%; min-height: 44px; border: 1px solid #66786c; border-radius: 6px; padding: 10px; font: inherit; background: var(--surface); color: var(--account-text); transition: background-color .15s ease, border-color .15s ease; }
 input:not(:disabled):hover, select:not(:disabled):hover { background: var(--surface-soft); border-color: #246342; }

@@ -46,6 +46,13 @@ export class LoginComponent implements OnDestroy {
   private message(error: unknown) {
     return error instanceof Error ? error.message : 'Authentication failed. Please try again.';
   }
+  private validRegistrationEmail(email: string): boolean {
+    if (email.length > 255 || /\s/.test(email)) return false;
+    const parts = email.split('@');
+    if (parts.length !== 2 || !parts[0]) return false;
+    const domainLabels = parts[1].split('.');
+    return domainLabels.length >= 2 && domainLabels.every(label => label.length > 0);
+  }
   onLogin() {
     if (this.loginLoading()) return;
     const username = this.username.trim();
@@ -71,7 +78,7 @@ export class LoginComponent implements OnDestroy {
   onRegister() {
     if (this.registerLoading()) return;
     const username = this.regUsername.trim(); const email = this.regEmail.trim();
-    if (username.length < 3 || username.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    if (username.length < 3 || username.length > 100 || !this.validRegistrationEmail(email)
       || this.regPassword.length < 8 || new TextEncoder().encode(this.regPassword).length > 72) {
       this.registerMessage.set('Enter a unique username (3–100 characters), a valid email and a password of at least 8 characters (maximum 72 bytes).');
       this.registerMessageType.set('error'); return;

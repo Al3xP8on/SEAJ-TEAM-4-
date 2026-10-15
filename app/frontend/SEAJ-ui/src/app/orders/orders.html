@@ -33,6 +33,7 @@
         </div>
         <form #ticket="ngForm" (ngSubmit)="submit(ticket)">
           <fieldset [disabled]="submitting()">
+            <legend class="sr-only">Order ticket</legend>
             @if (isAdmin) {
               <label for="account">Trading account</label>
               <select
@@ -299,6 +300,7 @@
       </div>
       <div class="table-scroll" role="region" aria-label="Order data table" tabindex="0">
         <table class="order-table">
+          <caption class="sr-only">Orders matching the current filters, including prices, status and available actions</caption>
           <thead>
             <tr>
               <th>Instrument</th>

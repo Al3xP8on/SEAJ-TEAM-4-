@@ -28,6 +28,7 @@
           <div class="card-heading"><h2 id="details-title">Account information</h2><button type="button" class="secondary" id="edit-account-button" (click)="editAccount()" [disabled]="editing()">Edit</button></div>
           <form (ngSubmit)="saveAccount()" aria-label="Account information">
             <fieldset [disabled]="settingsBusy() || !!emailChallenge()">
+              <legend class="sr-only">Account information</legend>
               <dl class="account-fields">
                 <dt>Username</dt><dd>{{ profile()?.username }}</dd>
                 <dt>Account ID</dt><dd>{{ account.accountId }}</dd>
@@ -52,6 +53,7 @@
           <h2 id="password-title">Change password</h2><p id="password-hint" class="hint">Use at least 8 characters</p>
           <p role="status">{{ passwordMessage() }}</p><p id="password-error" role="alert" class="error">{{ passwordError() }}</p>
           <form (ngSubmit)="submitPassword()" aria-labelledby="password-title"><fieldset [disabled]="passwordBusy()">
+            <legend class="sr-only">Change password</legend>
             <label for="current-password">Current password</label><input id="current-password" name="currentPassword" type="password" required autocomplete="current-password" [(ngModel)]="currentPassword" aria-describedby="password-error">
             <label for="new-password">New password</label><input id="new-password" name="newPassword" type="password" required minlength="8" autocomplete="new-password" [(ngModel)]="newPassword" aria-describedby="password-hint password-error">
             <label for="confirm-password">Confirm new password</label><input id="confirm-password" name="confirmPassword" type="password" required autocomplete="new-password" [(ngModel)]="confirmPassword" aria-describedby="password-error">
@@ -70,6 +72,7 @@
           @if (addingCard()) {
             <div id="card-editor"><h3 class="details-subheading">Add a card</h3>
               <form (ngSubmit)="saveBank()" aria-label="Save optional card details"><fieldset [disabled]="settingsBusy() || cashBusy()">
+                <legend class="sr-only">Add a card</legend>
                 <div class="card-inputs">
                 <label for="card-holder">Cardholder name (required)</label><input id="card-holder" name="cardHolder" required maxlength="100" [(ngModel)]="bankInput.holder_name" aria-describedby="card-settings-error">
                 <label for="card-number">Card number (required)</label><input id="card-number" name="cardNumber" required inputmode="numeric" pattern="[0-9]{13,19}" maxlength="19" autocomplete="off" [(ngModel)]="bankInput.card_number" aria-describedby="card-hint card-settings-error"><p id="card-hint" class="hint">13–19 digits, without spaces. Use fictitious details.</p>
