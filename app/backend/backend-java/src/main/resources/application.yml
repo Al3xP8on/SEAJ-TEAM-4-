@@ -1,4 +1,8 @@
 spring:
+  task:
+    scheduling:
+      pool:
+        size: 3
   datasource:
     url: jdbc:postgresql://localhost:5432/SEAJ_db
     username: postgres
@@ -27,6 +31,7 @@ trading:
       market-data: market-data
       orders: orders
       executions: executions
+      order-lifecycle: order-lifecycle
     partitions:
       trades: 2
       trade-events: 3
