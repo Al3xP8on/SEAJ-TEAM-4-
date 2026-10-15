@@ -58,30 +58,30 @@
       </div>
 
       @if (holdings().length > 0) {
-        <div class="table-scroll">
-          <table class="positions-table">
-            <thead>
-              <tr>
-                <th scope="col">Symbol</th>
-                <th scope="col" class="num">Quantity</th>
-                <th scope="col" class="num">Avg cost</th>
-                <th scope="col" class="num">Value</th>
+        <div hlmTableContainer>
+          <table hlmTable class="positions-table">
+            <thead hlmTHead>
+              <tr hlmTr>
+                <th hlmTh scope="col">Symbol</th>
+                <th hlmTh scope="col" class="num">Quantity</th>
+                <th hlmTh scope="col" class="num">Avg cost</th>
+                <th hlmTh scope="col" class="num">Value</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody hlmTBody>
               @for (holding of holdings(); track holding.positionId) {
-                <tr>
-                  <th scope="row" class="symbol">{{ holding.symbol }}</th>
-                  <td class="num">{{ holding.quantity | number }}</td>
-                  <td class="num">{{ holding.averageCost | currency: 'USD' }}</td>
-                  <td class="num">{{ holding.value | currency: 'USD' }}</td>
+                <tr hlmTr>
+                  <th hlmTh scope="row" class="symbol">{{ holding.symbol }}</th>
+                  <td hlmTd class="num">{{ holding.quantity | number }}</td>
+                  <td hlmTd class="num">{{ holding.averageCost | currency: 'USD' }}</td>
+                  <td hlmTd class="num">{{ holding.value | currency: 'USD' }}</td>
                 </tr>
               }
             </tbody>
-            <tfoot>
-              <tr>
-                <th scope="row" colspan="3">Total</th>
-                <td class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
+            <tfoot hlmTFoot>
+              <tr hlmTr>
+                <th hlmTh scope="row" colspan="3">Total</th>
+                <td hlmTd class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
               </tr>
             </tfoot>
           </table>

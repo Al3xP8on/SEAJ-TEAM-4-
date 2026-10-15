@@ -145,28 +145,10 @@ h2 {
   color: #357151;
 }
 
-.table-scroll {
-  overflow-x: auto;
-}
-
-.positions-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.positions-table th,
-.positions-table td {
-  padding: 13px 8px;
-  text-align: left;
-  border-bottom: 1px solid #edf1ee;
-}
-
+/* Table layout and borders come from spartan's table; only dashboard-specific touches here */
 .positions-table thead th {
-  font-size: 11px;
+  font-size: 12px;
   color: #6b7870;
-  font-weight: 500;
-  white-space: nowrap;
 }
 
 .positions-table .num {
@@ -181,7 +163,6 @@ h2 {
 
 .positions-table tfoot th,
 .positions-table tfoot td {
-  border-bottom: none;
   font-weight: 600;
 }
 
