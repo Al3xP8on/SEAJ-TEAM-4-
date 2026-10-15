@@ -7,7 +7,7 @@ export class EmailService {
   async sendCode(
     email: string,
     code: string,
-    purpose: 'REGISTER' | 'LOGIN',
+    purpose: 'REGISTER' | 'LOGIN' | 'EMAIL_CHANGE' | 'DELETE_ACCOUNT',
     expirySeconds: number,
   ): Promise<void> {
     const host = this.config.get<string>('SMTP_HOST');
@@ -48,7 +48,7 @@ export class EmailService {
         subject:
           purpose === 'REGISTER'
             ? 'Verify your SEAJ registration'
-            : 'Your SEAJ login code',
+            : purpose === 'DELETE_ACCOUNT' ? 'Verify your SEAJ account deletion' : purpose === 'EMAIL_CHANGE' ? 'Verify your new SEAJ email' : 'Your SEAJ login code',
         text: `Your verification code is ${code}. It expires in ${expirySeconds} seconds. If you did not request this, ignore this email.`,
       });
       if (!result.accepted.length) throw new Error('Recipient not accepted');

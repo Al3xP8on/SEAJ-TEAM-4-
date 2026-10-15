@@ -100,55 +100,56 @@ export function classes(computed: () => ClassValue[] | string, options: ClassesO
       }
     }
 
-    // Assign order once at registration time
-    const sourceOrder = manager.nextOrder++;
+    // Capture the initialized manager for effects and cleanup callbacks.
+    const activeManager = manager;
+    const sourceOrder = activeManager.nextOrder++;
 
     function updateClasses(): void {
       // Get the new classes from the computed function
       const newClasses = toClassList(computed());
 
       // Update this source's classes, keeping the original order
-      manager!.sources.set(sourceId, {
+      activeManager.sources.set(sourceId, {
         classes: new Set(newClasses),
         order: sourceOrder,
       });
 
       // Update the element
-      updateElement(manager!);
+      updateElement(activeManager);
 
       // Re-enable transitions after the first effect writes correct classes.
       // Deferred to next animation frame so the browser paints the class change
       // with transitions disabled first, then re-enables them.
-      if (manager!.transitionsSuppressed) {
-        manager!.transitionsSuppressed = false;
-        manager!.restoreRafId = requestAnimationFrame(() => {
-          manager!.restoreRafId = null;
-          restoreTransitionSuppression(manager!);
+      if (activeManager.transitionsSuppressed) {
+        activeManager.transitionsSuppressed = false;
+        activeManager.restoreRafId = requestAnimationFrame(() => {
+          activeManager.restoreRafId = null;
+          restoreTransitionSuppression(activeManager);
         });
       }
     }
 
     // Register cleanup with DestroyRef
     destroyRef.onDestroy(() => {
-      if (manager!.restoreRafId !== null) {
-        cancelAnimationFrame(manager!.restoreRafId);
-        manager!.restoreRafId = null;
+      if (activeManager.restoreRafId !== null) {
+        cancelAnimationFrame(activeManager.restoreRafId);
+        activeManager.restoreRafId = null;
       }
 
-      if (manager!.transitionsSuppressed) {
-        manager!.transitionsSuppressed = false;
-        restoreTransitionSuppression(manager!);
+      if (activeManager.transitionsSuppressed) {
+        activeManager.transitionsSuppressed = false;
+        restoreTransitionSuppression(activeManager);
       }
 
       // Remove this source from the manager
-      manager!.sources.delete(sourceId);
+      activeManager.sources.delete(sourceId);
 
       // If no more sources, clean up the manager
-      if (manager!.sources.size === 0) {
+      if (activeManager.sources.size === 0) {
         cleanupManager(element);
       } else {
         // Update element without this source's classes
-        updateElement(manager!);
+        updateElement(activeManager);
       }
     });
 
@@ -174,53 +175,42 @@ function restoreTransitionSuppression(manager: ElementClassManager): void {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-wrapper-object-types
-function setupGlobalObserver(platformId: Object): void {
-  if (isPlatformBrowser(platformId) && !globalObserver) {
-    // Create single global observer that watches the entire document
-    globalObserver = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          const element = mutation.target as HTMLElement;
-          const manager = elementClassManagers.get(element);
-
-          // Only process elements we're managing
-          if (manager && observedElements.has(element)) {
-            if (manager.isUpdating) continue; // Ignore changes we're making
-
-            // Update base classes to include any externally added classes
-            const currentClasses = toClassList(element.className);
-            const allSourceClasses = new Set<string>();
-
-            // Collect all classes from all sources
-            for (const source of manager.sources.values()) {
-              for (const className of source.classes) {
-                allSourceClasses.add(className);
-              }
-            }
-
-            // Any classes not from sources become new base classes
-            manager.baseClasses.clear();
-
-            for (const className of currentClasses) {
-              if (!allSourceClasses.has(className)) {
-                manager.baseClasses.add(className);
-              }
-            }
-
-            updateElement(manager);
-          }
-        }
-      }
-    });
-
-    // Start observing the entire document for class attribute changes
-    globalObserver.observe(document, {
-      attributes: true,
-      attributeFilter: ['class'],
-      subtree: true, // Watch all descendants
-    });
+function collectSourceClasses(manager: ElementClassManager): Set<string> {
+  const sourceClasses = new Set<string>();
+  for (const source of manager.sources.values()) {
+    for (const className of source.classes) {
+      sourceClasses.add(className);
+    }
   }
+  return sourceClasses;
+}
+
+function handleClassMutation(mutation: MutationRecord): void {
+  if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') return;
+  const element = mutation.target;
+  if (!(element instanceof HTMLElement)) return;
+  const manager = elementClassManagers.get(element);
+  if (!manager || !observedElements.has(element) || manager.isUpdating) return;
+
+  // Preserve external classes, excluding classes supplied by registered sources.
+  const sourceClasses = collectSourceClasses(manager);
+  manager.baseClasses.clear();
+  for (const className of toClassList(element.className)) {
+    if (!sourceClasses.has(className)) manager.baseClasses.add(className);
+  }
+  updateElement(manager);
+}
+
+function setupGlobalObserver(platformId: Parameters<typeof isPlatformBrowser>[0]): void {
+  if (!isPlatformBrowser(platformId) || globalObserver) return;
+  globalObserver = new MutationObserver((mutations) => {
+    mutations.forEach(handleClassMutation);
+  });
+  globalObserver.observe(document, {
+    attributes: true,
+    attributeFilter: ['class'],
+    subtree: true,
+  });
 }
 
 function updateElement(manager: ElementClassManager): void {
@@ -296,8 +286,9 @@ const classListCache = new Map<string, string[]>();
 
 function toClassList(className: string | ClassValue[]): string[] {
   // For simple string inputs, use cache to avoid repeated parsing
-  if (typeof className === 'string' && classListCache.has(className)) {
-    return classListCache.get(className)!;
+  if (typeof className === 'string') {
+    const cached = classListCache.get(className);
+    if (cached) return cached;
   }
 
   const result = clsx(className)

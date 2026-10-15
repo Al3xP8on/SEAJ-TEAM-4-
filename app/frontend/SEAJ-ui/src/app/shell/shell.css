@@ -1,5 +1,5 @@
 :host {
-  --app-nav-height: 80px;
+  --app-nav-height: 5rem;
   display: block;
   min-height: 100dvh;
   font-family: Arial, sans-serif;
@@ -8,14 +8,16 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  height: var(--app-nav-height);
+  height: auto;
+  min-height: 5rem;
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 48px;
-  padding: 0 5%;
-  background: #fff;
-  color: #202f29;
-  border-bottom: 1px solid #dfe6e1;
+  padding: 12px 5%;
+  background: var(--surface);
+  color: var(--foreground);
+  border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 8px #243d2e08;
 }
 a {
@@ -35,56 +37,79 @@ button {
   display: block;
   width: 146px;
   height: auto;
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 4px;
 }
 nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 28px;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 nav a {
-  padding: 9px 0;
-  color: #67746d;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: .9375rem;
+  font-weight: 600;
+  color: var(--foreground);
+  transition: background-color .15s ease;
 }
+nav a:hover { background: var(--muted); }
 nav .active {
-  color: #246342;
-  border-bottom: 2px solid #246342;
+  color: var(--foreground);
+  background: var(--muted);
+  border-bottom: 3px solid var(--positive);
 }
 .logout {
-  margin-left: auto;
-  border: 1px solid #dbe4dd;
-  background: #fff;
-  color: #385745;
+  margin-left: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground);
   padding: 9px 15px;
   border-radius: 6px;
   font: inherit;
-  font-size: 12px;
+  font-size: .875rem;
   cursor: pointer;
 }
 .logout:hover {
-  background: #edf4ef;
+  background: var(--surface-soft);
 }
 @media (max-width: 900px) {
   .topbar {
-    gap: 20px;
+    gap: 12px 20px;
   }
 }
 @media (max-width: 520px) {
-  :host {
-    --app-nav-height: 64px;
-  }
   .topbar {
-    gap: 12px;
-    padding: 0 12px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
   .brand-logo {
     width: 112px;
   }
   nav {
     gap: 14px;
-    font-size: 12px;
+    font-size: 0.75rem;
   }
   .logout {
     padding: 7px 8px;
-    font-size: 11px;
   }
+}
+
+.skip-link { position: fixed; top: -100px; left: 12px; z-index: 20; padding: 12px; background: var(--surface); color: var(--foreground); }
+.skip-link:focus { top: 8px; }
+@media (max-width: 600px) {
+  .topbar { padding: 12px; }
+  nav { order: 3; width: 100%; gap: 24px; }
+  nav a, .logout { min-height: 44px; display: inline-flex; align-items: center; }
+}
+
+.account-nav { margin-left: auto; }
+@media (max-width: 600px) {
+  .account-nav { order: 0; width: auto; margin-left: auto; }
+  .brand > span:last-child { display: none; }
 }

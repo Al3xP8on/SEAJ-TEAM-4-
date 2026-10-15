@@ -1,5 +1,6 @@
 // Public login sits outside the persistent navigation for authenticated pages.
 // Redirects old HTML login bookmarks to the same Angular route.
+import { AccountComponent } from './account/account';
 import { Routes } from '@angular/router';
 import { LandingComponent } from './landing/landing';
 import { LoginComponent } from './login/login';
@@ -18,6 +19,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     canActivateChild: [authGuard],
     children: [
+      { path: 'account', component: AccountComponent, title: 'My Account | SEAJ Capital' },
       { path: 'dashboard', component: DashboardComponent },
       { path: 'order', component: OrdersComponent },
       { path: 'blotter', component: OrdersComponent },

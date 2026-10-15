@@ -205,6 +205,250 @@ paths:
           $ref: '#/components/responses/Error400'
         '401':
           $ref: '#/components/responses/Error401'
+  /auth/settings:
+    get:
+      summary: Authenticated account settings
+      security:
+        - JWT: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountSettings'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '409':
+          $ref: '#/components/responses/Error409'
+  /auth/profile:
+    post:
+      summary: Authenticated account profile
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountSettings'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '409':
+          $ref: '#/components/responses/Error409'
+  /auth/bank:
+    post:
+      summary: Authenticated account bank
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountSettings'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '409':
+          $ref: '#/components/responses/Error409'
+  /auth/transfers:
+    post:
+      summary: Authenticated account transfers
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountSettings'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '409':
+          $ref: '#/components/responses/Error409'
+  /auth/password:
+    post:
+      summary: Authenticated account password
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '409':
+          $ref: '#/components/responses/Error409'
+  /auth/email:
+    post:
+      summary: Authenticated account email
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailChangeRequest'
+      responses:
+        '202':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChallengeResponse'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '409':
+          $ref: '#/components/responses/Error409'
+  /auth/email/verify:
+    post:
+      summary: Authenticated account email/verify
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailChangeResponse'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '409':
+          $ref: '#/components/responses/Error409'
+  /auth/cards/remove:
+    post:
+      summary: Authenticated cards/remove
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveCardRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountSettings'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+  /auth/account/delete/start:
+    post:
+      summary: Authenticated account/delete/start
+      security:
+        - JWT: []
+      responses:
+        '202':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChallengeResponse'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+  /auth/account/delete/verify:
+    post:
+      summary: Authenticated account/delete/verify
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletionApproval'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+  /auth/account/delete/confirm:
+    post:
+      summary: Authenticated account/delete/confirm
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteAccountRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
 components:
   securitySchemes:
     JWT:
@@ -396,6 +640,115 @@ components:
         code:
           type: string
           pattern: ^[0-9]{6}$
+    ProfileRequest:
+      type: object
+      required: [phone]
+      additionalProperties: false
+      properties:
+        phone: {type: string, maxLength: 20}
+    CardRequest:
+      type: object
+      required: [holder_name, card_number, expiry_month, expiry_year]
+      additionalProperties: false
+      description: Fictitious payment card. Full numbers are never persisted.
+      properties:
+        holder_name: {type: string, minLength: 1, maxLength: 100}
+        card_number: {type: string, pattern: '^[0-9]{13,19}$', writeOnly: true}
+        expiry_month: {type: integer, minimum: 1, maximum: 12}
+        expiry_year: {type: integer, minimum: 2026, maximum: 2100}
+    TransferRequest:
+      type: object
+      required: [action, amount, request_id]
+      additionalProperties: false
+      properties:
+        action: {type: string, enum: [deposit, withdraw]}
+        amount: {type: string, pattern: '^(?:0|[1-9][0-9]{0,6})\.[0-9]{2}$'}
+        request_id: {type: string, format: uuid}
+        card: {$ref: '#/components/schemas/CardRequest'}
+        card_id: {type: string, format: uuid}
+        save_card: {type: boolean, default: false}
+    PasswordChangeRequest:
+      type: object
+      required: [current_password, new_password]
+      additionalProperties: false
+      properties:
+        current_password: {type: string, minLength: 1, maxLength: 72, writeOnly: true}
+        new_password: {type: string, minLength: 8, maxLength: 72, writeOnly: true}
+    EmailChangeRequest:
+      type: object
+      required: [email]
+      additionalProperties: false
+      properties:
+        email: {type: string, format: email, maxLength: 255}
+    EmailChangeResponse:
+      type: object
+      required: [email]
+      properties:
+        email: {type: string, format: email}
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message: {type: string}
+    AccountSettings:
+      type: object
+      required: [phone, bank, cash_balance, transfers]
+      properties:
+        phone: {type: string, nullable: true}
+        bank:
+          type: object
+          nullable: true
+          description: Masked saved card or legacy bank details.
+          properties:
+            bank_name: {type: string}
+            holder_name: {type: string}
+            account_last4: {type: string}
+            routing_last4: {type: string}
+            kind: {type: string, enum: [card, bank]}
+            expiry_month: {type: integer}
+            expiry_year: {type: integer}
+        cards:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: string, format: uuid}
+              holder_name: {type: string}
+              account_last4: {type: string}
+              kind: {type: string}
+              expiry_month: {type: integer}
+              expiry_year: {type: integer}
+        cash_balance: {type: string}
+        transfers:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: string, format: uuid}
+              action: {type: string, enum: [deposit, withdraw]}
+              amount: {type: string}
+              bank_name: {type: string}
+              account_last4: {type: string}
+              created_at: {type: string, format: date-time}
+              status: {type: string, enum: [Completed]}
+    RemoveCardRequest:
+      type: object
+      required: [card_id]
+      additionalProperties: false
+      properties:
+        card_id: {type: string, format: uuid}
+    DeleteAccountRequest:
+      type: object
+      required: [deletion_token]
+      additionalProperties: false
+      properties:
+        deletion_token: {type: string, maxLength: 2048}
+    DeletionApproval:
+      type: object
+      required: [deletion_token, expires_in]
+      properties:
+        deletion_token: {type: string}
+        expires_in: {type: integer, enum: [300]}
   responses:
     Error400:
       description: Invalid payload
