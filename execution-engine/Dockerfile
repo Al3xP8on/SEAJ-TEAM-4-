@@ -21,6 +21,12 @@ FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S engine && adduser -S engine -G engine
 WORKDIR /opt/execution-engine
 COPY --from=build /build/target/execution-engine.jar app.jar
+
+# OpenTelemetry Java agent (v2.31.1) from the official image, pinned by digest.
+# docker-compose.yml loads it through JAVA_TOOL_OPTIONS and points it at the collector.
+COPY --chmod=644 --from=ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.31.1@sha256:6f70427eee0ddfaaa861632eadf2d1c9ba03f4daa30e68ae352eac269e9caf7e \
+    /javaagent.jar /opt/otel/opentelemetry-javaagent.jar
+
 USER engine
 
 # Kafka comes from KAFKA_BOOTSTRAP_SERVERS and the simulated market's

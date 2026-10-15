@@ -1,5 +1,15 @@
 # Defines the platform containers, networking, storage and runtime configuration.
 # Builds the authentication service with its login page and shared API contract.
+# OpenTelemetry settings shared by the Java services (agent baked into their images).
+# Telemetry is off unless .env sets OTEL_SDK_DISABLED=false, which goes with
+# COMPOSE_PROFILES=observability; without a collector the agent would log export errors.
+x-otel-java: &otel-java
+  JAVA_TOOL_OPTIONS: "-javaagent:/opt/otel/opentelemetry-javaagent.jar"
+  OTEL_SDK_DISABLED: "${OTEL_SDK_DISABLED:-true}"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+  OTEL_METRIC_EXPORT_INTERVAL: "15000"
+
 services:
   db:
     build:
@@ -28,6 +38,8 @@ services:
       - db
       - auth-service
     environment:
+      <<: *otel-java
+      OTEL_SERVICE_NAME: seaj-app
       SPRING_DATASOURCE_URL: "${SPRING_DATASOURCE_URL}"
       SPRING_DATASOURCE_USERNAME: "${SPRING_DATASOURCE_USERNAME}"
       SPRING_DATASOURCE_PASSWORD: "${SPRING_DATASOURCE_PASSWORD}"
@@ -115,6 +127,8 @@ services:
       kafka:
         condition: service_healthy
     environment:
+      <<: *otel-java
+      OTEL_SERVICE_NAME: seaj-execution-engine
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       ENGINE_MIN_DELAY: "${ENGINE_MIN_DELAY:-500ms}"
       ENGINE_MAX_DELAY: "${ENGINE_MAX_DELAY:-2000ms}"
