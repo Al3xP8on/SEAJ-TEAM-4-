@@ -1,7 +1,7 @@
 :host {
   display: block;
   min-height: calc(100dvh - var(--app-nav-height, 0px));
-  background: var(--surface-soft);
+  background: var(--background);
   color: var(--foreground);
   font-family: Arial, sans-serif;
 }
