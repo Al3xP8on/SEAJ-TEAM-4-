@@ -24,9 +24,12 @@ export class OrderNotificationsService {
   private updated(order: Order) {
     const sold = order.side === 'SELL' && order.status === 'FILLED';
     const status = order.status.charAt(0) + order.status.slice(1).toLowerCase();
+    let kind: 'success' | 'info' | 'error' = 'info';
+    if (order.status === 'REJECTED') kind = 'error';
+    else if (order.status === 'FILLED') kind = 'success';
     this.notifications.show(sold ? 'Sold successfully' : `Order ${status.toLowerCase()}`,
       `${order.quantity} ${order.ticker} · ${order.orderId}${sold ? ' · Your sell order has filled.' : ''}`,
-      order.status === 'REJECTED' ? 'error' : order.status === 'FILLED' ? 'success' : 'info');
+      kind);
   }
   reset() { this.statuses.clear(); this.initialized = false; }
 }
