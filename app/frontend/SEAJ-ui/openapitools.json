@@ -2,6 +2,18 @@
   "$schema": "./node_modules/@openapitools/openapi-generator-cli/config.schema.json",
   "spaces": 2,
   "generator-cli": {
-    "version": "7.14.0"
+    "version": "7.14.0",
+    "generators": {
+      "trading-api": {
+        "generatorName": "typescript-angular",
+        "inputSpec": "../../../docs/openapi/trading-api.json",
+        "output": "src/app/generated/trading-api",
+        "additionalProperties": {
+          "ngVersion": "22.0.0",
+          "providedIn": "root",
+          "fileNaming": "kebab-case"
+        }
+      }
+    }
   }
 }
