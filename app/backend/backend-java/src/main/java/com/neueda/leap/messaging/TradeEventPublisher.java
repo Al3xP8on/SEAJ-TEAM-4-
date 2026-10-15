@@ -39,8 +39,10 @@ public class TradeEventPublisher {
      * @param event the TradeEvent to publish
      */
     public void publishTradeEvent(TradeEvent event) {
-        logger.info("Publishing trade event for account: {} - Trade ID: {} - Status: {}",
+        if (logger.isInfoEnabled()) {
+            logger.info("Publishing trade event for account: {} - Trade ID: {} - Status: {}",
                 LogMaskingUtil.maskAccountId(event.getAccountId()), LogMaskingUtil.maskId(event.getTradeId()), event.getStatus());
+        }
         
         try {
             // Map TradeEvent status to EventType
@@ -71,11 +73,12 @@ public class TradeEventPublisher {
             // Send with accountId as Kafka message key to ensure ordering per account
             kafkaTemplate.send(tradeEventsTopic, event.getAccountId(), envelope);
             
-            logger.debug("Trade event published successfully in EventEnvelope: {}", envelope);
-        } catch (Exception e) {
-            logger.error("Failed to publish trade event for account {}: {}", 
-                    event.getAccountId(), e.getMessage(), e);
-            throw new RuntimeException("Failed to publish trade event", e);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Trade event published successfully in EventEnvelope: {}", envelope);
+            }
+        } catch (RuntimeException e) {
+            throw new TradeEventPublishException(
+                "Failed to publish trade event for account " + event.getAccountId(), e);
         }
     }
     

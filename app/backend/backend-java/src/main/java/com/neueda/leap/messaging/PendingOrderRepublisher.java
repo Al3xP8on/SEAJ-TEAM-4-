@@ -38,8 +38,7 @@ public class PendingOrderRepublisher {
     public PendingOrderRepublisher(
             OrderRepository orderRepository,
             TradeEventPublisher tradeEventPublisher,
-            @Value("${trading.orders.republish-after:PT5M}") Duration republishAfter,
-            @Value("${trading.orders.republish-interval:PT1M}") Duration republishInterval) {
+            @Value("${trading.orders.republish-after:PT5M}") Duration republishAfter) {
         this.orderRepository = orderRepository;
         this.tradeEventPublisher = tradeEventPublisher;
         this.republishAfter = republishAfter;

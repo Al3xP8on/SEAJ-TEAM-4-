@@ -45,7 +45,7 @@ public class MarketDataPoller {
         for (String symbol : symbolArray) {
             try {
                 pollAndPublishPrice(symbol.trim());
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 logger.error("Error polling market data for symbol: {}", symbol.trim(), e);
             }
         }
@@ -63,8 +63,7 @@ public class MarketDataPoller {
             
             logger.debug("Successfully polled and published market data for symbol: {}", symbol);
             
-        } catch (Exception e) {
-            logger.error("Failed to poll market data for symbol: {}", symbol, e);
+        } catch (RuntimeException e) {
             throw new MarketDataException("Failed to poll market data for " + symbol, e);
         }
     }

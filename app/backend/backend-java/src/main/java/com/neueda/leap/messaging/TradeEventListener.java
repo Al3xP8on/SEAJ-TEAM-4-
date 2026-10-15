@@ -1,6 +1,7 @@
 package com.neueda.leap.messaging;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.neueda.leap.enums.OrderStatus;
@@ -75,8 +76,10 @@ public class TradeEventListener {
             // Deserialize JSON string to EventEnvelope
             EventEnvelope envelope = objectMapper.readValue(message, EventEnvelope.class);
             
-            logger.info("Received EventEnvelope - Event ID: {} | Event Type: {} | Partition: {} | Offset: {}",
+                if (logger.isInfoEnabled()) {
+                logger.info("Received EventEnvelope - Event ID: {} | Event Type: {} | Partition: {} | Offset: {}",
                     LogMaskingUtil.maskId(envelope.eventId().toString()), envelope.eventType(), partition, offset);
+                }
 
             // Price updates carry no trade fields, so skip them before extracting a TradeEvent
             if (envelope.eventType() == EventType.PRICE_UPDATE) {
@@ -87,8 +90,10 @@ public class TradeEventListener {
             // Extract TradeEvent from payload
             TradeEvent event = extractTradeEvent(envelope.payload());
             
-            logger.info("Processing trade event - Account: {} | Trade ID: {} | Status: {} | Partition: {} | Offset: {}",
+                if (logger.isInfoEnabled()) {
+                logger.info("Processing trade event - Account: {} | Trade ID: {} | Status: {} | Partition: {} | Offset: {}",
                     LogMaskingUtil.maskAccountId(event.getAccountId()), LogMaskingUtil.maskId(event.getTradeId()), event.getStatus(), partition, offset);
+                }
             
             // Process the trade event based on EventType
             switch (envelope.eventType()) {
@@ -107,11 +112,11 @@ public class TradeEventListener {
                     logger.warn("Unknown event type: {}", envelope.eventType());
             }
             
-            logger.debug("Trade event processed successfully: {}", event);
-        } catch (Exception e) {
-            logger.error("Failed to process trade event: {}",
-                    e.getMessage(), e);
-            throw new RuntimeException("Failed to process trade event", e);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Trade event processed successfully: {}", event);
+            }
+        } catch (JsonProcessingException | RuntimeException e) {
+            throw new PoisonMessageException("Failed to process trade event", e);
         }
     }
     

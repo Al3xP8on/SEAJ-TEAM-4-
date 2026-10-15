@@ -14,6 +14,9 @@ public class LogMaskingUtil {
     private static final String MASK_CHAR = "*";
     private static final int PREFIX_LENGTH = 8;
     private static final int SUFFIX_LENGTH = 4;
+
+    private LogMaskingUtil() {
+    }
     
     /**
      * Neutralises carriage returns and line feeds so user input can't forge log lines (CWE-117).

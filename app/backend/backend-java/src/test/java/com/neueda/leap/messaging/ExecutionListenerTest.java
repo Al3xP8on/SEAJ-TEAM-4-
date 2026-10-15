@@ -122,7 +122,6 @@ public class ExecutionListenerTest {
         // Arrange
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
         when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
-        when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
         when(accountRepository.save(any(Account.class))).thenReturn(account);
 
@@ -151,7 +150,6 @@ public class ExecutionListenerTest {
         // First execution: order is PENDING
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
         when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
-        when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order savedOrder = invocation.getArgument(0);
             savedOrder.setStatus(OrderStatus.FILLED);
@@ -194,7 +192,6 @@ public class ExecutionListenerTest {
         // Arrange
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
         when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
-        when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order savedOrder = invocation.getArgument(0);
             savedOrder.setStatus(OrderStatus.FILLED);
@@ -339,7 +336,6 @@ public class ExecutionListenerTest {
 
         when(objectMapper.readValue(sellMessage, ExecutionEvent.class)).thenReturn(sellEvent);
         when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
-        when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
         when(accountRepository.save(any(Account.class))).thenReturn(account);
 
@@ -374,7 +370,6 @@ public class ExecutionListenerTest {
         // SETUP: Create order and account state
         when(objectMapper.readValue(executionMessage, ExecutionEvent.class)).thenReturn(executionEvent);
         when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
-        when(accountRepository.findByAccountId(accountId)).thenReturn(Optional.of(account));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order savedOrder = invocation.getArgument(0);
             savedOrder.setStatus(OrderStatus.FILLED);

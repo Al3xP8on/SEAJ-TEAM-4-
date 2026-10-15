@@ -18,7 +18,7 @@ class PendingOrderRepublisherTest {
     private final OrderRepository repository = mock(OrderRepository.class);
     private final TradeEventPublisher publisher = mock(TradeEventPublisher.class);
     private final Duration delay = Duration.ofMinutes(5);
-    private final PendingOrderRepublisher republisher = new PendingOrderRepublisher(repository, publisher, delay, Duration.ofMinutes(1));
+    private final PendingOrderRepublisher republisher = new PendingOrderRepublisher(repository, publisher, delay);
     private Order order() {
         Order order = mock(Order.class);
         Account account = mock(Account.class);

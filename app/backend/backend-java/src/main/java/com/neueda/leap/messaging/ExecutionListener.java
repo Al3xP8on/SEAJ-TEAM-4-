@@ -2,10 +2,7 @@ package com.neueda.leap.messaging;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.neueda.leap.enums.OrderStatus;
-import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Order;
-import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.OrderRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +29,6 @@ public class ExecutionListener {
     private OrderRepository orderRepository;
 
     @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
     private ObjectMapper objectMapper;
     
     @Autowired
@@ -53,10 +47,11 @@ public class ExecutionListener {
     private void settle(ExecutionEvent event) {
         if (!settlement.settle(event)) return;
         Order order = orderRepository.findById(event.orderId()).orElseThrow();
-        Account account = accountRepository.findByAccountId(event.accountId()).orElseThrow();
 
-        log.info("Execution settled: Order FILLED | {} {} @ {} | Venue: {}",
+        if (log.isInfoEnabled()) {
+            log.info("Execution settled: Order FILLED | {} {} @ {} | Venue: {}",
                 event.side(), event.quantity(), event.price(), event.venue());
+        }
         
         try {
             TradeEvent executedEvent = new TradeEvent(
