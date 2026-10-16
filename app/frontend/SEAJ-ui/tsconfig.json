@@ -17,7 +17,11 @@
       "@spartan-ng/helm/table": ["./src/app/ui/table/src/index.ts"],
       "@spartan-ng/helm/switch": ["./src/app/ui/switch/src/index.ts"],
       "@spartan-ng/helm/dialog": ["./src/app/ui/dialog/src/index.ts"],
-      "@spartan-ng/helm/button": ["./src/app/ui/button/src/index.ts"]
+      "@spartan-ng/helm/button": ["./src/app/ui/button/src/index.ts"],
+      "@spartan-ng/helm/item": ["./src/app/ui/item/src/index.ts"],
+      "@spartan-ng/helm/separator": ["./src/app/ui/separator/src/index.ts"],
+      "@spartan-ng/helm/badge": ["./src/app/ui/badge/src/index.ts"],
+      "@spartan-ng/helm/alert": ["./src/app/ui/alert/src/index.ts"]
     }
   },
   "angularCompilerOptions": {

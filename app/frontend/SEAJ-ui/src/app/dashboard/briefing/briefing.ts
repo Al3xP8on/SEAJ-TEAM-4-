@@ -1,29 +1,53 @@
 import { Component, computed, input } from '@angular/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  lucideActivity,
+  lucideChartLine,
+  lucideChartPie,
+  lucideClock,
+  lucideTrendingDown,
+  lucideTrendingUp,
+  lucideTriangleAlert,
+  lucideWallet,
+} from '@ng-icons/lucide';
 import { HlmCardImports } from '@spartan-ng/helm/card';
+import {
+  HlmItem,
+  HlmItemContent,
+  HlmItemDescription,
+  HlmItemMedia,
+  HlmItemTitle,
+} from '@spartan-ng/helm/item';
 import { BriefingFacts, writeBriefing } from './write-briefing';
 
 @Component({
   selector: 'app-briefing',
-  imports: [HlmCardImports],
-  template: `
-    <section hlmCard class="briefing" aria-labelledby="briefing-title">
-      <div hlmCardHeader>
-        <h2 hlmCardTitle id="briefing-title">At a glance</h2>
-      </div>
-      <div hlmCardContent>
-        <p class="sentences">
-          @for (sentence of sentences(); track $index) {
-            <span>{{ sentence }}</span
-            >{{ ' ' }}
-          }
-        </p>
-      </div>
-    </section>
-  `,
+  imports: [
+    HlmCardImports,
+    HlmItem,
+    HlmItemContent,
+    HlmItemDescription,
+    HlmItemMedia,
+    HlmItemTitle,
+    NgIcon,
+  ],
+  providers: [
+    provideIcons({
+      lucideActivity,
+      lucideChartLine,
+      lucideChartPie,
+      lucideClock,
+      lucideTrendingDown,
+      lucideTrendingUp,
+      lucideTriangleAlert,
+      lucideWallet,
+    }),
+  ],
+  templateUrl: './briefing.html',
   styleUrl: './briefing.css',
 })
 export class BriefingComponent {
   readonly facts = input.required<BriefingFacts>();
 
-  readonly sentences = computed(() => writeBriefing(this.facts()));
+  readonly items = computed(() => writeBriefing(this.facts()));
 }

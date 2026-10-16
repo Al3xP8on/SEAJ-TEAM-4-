@@ -246,19 +246,23 @@ describe('DashboardComponent', () => {
   it('opens with a plain-English briefing of the account', async () => {
     dashboard.marketPrices.mockReturnValue(of(MARKET));
     const { page } = await render();
-    const briefing = page
-      .querySelector('app-briefing .sentences')
-      ?.textContent?.replace(/\s+/g, ' ')
-      .trim();
+    // Title and detail are separate paragraphs, so they're read as separate lines
+    const rows = Array.from(page.querySelectorAll('app-briefing .item')).map((li) =>
+      Array.from(li.querySelectorAll('.title, .detail'))
+        .map((p) => p.textContent?.trim())
+        .join(' | '),
+    );
 
     // AAPL 9,500 (32%) and MSFT 8,000 (27%) of 29,281.25; MSFT's open SELL holds back no cash
-    expect(briefing).toBe(
-      'Your portfolio is worth $29,281.25, up $50.00 (0.29%) today. ' +
-        'AAPL moved the most today, up $250.00. ' +
-        'AAPL and MSFT are each above the 25% guideline. ' +
-        'You have $10,000.00 available to trade. ' +
-        '1 order is waiting to fill.',
-    );
+    expect(rows).toEqual([
+      'Worth $29,281.25 | Up $50.00 (0.29%) today',
+      'AAPL moved the most | Up $250.00 today',
+      'AAPL and MSFT are each above 25% | Above the 25% guideline',
+      '$10,000.00 to trade',
+      '1 order waiting to fill',
+    ]);
+    // Icons are decoration; the words carry the meaning
+    expect(page.querySelector('app-briefing ng-icon')?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('sorts holdings by value and shows company names where known', async () => {
