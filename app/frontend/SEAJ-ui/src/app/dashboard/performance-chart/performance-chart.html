@@ -22,7 +22,7 @@
       <p class="empty">You don't hold any positions yet, so there's nothing to chart.</p>
     } @else if (summary(); as s) {
       <p class="change" [class.loss]="s.change < 0">
-        <span aria-hidden="true">{{ s.change < 0 ? '▼' : '▲' }}</span>
+        <app-trend-icon [value]="s.change" />
         {{ s.change > 0 ? '+' : '' }}{{ s.change | currency: 'USD' }} ({{ s.change > 0 ? '+' : ''
         }}{{ s.percent | percent: '1.2-2' }}) over {{ period() }}
       </p>
@@ -32,6 +32,7 @@
         [description]="description()"
         [dateFormat]="dateFormat()"
         [loss]="s.change < 0"
+        [showTable]="false"
       />
     } @else {
       <p class="empty">No price history is available for your holdings right now.</p>

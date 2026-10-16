@@ -2,15 +2,12 @@ import { BriefingFacts, BriefingItem, writeBriefing } from './write-briefing';
 
 const FACTS: BriefingFacts = {
   totalValue: 20000,
-  dayChange: { amount: 150, percent: 0.0075 },
-  atCost: false,
   holdings: [
     { symbol: 'AAPL', value: 4000, dayChange: 100 },
     { symbol: 'MSFT', value: 4000, dayChange: -180 },
     { symbol: 'NVDA', value: 2000, dayChange: null },
   ],
   cash: 10000,
-  buyingPower: 10000,
   reserved: 0,
   openOrders: 0,
   concentrationLimit: 0.25,
@@ -18,37 +15,34 @@ const FACTS: BriefingFacts = {
 
 const text = (items: BriefingItem[]) => items.map((i) => [i.title, i.detail]);
 const find = (items: BriefingItem[], kind: BriefingItem['kind']) =>
-  items.find((i) => i.kind === kind)!;
+  items.find((i) => i.kind === kind);
 
 describe('writeBriefing', () => {
-  it('summarises value, the day, the biggest mover, diversification and cash', () => {
+  it('only says what the summary cards do not: the biggest mover and diversification', () => {
     expect(text(writeBriefing(FACTS))).toEqual([
-      ['Worth $20,000.00', 'Up $150.00 (0.75%) today'],
       ['MSFT moved the most', 'Down $180.00 today'],
       ['Well spread', 'No single holding is above 25% of your portfolio'],
-      ['$10,000.00 to trade', null],
     ]);
   });
 
-  it('picks an icon and tone for each fact, with direction also in words', () => {
+  it('picks an icon and tone for each insight, with direction also in words', () => {
     const items = writeBriefing(FACTS);
 
-    expect(find(items, 'value')).toMatchObject({ icon: 'lucideTrendingUp', tone: 'good' });
-    expect(find(items, 'mover')).toMatchObject({ icon: 'lucideActivity', tone: 'bad' });
+    expect(find(items, 'mover')).toMatchObject({ icon: 'lucideTrendingDown', tone: 'bad' });
     expect(find(items, 'diversification')).toMatchObject({ icon: 'lucideChartPie', tone: 'good' });
-    expect(find(items, 'cash')).toMatchObject({ icon: 'lucideWallet', tone: 'neutral' });
   });
 
-  it('says "Down" for a losing day, without a minus sign', () => {
-    const value = find(
-      writeBriefing({ ...FACTS, dayChange: { amount: -42.5, percent: -0.002 } }),
-      'value',
-    );
+  it('says "Up" for a rising mover, without a plus sign', () => {
+    const items = writeBriefing({
+      ...FACTS,
+      holdings: [{ symbol: 'AAPL', value: 4000, dayChange: 250 }],
+    });
 
-    expect(value).toMatchObject({
-      detail: 'Down $42.50 (0.20%) today',
-      icon: 'lucideTrendingDown',
-      tone: 'bad',
+    expect(find(items, 'mover')).toMatchObject({
+      title: 'AAPL moved the most',
+      detail: 'Up $250.00 today',
+      icon: 'lucideTrendingUp',
+      tone: 'good',
     });
   });
 
@@ -80,27 +74,23 @@ describe('writeBriefing', () => {
       'diversification',
     );
 
-    expect(item.title).toBe('AAPL, MSFT and NVDA are each above 25%');
+    expect(item?.title).toBe('AAPL, MSFT and NVDA are each above 25%');
   });
 
-  it('explains reserved cash and waiting orders', () => {
-    const items = writeBriefing({ ...FACTS, reserved: 2500, buyingPower: 7500, openOrders: 2 });
+  it('mentions cash only when open buy orders hold some back', () => {
+    expect(find(writeBriefing(FACTS), 'cash')).toBeUndefined();
 
-    expect(find(items, 'cash').detail).toBe('After $2,500.00 set aside for open buy orders');
-    expect(items.at(-1)).toMatchObject({
-      kind: 'orders',
-      title: '2 orders waiting to fill',
-      icon: 'lucideClock',
+    const items = writeBriefing({ ...FACTS, reserved: 2500, openOrders: 2 });
+    expect(find(items, 'cash')).toMatchObject({
+      title: '$2,500.00 set aside',
+      detail: 'Held for open buy orders until they fill',
+      tone: 'neutral',
     });
+    expect(items.at(-1)).toMatchObject({ kind: 'orders', title: '2 orders waiting to fill' });
   });
 
   it('warns when open buy orders exceed the cash balance', () => {
-    const item = find(
-      writeBriefing({ ...FACTS, cash: 100, reserved: 250, buyingPower: 0 }),
-      'cash',
-    );
-
-    expect(item).toEqual({
+    expect(find(writeBriefing({ ...FACTS, cash: 100, reserved: 250 }), 'cash')).toEqual({
       kind: 'cash',
       icon: 'lucideTriangleAlert',
       tone: 'warn',
@@ -109,28 +99,12 @@ describe('writeBriefing', () => {
     });
   });
 
-  it('is honest when there are no live prices', () => {
-    const items = writeBriefing({
-      ...FACTS,
-      atCost: true,
-      dayChange: null,
-      holdings: FACTS.holdings.map((h) => ({ ...h, dayChange: null })),
-    });
-
-    expect(find(items, 'value').detail).toBe(
-      "Valued at what you paid, as live prices aren't available",
+  it('points a new investor to their first order', () => {
+    expect(text(writeBriefing({ ...FACTS, holdings: [], totalValue: 500, openOrders: 1 }))).toEqual(
+      [
+        ['No investments yet', 'Place an order to start building your portfolio'],
+        ['1 order waiting to fill', null],
+      ],
     );
-    expect(items.some((i) => i.kind === 'mover')).toBe(false);
-  });
-
-  it('keeps it short for an empty portfolio', () => {
-    expect(
-      text(
-        writeBriefing({ ...FACTS, holdings: [], totalValue: 500, buyingPower: 500, openOrders: 1 }),
-      ),
-    ).toEqual([
-      ['No investments yet', 'You have $500.00 available to trade.'],
-      ['1 order waiting to fill', null],
-    ]);
   });
 });

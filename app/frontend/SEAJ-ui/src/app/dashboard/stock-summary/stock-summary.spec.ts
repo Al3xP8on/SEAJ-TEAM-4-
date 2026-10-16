@@ -66,7 +66,7 @@ describe('StockSummaryComponent', () => {
 
     expect(stats).toEqual({
       Price: '$111.00',
-      Today: '▲ +$1.00 (+0.91%)',
+      Today: '+$1.00 (+0.91%)',
       "Today's range": '$109.25 – $112.50',
       '30-day range': '$97.00 – $112.00',
       Shares: '10',
@@ -80,7 +80,7 @@ describe('StockSummaryComponent', () => {
     const { page } = await render(SNAPSHOT, null);
 
     expect(dashboard.bars).toHaveBeenCalledWith('AAPL', '1Day');
-    expect(page.querySelector('svg')?.getAttribute('aria-label')).toBe(
+    expect(page.querySelector('app-line-chart svg')?.getAttribute('aria-label')).toBe(
       'AAPL closing price over the last 2 trading days, from $104.00 to $110.00. Use the arrow keys to read values.',
     );
     // The same figures as a table, oldest first

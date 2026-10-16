@@ -31,6 +31,8 @@ export class LineChartComponent {
   readonly loss = input(false);
   /** Heading for the value column of the data table, e.g. "Close" */
   readonly valueLabel = input('Value');
+  /** Offers the figures as a table; useful for one instrument, less so for a portfolio overview */
+  readonly showTable = input(true);
 
   readonly width = WIDTH;
   readonly height = HEIGHT;

@@ -2,31 +2,34 @@
   <div hlmCardHeader>
     <h2 hlmCardTitle id="orders-title">Recent orders</h2>
     <div hlmCardAction>
-      <button type="button" class="link" (click)="goToOrders()">View all orders</button>
+      <button type="button" hlmBtn variant="link" class="text-(--positive)" (click)="goToOrders()">
+        View all orders<ng-icon name="lucideArrowRight" aria-hidden="true" />
+      </button>
     </div>
   </div>
   <div hlmCardContent>
     @if (recentOrders().length > 0) {
-      <ul class="order-list">
-        @for (order of recentOrders(); track order.orderId) {
-          <li class="order">
-            <div class="row">
-              <span class="summary-line">
-                <strong class="side">{{ order.side }}</strong>
-                {{ order.quantity | number }}
-                <span class="symbol">{{ order.ticker }}</span> &#64;
-                {{ order.executionPrice ?? order.price | currency: 'USD' }}
-              </span>
-              {{ ' '
-              }}<time [attr.datetime]="order.createdAt">{{
-                order.createdAt | date: 'MMM d, HH:mm'
-              }}</time>
-              {{ ' '
-              }}<span class="badge" [attr.data-status]="order.status">{{ order.status }}</span>
-            </div>
-          </li>
-        }
-      </ul>
+      <div class="scroll" role="region" aria-label="Recent orders list" tabindex="0">
+        <ul class="order-list">
+          @for (order of recentOrders(); track order.orderId) {
+            <li class="order">
+              <div class="row">
+                <span class="summary-line">
+                  <strong class="side">{{ order.side }}</strong>
+                  {{ order.quantity | number }}
+                  <span class="symbol">{{ order.ticker }}</span> &#64;
+                  {{ order.executionPrice ?? order.price | currency: 'USD' }}
+                </span>
+                {{ ' '
+                }}<time [attr.datetime]="order.createdAt">{{
+                  order.createdAt | date: 'MMM d, HH:mm'
+                }}</time>
+                {{ ' ' }}<span hlmBadge [variant]="badgeFor(order.status)">{{ order.status }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
     } @else {
       <p class="empty">You haven't placed any orders yet.</p>
     }

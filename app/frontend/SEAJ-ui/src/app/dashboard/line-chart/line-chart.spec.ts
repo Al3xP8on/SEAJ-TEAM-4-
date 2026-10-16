@@ -42,6 +42,12 @@ describe('LineChartComponent', () => {
     expect(page.querySelector('details caption')?.textContent?.trim()).toBe('Test values');
   });
 
+  it('can leave the table out', async () => {
+    const { page } = await render({ showTable: false });
+
+    expect(page.querySelector('details')).toBeNull();
+  });
+
   it('labels the first column by time for intraday data', async () => {
     const { page } = await render({ dateFormat: 'HH:mm' });
 

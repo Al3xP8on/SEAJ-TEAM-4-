@@ -4,33 +4,51 @@
   } @else if (error()) {
     <div class="panel error-panel" role="alert">
       <p>{{ error() }}</p>
-      <button type="button" class="primary" (click)="load()">Try again</button>
+      <button type="button" hlmBtn class="hover:bg-(--primary-hover)" (click)="load()">
+        Try again
+      </button>
     </div>
   } @else if (account(); as account) {
+    <app-market-clock [latestTrade]="latestTrade()" [pricesAsOf]="pricesAsOf()" />
+
     <div class="page-heading">
-      <div>
-        <p class="eyebrow">YOUR ACCOUNT</p>
+      <div class="identity">
         <h1 class="welcome">Welcome, {{ account.holderName }}</h1>
-        <p class="muted">
-          Account {{ account.accountId }} ·
-          <app-market-clock [latestTrade]="latestTrade()" />
-          @if (pricesAsOf(); as asOf) {
-            · Prices as of
-            <time class="as-of" [attr.datetime]="asOf">{{ asOf | date: 'HH:mm:ss' }}</time>
-          }
-        </p>
+        <span hlmBadge variant="outline" class="account-id">
+          <span class="sr-only">Account </span>{{ account.accountId }}
+        </span>
       </div>
       <div class="actions">
-        <button type="button" class="primary" (click)="goToOrderTicket()">Place Order</button>
+        <button
+          type="button"
+          hlmBtn
+          class="hover:bg-(--primary-hover)"
+          size="lg"
+          (click)="goToOrderTicket()"
+        >
+          <ng-icon name="lucidePlus" aria-hidden="true" />Place Order
+        </button>
       </div>
     </div>
 
-    <app-briefing [facts]="briefing()" />
-
     <div class="summary">
-      <section hlmCard class="cash-card" aria-labelledby="cash-title">
+      <section hlmCard size="sm" class="cash-card" aria-labelledby="cash-title">
         <div hlmCardHeader>
           <h2 hlmCardTitle id="cash-title" class="eyebrow">CASH BALANCE</h2>
+          <div hlmCardAction class="actions cash-actions">
+            <button
+              type="button"
+              hlmBtn
+              class="hover:bg-(--primary-hover)"
+              size="sm"
+              (click)="goToCash('deposit')"
+            >
+              <ng-icon name="lucideArrowDownToLine" aria-hidden="true" />Deposit
+            </button>
+            <button type="button" hlmBtn variant="outline" size="sm" (click)="goToCash('withdraw')">
+              <ng-icon name="lucideArrowUpFromLine" aria-hidden="true" />Withdraw
+            </button>
+          </div>
         </div>
         <div hlmCardContent>
           <p class="balance">{{ account.cashBalance | currency: 'USD' }}</p>
@@ -38,14 +56,10 @@
             Available to trade · Buying power
             <span class="buying-power">{{ buyingPower() | currency: 'USD' }}</span>
           </p>
-          <div class="actions cash-actions">
-            <button type="button" class="primary" (click)="goToCash('deposit')">Deposit</button>
-            <button type="button" class="quiet" (click)="goToCash('withdraw')">Withdraw</button>
-          </div>
         </div>
       </section>
 
-      <section hlmCard aria-labelledby="holdings-title">
+      <section hlmCard size="sm" aria-labelledby="holdings-title">
         <div hlmCardHeader>
           <h2 hlmCardTitle id="holdings-title" class="eyebrow">HOLDINGS VALUE</h2>
         </div>
@@ -53,7 +67,7 @@
           <p class="figure holdings-value">{{ holdingsValue() | currency: 'USD' }}</p>
           @if (dayChange(); as change) {
             <p class="change day-change" [class.loss]="change.amount < 0">
-              <span aria-hidden="true">{{ change.amount < 0 ? '▼' : '▲' }}</span>
+              <app-trend-icon [value]="change.amount" />
               {{ change.amount > 0 ? '+' : '' }}{{ change.amount | currency: 'USD' }} ({{
                 change.amount > 0 ? '+' : ''
               }}{{ change.percent | percent: '1.2-2' }}) today
@@ -63,7 +77,7 @@
         </div>
       </section>
 
-      <section hlmCard aria-labelledby="total-title">
+      <section hlmCard size="sm" aria-labelledby="total-title">
         <div hlmCardHeader>
           <h2 hlmCardTitle id="total-title" class="eyebrow">TOTAL PORTFOLIO</h2>
         </div>
@@ -74,93 +88,118 @@
       </section>
     </div>
 
-    <div class="holdings-row">
-      <section hlmCard class="positions-card" aria-labelledby="positions-title">
-        <div hlmCardHeader>
-          <h2 hlmCardTitle id="positions-title">Positions</h2>
-          <div hlmCardAction>
-            <span class="tag">{{ holdingsLabel() }} · sorted by value</span>
+    <!-- Two columns that stack independently, so a taller card never leaves a gap beside it -->
+    <div class="columns">
+      <div class="main-column">
+        <section hlmCard class="positions-card" aria-labelledby="positions-title">
+          <div hlmCardHeader>
+            <h2 hlmCardTitle id="positions-title">Positions</h2>
+            <div hlmCardAction>
+              <span hlmBadge variant="secondary">{{ holdingsLabel() }} · sorted by value</span>
+            </div>
           </div>
-        </div>
-        <div hlmCardContent>
-          @if (holdings().length > 0) {
-            <div hlmTableContainer>
-              <table hlmTable class="data-table positions-table">
-                <thead hlmTHead>
-                  <tr hlmTr>
-                    <th hlmTh scope="col">Symbol</th>
-                    <th hlmTh scope="col" class="num">Quantity</th>
-                    <th hlmTh scope="col" class="num">Avg cost</th>
-                    <th hlmTh scope="col" class="num">Price</th>
-                    <th hlmTh scope="col" class="num">Value</th>
-                    <th hlmTh scope="col" class="num">P&amp;L</th>
-                  </tr>
-                </thead>
-                <tbody hlmTBody>
-                  @for (holding of holdings(); track holding.positionId) {
+          <div hlmCardContent>
+            @if (holdings().length > 0) {
+              <div
+                hlmTableContainer
+                class="positions-scroll"
+                role="region"
+                aria-label="Positions table"
+                tabindex="0"
+              >
+                <table hlmTable class="data-table positions-table">
+                  <thead hlmTHead>
                     <tr hlmTr>
-                      <th hlmTh scope="row">
-                        <button
-                          type="button"
-                          class="symbol-link"
-                          [attr.aria-label]="'View ' + holding.symbol + ' chart'"
-                          (click)="openChart(holding.symbol)"
-                        >
-                          <span class="symbol">{{ holding.symbol }}</span>
-                        </button>
-                        @if (names().get(holding.symbol); as name) {
-                          {{ ' ' }}<span class="company">{{ name }}</span>
-                        }
-                      </th>
-                      <td hlmTd class="num">{{ holding.quantity | number }}</td>
-                      <td hlmTd class="num">{{ holding.averageCost | currency: 'USD' }}</td>
-                      <td hlmTd class="num price">
-                        @if (holding.price !== null) {
-                          {{ holding.price | currency: 'USD' }}
-                        } @else {
-                          <span aria-hidden="true">—</span>
-                          <span class="sr-only">No live price, valued at cost</span>
-                        }
-                      </td>
-                      <td hlmTd class="num">{{ holding.value | currency: 'USD' }}</td>
-                      <td hlmTd class="num pnl" [class.loss]="(holding.pnl ?? 0) < 0">
-                        @if (holding.pnl !== null) {
-                          {{ holding.pnl > 0 ? '+' : '' }}{{ holding.pnl | currency: 'USD' }}
-                        } @else {
-                          <span aria-hidden="true">—</span>
+                      <th hlmTh scope="col">Symbol</th>
+                      <th hlmTh scope="col" class="num">Quantity</th>
+                      <th hlmTh scope="col" class="num">Avg cost</th>
+                      <th hlmTh scope="col" class="num">Price</th>
+                      <th hlmTh scope="col" class="num">Value</th>
+                      <th hlmTh scope="col" class="num">P&amp;L</th>
+                    </tr>
+                  </thead>
+                  <tbody hlmTBody>
+                    @for (holding of holdings(); track holding.positionId) {
+                      <tr hlmTr>
+                        <th hlmTh scope="row">
+                          <button
+                            type="button"
+                            class="symbol-link"
+                            [attr.aria-label]="'View ' + holding.symbol + ' chart'"
+                            (click)="openChart(holding.symbol)"
+                          >
+                            <span class="symbol">{{ holding.symbol }}</span>
+                          </button>
+                          @if (names().get(holding.symbol); as name) {
+                            {{ ' ' }}<span class="company">{{ name }}</span>
+                          }
+                        </th>
+                        <td hlmTd class="num">{{ holding.quantity | number }}</td>
+                        <td hlmTd class="num">{{ holding.averageCost | currency: 'USD' }}</td>
+                        <td hlmTd class="num price" [appTick]="holding.price">
+                          @if (holding.price !== null) {
+                            {{ holding.price | currency: 'USD' }}
+                          } @else {
+                            <span aria-hidden="true">—</span>
+                            <span class="sr-only">No live price, valued at cost</span>
+                          }
+                        </td>
+                        <td hlmTd class="num">{{ holding.value | currency: 'USD' }}</td>
+                        <td hlmTd class="num pnl" [class.loss]="(holding.pnl ?? 0) < 0">
+                          @if (holding.pnl !== null) {
+                            @if (holding.pnl !== 0) {
+                              <app-trend-icon [value]="holding.pnl" />
+                            }
+                            {{ holding.pnl > 0 ? '+' : '' }}{{ holding.pnl | currency: 'USD' }}
+                          } @else {
+                            <span aria-hidden="true">—</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                  <tfoot hlmTFoot>
+                    <tr hlmTr>
+                      <th hlmTh scope="row" colspan="4">Total</th>
+                      <td hlmTd class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
+                      <td hlmTd class="num pnl total-pnl" [class.loss]="(holdingsPnl() ?? 0) < 0">
+                        @let pnl = holdingsPnl();
+                        @if (pnl !== null) {
+                          {{ pnl > 0 ? '+' : '' }}{{ pnl | currency: 'USD' }}
                         }
                       </td>
                     </tr>
-                  }
-                </tbody>
-                <tfoot hlmTFoot>
-                  <tr hlmTr>
-                    <th hlmTh scope="row" colspan="4">Total</th>
-                    <td hlmTd class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
-                    <td hlmTd class="num pnl total-pnl" [class.loss]="(holdingsPnl() ?? 0) < 0">
-                      @let pnl = holdingsPnl();
-                      @if (pnl !== null) {
-                        {{ pnl > 0 ? '+' : '' }}{{ pnl | currency: 'USD' }}
-                      }
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          } @else {
-            <p class="empty">You don't hold any positions yet.</p>
-          }
-        </div>
-      </section>
+                  </tfoot>
+                </table>
+              </div>
+            } @else {
+              <p class="empty">You don't hold any positions yet.</p>
+            }
+          </div>
+        </section>
 
-      <section hlmCard class="allocation-card" aria-labelledby="allocation-title">
-        <div hlmCardHeader>
-          <h2 hlmCardTitle id="allocation-title">Allocation</h2>
-        </div>
-        <div hlmCardContent>
-          <app-allocation-chart [slices]="allocation()" />
-        </div>
-      </section>
+        <app-performance-chart [holdings]="holdings()" />
+        <app-recent-orders [orders]="orders()" />
+      </div>
+
+      <!-- What the numbers mean sits under the allocation it explains -->
+      <div class="side-column">
+        <section hlmCard class="allocation-card" aria-labelledby="allocation-title">
+          <div hlmCardHeader>
+            <h2 hlmCardTitle id="allocation-title">Allocation</h2>
+          </div>
+          <div hlmCardContent>
+            <app-allocation-chart [slices]="allocation()" />
+          </div>
+        </section>
+        <app-briefing [facts]="briefing()" />
+        <app-watchlist
+          (chart)="openChart($event)"
+          [accountId]="account.accountId"
+          [snapshots]="market()?.snapshots ?? []"
+          [names]="names()"
+        />
+      </div>
     </div>
 
     <!-- A centred pop-up for one symbol. The dialog traps focus, closes on Escape and returns
@@ -187,18 +226,6 @@
         </hlm-dialog-content>
       </hlm-dialog>
     }
-
-    <div class="chart-row">
-      <app-performance-chart [holdings]="holdings()" />
-      <app-watchlist
-        (chart)="openChart($event)"
-        [accountId]="account.accountId"
-        [snapshots]="market()?.snapshots ?? []"
-        [names]="names()"
-      />
-    </div>
-
-    <app-recent-orders class="recent" [orders]="orders()" />
   }
 </main>
 

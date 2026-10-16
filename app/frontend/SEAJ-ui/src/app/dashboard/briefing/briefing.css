@@ -1,6 +1,5 @@
 :host {
   display: block;
-  margin-bottom: 24px;
   /* The theme has no warning colour, so the briefing defines its own for both themes */
   --warning-bg: #fdf3e1;
   --warning-text: #7a4f0a;
@@ -17,11 +16,10 @@ h2 {
   margin: 0;
 }
 
-/* Facts side by side, wrapping onto more rows as space runs out */
+/* Stacked in the side column */
 .items {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
+  gap: 10px;
   list-style: none;
   margin: 0;
   padding: 0;

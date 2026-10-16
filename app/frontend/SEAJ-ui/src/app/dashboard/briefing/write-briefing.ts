@@ -1,16 +1,11 @@
 /** A holding above this share of the total portfolio is flagged */
 export const CONCENTRATION_LIMIT = 0.25;
 
-/** Everything the briefing describes, already worked out by the dashboard */
+/** Everything the insights describe, already worked out by the dashboard */
 export interface BriefingFacts {
   totalValue: number;
-  /** null when no previous close is known */
-  dayChange: { amount: number; percent: number } | null;
-  /** true when no holding has a live price, so values are at cost */
-  atCost: boolean;
   holdings: { symbol: string; value: number; dayChange: number | null }[];
   cash: number;
-  buyingPower: number;
   /** Cash held back by open BUY orders; the backend only debits cash when an order fills */
   reserved: number;
   openOrders: number;
@@ -19,9 +14,9 @@ export interface BriefingFacts {
 
 export type BriefingTone = 'good' | 'bad' | 'warn' | 'neutral';
 
-/** One fact about the account: a short title with the key figure, and an optional detail */
+/** One insight: a short title with the key fact, and an optional detail */
 export interface BriefingItem {
-  kind: 'value' | 'mover' | 'diversification' | 'cash' | 'orders';
+  kind: 'start' | 'mover' | 'diversification' | 'cash' | 'orders';
   /** Lucide icon name; decorative, as the words carry the meaning */
   icon: string;
   tone: BriefingTone;
@@ -31,82 +26,65 @@ export interface BriefingItem {
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const money = (value: number) => usd.format(Math.abs(value));
-const percent = (share: number, digits = 0) => `${(share * 100).toFixed(digits)}%`;
+const percent = (share: number) => `${Math.round(share * 100)}%`;
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
 
 /**
- * The dashboard's numbers as a few plain-language facts, so the state of the account can be
- * understood without reading tables and charts. Direction is always in words ("Up", "Down"),
- * never only in colour or icons.
+ * What the numbers mean, in plain language: only what the summary cards above don't already
+ * show. Direction is always in words ("Up", "Down"), never only in colour or icons.
  */
 export function writeBriefing(facts: BriefingFacts): BriefingItem[] {
   const items: BriefingItem[] = [];
 
   if (facts.holdings.length === 0) {
     items.push({
-      kind: 'value',
-      icon: 'lucideWallet',
+      kind: 'start',
+      icon: 'lucideChartPie',
       tone: 'neutral',
       title: 'No investments yet',
-      detail: `You have ${money(facts.buyingPower)} available to trade.`,
+      detail: 'Place an order to start building your portfolio',
     });
-    if (facts.openOrders > 0) {
-      items.push(waiting(facts.openOrders));
+  } else {
+    const mover = biggestMover(facts);
+    if (mover) {
+      items.push(mover);
     }
-    return items;
+    if (facts.totalValue > 0) {
+      items.push(diversification(facts));
+    }
   }
 
-  items.push(value(facts));
-
-  const movers = facts.holdings.filter((h) => h.dayChange !== null && h.dayChange !== 0);
-  if (movers.length > 0) {
-    const biggest = movers.reduce((a, b) =>
-      Math.abs(b.dayChange!) > Math.abs(a.dayChange!) ? b : a,
-    );
-    const up = biggest.dayChange! > 0;
-    items.push({
-      kind: 'mover',
-      icon: 'lucideActivity',
-      tone: up ? 'good' : 'bad',
-      title: `${biggest.symbol} moved the most`,
-      detail: `${up ? 'Up' : 'Down'} ${money(biggest.dayChange!)} today`,
-    });
+  const cash = cashNotice(facts);
+  if (cash) {
+    items.push(cash);
   }
-
-  if (facts.totalValue > 0) {
-    items.push(diversification(facts));
-  }
-
-  items.push(cash(facts));
-
   if (facts.openOrders > 0) {
-    items.push(waiting(facts.openOrders));
+    items.push({
+      kind: 'orders',
+      icon: 'lucideClock',
+      tone: 'neutral',
+      title: `${plural(facts.openOrders, 'order')} waiting to fill`,
+      detail: null,
+    });
   }
   return items;
 }
 
-function value(facts: BriefingFacts): BriefingItem {
-  const title = `Worth ${money(facts.totalValue)}`;
-  if (facts.atCost) {
-    return {
-      kind: 'value',
-      icon: 'lucideChartLine',
-      tone: 'neutral',
-      title,
-      detail: "Valued at what you paid, as live prices aren't available",
-    };
+function biggestMover(facts: BriefingFacts): BriefingItem | null {
+  const movers = facts.holdings.filter((h) => h.dayChange !== null && h.dayChange !== 0);
+  if (movers.length === 0) {
+    return null;
   }
-  const change = facts.dayChange;
-  if (!change || change.amount === 0) {
-    return { kind: 'value', icon: 'lucideChartLine', tone: 'neutral', title, detail: null };
-  }
-  const up = change.amount > 0;
+  const biggest = movers.reduce((a, b) =>
+    Math.abs(b.dayChange!) > Math.abs(a.dayChange!) ? b : a,
+  );
+  const up = biggest.dayChange! > 0;
   return {
-    kind: 'value',
+    kind: 'mover',
     icon: up ? 'lucideTrendingUp' : 'lucideTrendingDown',
     tone: up ? 'good' : 'bad',
-    title,
-    detail: `${up ? 'Up' : 'Down'} ${money(change.amount)} (${percent(Math.abs(change.percent), 2)}) today`,
+    title: `${biggest.symbol} moved the most`,
+    detail: `${up ? 'Up' : 'Down'} ${money(biggest.dayChange!)} today`,
   };
 }
 
@@ -138,7 +116,11 @@ function diversification(facts: BriefingFacts): BriefingItem {
   };
 }
 
-function cash(facts: BriefingFacts): BriefingItem {
+/** Only when open buy orders hold cash back; the cash card already shows the balance */
+function cashNotice(facts: BriefingFacts): BriefingItem | null {
+  if (facts.reserved <= 0) {
+    return null;
+  }
   if (facts.reserved > facts.cash) {
     return {
       kind: 'cash',
@@ -152,18 +134,7 @@ function cash(facts: BriefingFacts): BriefingItem {
     kind: 'cash',
     icon: 'lucideWallet',
     tone: 'neutral',
-    title: `${money(facts.buyingPower)} to trade`,
-    detail:
-      facts.reserved > 0 ? `After ${money(facts.reserved)} set aside for open buy orders` : null,
-  };
-}
-
-function waiting(count: number): BriefingItem {
-  return {
-    kind: 'orders',
-    icon: 'lucideClock',
-    tone: 'neutral',
-    title: `${plural(count, 'order')} waiting to fill`,
-    detail: null,
+    title: `${money(facts.reserved)} set aside`,
+    detail: 'Held for open buy orders until they fill',
   };
 }

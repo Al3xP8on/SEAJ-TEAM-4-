@@ -1,7 +1,7 @@
 <dl class="stats">
   <div>
     <dt>Price</dt>
-    <dd class="price">
+    <dd class="price" [appTick]="price()">
       @if (price() !== null) {
         {{ price() | currency: 'USD' }}
       } @else {
@@ -13,7 +13,7 @@
     <dt>Today</dt>
     <dd class="today change" [class.loss]="(today()?.amount ?? 0) < 0">
       @if (today(); as t) {
-        <span aria-hidden="true">{{ t.amount < 0 ? '▼' : '▲' }}</span>
+        <app-trend-icon [value]="t.amount" />
         {{ t.amount > 0 ? '+' : '' }}{{ t.amount | currency: 'USD' }} ({{ t.percent > 0 ? '+' : ''
         }}{{ t.percent | percent: '1.2-2' }})
       } @else {
