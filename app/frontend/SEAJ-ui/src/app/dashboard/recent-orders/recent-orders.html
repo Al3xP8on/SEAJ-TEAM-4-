@@ -23,48 +23,7 @@
               }}</time>
               {{ ' '
               }}<span class="badge" [attr.data-status]="order.status">{{ order.status }}</span>
-              <button
-                type="button"
-                class="details"
-                [attr.aria-expanded]="expanded() === order.orderId"
-                [attr.aria-controls]="'journey-' + order.orderId"
-                (click)="toggle(order.orderId)"
-              >
-                Details<span class="sr-only">
-                  for {{ order.side }} {{ order.quantity }} {{ order.ticker }}</span
-                >
-              </button>
             </div>
-            @if (expanded() === order.orderId) {
-              <div class="journey" [id]="'journey-' + order.orderId">
-                @let state = journey();
-                @if (state?.state === 'loading') {
-                  <p class="muted" role="status">Loading this order's journey…</p>
-                } @else if (state?.state === 'error') {
-                  <p class="muted" role="status">This order's journey couldn't be loaded.</p>
-                } @else if (state?.state === 'ready') {
-                  <ol class="steps">
-                    @for (step of state.steps; track $index) {
-                      <li>
-                        <span class="label">{{ step.label }}</span>
-                        {{ ' '
-                        }}<span class="when">
-                          <time [attr.datetime]="step.time">{{
-                            step.time | date: 'HH:mm:ss'
-                          }}</time>
-                          @if (step.elapsed) {
-                            {{ ' ' }}<span class="elapsed">{{ step.elapsed }}</span>
-                          }
-                        </span>
-                      </li>
-                    }
-                  </ol>
-                  @if (state.total) {
-                    <p class="total">{{ state.total }}</p>
-                  }
-                }
-              </div>
-            }
           </li>
         }
       </ul>

@@ -209,12 +209,7 @@ h2 {
   text-underline-offset: 3px;
 }
 
-.performance {
-  display: block;
-  margin-top: 24px;
-}
-
-.market-row {
+.chart-row {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
   gap: 24px;
@@ -292,7 +287,7 @@ footer {
   .summary,
   .holdings-row,
   .activity-row,
-  .market-row {
+  .chart-row {
     grid-template-columns: 1fr;
   }
 

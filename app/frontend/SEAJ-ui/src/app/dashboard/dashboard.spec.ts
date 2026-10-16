@@ -84,12 +84,6 @@ describe('DashboardComponent', () => {
     load: vi.fn<() => Observable<DashboardData>>(),
     marketPrices: vi.fn<() => Observable<MarketOverview | null>>(),
     bars: vi.fn(() => of(null)),
-    orderHistory: vi.fn((orderId: string) =>
-      of([
-        { orderId, status: 'NEW', timestamp: '2026-10-06T14:30:00.000', reason: null },
-        { orderId, status: 'PENDING', timestamp: '2026-10-06T14:30:00.050', reason: null },
-      ]),
-    ),
     instrumentNames: vi.fn(() =>
       of(
         new Map([
@@ -344,7 +338,7 @@ describe('DashboardComponent', () => {
     ]);
     expect(rows[0].textContent).toContain('SELL');
     expect(rows[0].querySelector('.row')?.textContent?.replace(/\s+/g, ' ')).toMatch(
-      /SELL 10 MSFT @ \$100\.00 Oct 6, 14:30 PENDING Details/,
+      /SELL 10 MSFT @ \$100\.00 Oct 6, 14:30 PENDING/,
     );
     expect(rows[0].querySelector('.badge')?.textContent).toBe('PENDING');
     expect(rows[0].querySelector('time')?.getAttribute('datetime')).toBe('2026-10-06T14:30:00');
@@ -378,30 +372,6 @@ describe('DashboardComponent', () => {
     // AAPL is 31.2% of the $29,203.25 portfolio and MSFT 28.4%, both above 25%
     const warnings = Array.from(page.querySelectorAll('app-portfolio-check .check.warning p'));
     expect(warnings.map((p) => p.textContent?.trim().split(' ')[0])).toEqual(['AAPL', 'MSFT']);
-  });
-
-  it("opens an order's journey from its Details button", async () => {
-    const { fixture, page } = await render();
-    const details = page.querySelector('.order-list .order .details') as HTMLButtonElement;
-    expect(details.textContent?.replace(/\s+/g, ' ').trim()).toBe('Details for SELL 10 MSFT');
-    expect(details.getAttribute('aria-expanded')).toBe('false');
-
-    details.click();
-    await fixture.whenStable();
-
-    expect(details.getAttribute('aria-expanded')).toBe('true');
-    expect(dashboard.orderHistory).toHaveBeenCalledWith('o2');
-    const steps = Array.from(page.querySelectorAll('#journey-o2 .steps li')).map((li) =>
-      li.textContent?.replace(/\s+/g, ' ').trim(),
-    );
-    expect(steps[0]).toContain('Order received');
-    expect(steps[1]).toMatch(/^Passed checks and sent to market \d\d:\d\d:\d\d \+50 ms$/);
-    expect(steps[1]).toContain('Passed checks and sent to market');
-    expect(steps[1]).toContain('+50 ms');
-
-    details.click();
-    await fixture.whenStable();
-    expect(page.querySelector('#journey-o2')).toBeNull();
   });
 
   it('shows a message instead of the order list when there are no orders', async () => {

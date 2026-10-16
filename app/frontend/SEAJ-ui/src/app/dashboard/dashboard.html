@@ -188,7 +188,15 @@
       </hlm-dialog>
     }
 
-    <app-performance-chart class="performance" [holdings]="holdings()" />
+    <div class="chart-row">
+      <app-performance-chart [holdings]="holdings()" />
+      <app-watchlist
+        (chart)="openChart($event)"
+        [accountId]="account.accountId"
+        [snapshots]="market()?.snapshots ?? []"
+        [names]="names()"
+      />
+    </div>
 
     <div class="activity-row">
       <app-recent-orders [orders]="orders()" />
@@ -198,16 +206,6 @@
         [totalValue]="totalValue()"
         [cash]="account.cashBalance"
         [reserved]="reservedCash()"
-      />
-    </div>
-
-    <div class="market-row">
-      <app-market-movers [snapshots]="market()?.snapshots ?? []" [names]="names()" />
-      <app-watchlist
-        (chart)="openChart($event)"
-        [accountId]="account.accountId"
-        [snapshots]="market()?.snapshots ?? []"
-        [names]="names()"
       />
     </div>
   }

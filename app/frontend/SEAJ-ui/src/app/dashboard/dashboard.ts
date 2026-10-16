@@ -16,7 +16,6 @@ import { BriefingComponent } from './briefing/briefing';
 import { BriefingFacts } from './briefing/write-briefing';
 import { pollWhileVisible } from './poll-while-visible';
 import { MarketClockComponent } from './market-clock/market-clock';
-import { MarketMoversComponent } from './market-movers/market-movers';
 import { WatchlistComponent } from './watchlist/watchlist';
 import { StockPosition, StockSummaryComponent } from './stock-summary/stock-summary';
 import {
@@ -52,7 +51,6 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     PerformanceChartComponent,
     BriefingComponent,
     MarketClockComponent,
-    MarketMoversComponent,
     WatchlistComponent,
     StockSummaryComponent,
     // Listed one by one so @defer can move them, and the overlay code, out of the initial bundle
