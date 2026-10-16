@@ -22,7 +22,6 @@
       </div>
       <div class="actions">
         <button type="button" class="primary" (click)="goToOrderTicket()">Place Order</button>
-        <button type="button" class="quiet" (click)="goToBlotter()">Order History</button>
       </div>
     </div>
 
@@ -149,10 +148,7 @@
               </table>
             </div>
           } @else {
-            <div class="empty">
-              <p>You don't hold any positions yet.</p>
-              <button type="button" class="primary" (click)="goToOrderTicket()">Place order</button>
-            </div>
+            <p class="empty">You don't hold any positions yet.</p>
           }
         </div>
       </section>

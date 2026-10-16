@@ -263,10 +263,6 @@ h2 {
   margin: 0;
 }
 
-.empty p {
-  margin: 0 0 16px;
-}
-
 .status {
   color: var(--foreground);
   font-size: 0.9375rem;

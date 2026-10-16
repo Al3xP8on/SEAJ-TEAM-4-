@@ -96,7 +96,7 @@ export class RecentOrdersComponent {
     this.histories.update((all) => new Map(all).set(orderId, { status, history }));
   }
 
-  goToBlotter(): void {
-    this.router.navigate(['/blotter']);
+  goToOrders(): void {
+    this.router.navigate(['/order']);
   }
 }

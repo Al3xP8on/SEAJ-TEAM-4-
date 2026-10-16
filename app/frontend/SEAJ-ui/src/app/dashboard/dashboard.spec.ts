@@ -319,15 +319,6 @@ describe('DashboardComponent', () => {
     page.remove();
   });
 
-  it('offers to place an order when there are no holdings', async () => {
-    dashboard.load.mockReturnValue(of({ ...DATA, positions: [] }));
-    const { page } = await render();
-
-    button(page, 'Place order').click();
-
-    expect(router.navigate).toHaveBeenCalledWith(['/order']);
-  });
-
   it('shows a message instead of the table when there are no holdings', async () => {
     const closedOnly: Position[] = [
       { positionId: 9, symbol: 'TSLA', quantity: 0, averageCost: 240, status: 'CLOSED' },
@@ -453,8 +444,7 @@ describe('DashboardComponent', () => {
 
   it.each([
     ['Place Order', '/order'],
-    ['Order History', '/blotter'],
-    ['View all in blotter', '/blotter'],
+    ['View all orders', '/order'],
   ])('%s button navigates to %s', async (label, path) => {
     const { page } = await render();
 

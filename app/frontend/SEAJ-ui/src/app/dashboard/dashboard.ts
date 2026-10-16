@@ -266,10 +266,6 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/order']);
   }
 
-  goToBlotter(): void {
-    this.router.navigate(['/blotter']);
-  }
-
   /** Deposits and withdrawals live on the Account page; this opens its cash section */
   goToCash(action: 'deposit' | 'withdraw'): void {
     this.router.navigate(['/account'], { queryParams: { section: 'cash', action } });
