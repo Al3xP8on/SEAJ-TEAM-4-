@@ -192,13 +192,15 @@ describe('DashboardComponent', () => {
     expect(page.querySelector('.total-pnl')?.textContent?.trim()).toBe('');
   });
 
-  it('says whether the US market is open, from the schedule and recent trades', async () => {
+  it('shows the NYSE status, countdown and New York time', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-15T14:30:30Z')); // Thursday 10:30 in New York
     dashboard.marketPrices.mockReturnValue(of(MARKET)); // latest trade 14:30:00
     const { page } = await render();
 
-    expect(page.querySelector('.market-status')?.textContent?.trim()).toBe('US market open');
+    expect(page.querySelector('.market-status')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'NYSE open · closes in 5 h 30 min · 10:30:30 ET',
+    );
     vi.useRealTimers();
   });
 

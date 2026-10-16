@@ -15,7 +15,7 @@ import { PerformanceChartComponent } from './performance-chart/performance-chart
 import { BriefingComponent } from './briefing/briefing';
 import { BriefingFacts } from './briefing/write-briefing';
 import { pollWhileVisible } from './poll-while-visible';
-import { marketStatus } from './market-status';
+import { MarketClockComponent } from './market-clock/market-clock';
 
 // The backend refreshes market prices every 10 seconds, so polling faster gains nothing
 const MARKET_REFRESH_MS = 10_000;
@@ -40,6 +40,7 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     RecentOrdersComponent,
     PerformanceChartComponent,
     BriefingComponent,
+    MarketClockComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
@@ -56,8 +57,6 @@ export class DashboardComponent implements OnInit {
   readonly orders = signal<Order[]>([]);
   readonly market = signal<MarketOverview | null>(null);
   readonly names = signal(new Map<string, string>());
-  /** Moves on with each price refresh, so the market status stays current */
-  private readonly now = signal(new Date());
   readonly loading = signal(true);
   readonly error = signal('');
 
@@ -122,10 +121,10 @@ export class DashboardComponent implements OnInit {
 
   readonly pricesAsOf = computed(() => this.market()?.updatedAt ?? null);
 
-  readonly marketStatus = computed(() => {
+  /** Newest trade across the market data, which tells the clock when trading has stopped */
+  readonly latestTrade = computed(() => {
     const trades = (this.market()?.snapshots ?? []).map((s) => s.timestamp).filter(Boolean);
-    const latest = trades.length > 0 ? trades.reduce((a, b) => (a > b ? a : b)) : null;
-    return marketStatus(this.now(), latest);
+    return trades.length > 0 ? trades.reduce((a, b) => (a > b ? a : b)) : null;
   });
 
   /** Cash committed to open BUY orders */
@@ -188,10 +187,7 @@ export class DashboardComponent implements OnInit {
         exhaustMap(() => this.dashboard.marketPrices()),
         takeUntilDestroyed(this.destroy),
       )
-      .subscribe((market) => {
-        this.now.set(new Date());
-        this.market.set(market);
-      });
+      .subscribe((market) => this.market.set(market));
   }
 
   load(): void {

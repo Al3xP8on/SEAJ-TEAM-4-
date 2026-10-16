@@ -13,9 +13,7 @@
         <h1 class="welcome">Welcome, {{ account.holderName }}</h1>
         <p class="muted">
           Account {{ account.accountId }} ·
-          <span class="market-status" [attr.data-status]="marketStatus()">
-            <span class="dot" aria-hidden="true"></span>US market {{ marketStatus() }}
-          </span>
+          <app-market-clock [latestTrade]="latestTrade()" />
           @if (pricesAsOf(); as asOf) {
             · Prices as of
             <time class="as-of" [attr.datetime]="asOf">{{ asOf | date: 'HH:mm:ss' }}</time>
