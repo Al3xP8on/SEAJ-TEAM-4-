@@ -36,6 +36,10 @@
             Available to trade · Buying power
             <span class="buying-power">{{ buyingPower() | currency: 'USD' }}</span>
           </p>
+          <div class="actions cash-actions">
+            <button type="button" class="primary" (click)="goToCash('deposit')">Deposit</button>
+            <button type="button" class="quiet" (click)="goToCash('withdraw')">Withdraw</button>
+          </div>
         </div>
       </section>
 

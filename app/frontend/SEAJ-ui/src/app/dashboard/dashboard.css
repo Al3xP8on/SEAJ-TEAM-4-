@@ -200,6 +200,10 @@ h2 {
   color: var(--destructive);
 }
 
+.cash-actions {
+  margin-top: 16px;
+}
+
 .buying-power {
   font-weight: 600;
   font-variant-numeric: tabular-nums;

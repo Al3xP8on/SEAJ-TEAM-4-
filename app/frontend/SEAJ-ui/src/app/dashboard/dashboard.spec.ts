@@ -329,4 +329,17 @@ describe('DashboardComponent', () => {
 
     expect(router.navigate).toHaveBeenCalledWith([path]);
   });
+
+  it.each([
+    ['Deposit', 'deposit'],
+    ['Withdraw', 'withdraw'],
+  ])('%s opens the Account page cash section with %s selected', async (label, action) => {
+    const { page } = await render();
+
+    button(page, label).click();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/account'], {
+      queryParams: { section: 'cash', action },
+    });
+  });
 });

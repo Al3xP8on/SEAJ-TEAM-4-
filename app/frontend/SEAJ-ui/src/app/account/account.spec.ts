@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { AccountComponent } from './account';
 import { AccountService } from './account.service';
@@ -107,5 +107,12 @@ describe('My Account', () => {
     service.cash.mockReturnValue(throwError(() => new Error('offline')));
     component.amount = '25'; component.reviewCash(); component.submitCash();
     expect(component.account()?.cashBalance).toBe(100); expect(component.cashBusy()).toBe(false); expect(component.cashError()).toBeTruthy();
+  });
+  it('opens on cash with withdraw selected when linked from the dashboard', () => {
+    TestBed.resetTestingModule();
+    const route = { snapshot: { queryParamMap: convertToParamMap({ section: 'cash', action: 'withdraw' }) } };
+    TestBed.configureTestingModule({ providers: [{ provide: AccountService, useValue: service }, { provide: AuthService, useValue: auth }, { provide: Router, useValue: router }, { provide: ActivatedRoute, useValue: route }] });
+    const linked = TestBed.createComponent(AccountComponent).componentInstance;
+    expect(linked.section()).toBe('cash'); expect(linked.action).toBe('withdraw');
   });
 });
