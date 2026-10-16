@@ -1,12 +1,25 @@
 <header>
-  <div class="brand-lockup">
-    <img class="site-logo logo-light" src="seaj-capital-logo.png" alt="" />
-    <img class="site-logo logo-dark" src="seaj-capital-logo-white.png" alt="" />
+  <div class="header-inner">
+    <a class="brand" routerLink="/" aria-label="SEAJ Capital, home">
+      <img class="site-logo logo-light" src="seaj-capital-logo.png" alt="" />
+      <img class="site-logo logo-dark" src="seaj-capital-logo-white.png" alt="" />
+      <span class="brand-name" aria-hidden="true">SEAJ Capital</span>
+    </a>
+    <nav class="sections" aria-label="On this page">
+      <a href="#features" (click)="goToSection($event, 'features')">Features</a>
+      <a href="#how-it-works" (click)="goToSection($event, 'how-it-works')">How it works</a>
+    </nav>
+    <nav class="account" aria-label="Account">
+      <a hlmBtn variant="ghost" routerLink="/login">Log in</a>
+      <a
+        hlmBtn
+        class="hover:bg-(--primary-hover)"
+        routerLink="/login"
+        [queryParams]="{ mode: 'register' }"
+        >Sign up</a
+      >
+    </nav>
   </div>
-  <span class="brand-title">SEAJ Capital</span>
-  <nav aria-label="Account">
-    <a hlmBtn variant="outline" routerLink="/login">Log in / Register</a>
-  </nav>
 </header>
 
 <main>
@@ -37,8 +50,8 @@
     </div>
   </section>
 
-  <section class="features" aria-labelledby="features-title">
-    <h2 id="features-title">What you get</h2>
+  <section id="features" class="features" aria-labelledby="features-title">
+    <h2 id="features-title" tabindex="-1">What you get</h2>
     <div class="feature-grid">
       @for (feature of features; track feature.id) {
         <article hlmCard class="feature-card" [attr.aria-labelledby]="feature.id">
@@ -54,8 +67,8 @@
     </div>
   </section>
 
-  <section class="steps" aria-labelledby="steps-title">
-    <h2 id="steps-title">How it works</h2>
+  <section id="how-it-works" class="steps" aria-labelledby="steps-title">
+    <h2 id="steps-title" tabindex="-1">How it works</h2>
     <ol>
       @for (step of steps; track step.title; let i = $index) {
         <li>

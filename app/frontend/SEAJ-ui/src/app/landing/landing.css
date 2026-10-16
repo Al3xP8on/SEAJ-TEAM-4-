@@ -6,23 +6,36 @@
   color: var(--foreground);
 }
 
-/* Header */
+/* Header: stays at the top while the page scrolls */
 header {
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 10;
   background-color: var(--surface);
-  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-inner {
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--border);
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.75rem 3rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--foreground);
+  text-decoration: none;
 }
 
 .site-logo {
   display: block;
-  width: 112px;
+  width: 44px;
   height: auto;
-  padding: 4px 6px;
-  background: #ffffff;
-  border-radius: 4px;
 }
 .site-logo.logo-dark {
   display: none;
@@ -32,26 +45,48 @@ header {
 }
 :host-context(:root.dark) .site-logo.logo-dark {
   display: block;
-  background: transparent;
-  padding: 0;
 }
 
-.brand-lockup {
+.brand-name {
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+}
+
+.sections {
   display: flex;
-  align-items: center;
+  gap: 1.5rem;
 }
 
-.brand-title {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 2.4rem;
-  letter-spacing: 1px;
-  white-space: nowrap;
+.sections a {
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 4px 0;
 }
 
-header nav {
+.sections a:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.account {
+  display: flex;
+  gap: 8px;
   margin-left: auto;
+}
+
+/* In-page links land below the sticky header, not under it */
+#features,
+#how-it-works {
+  scroll-margin-top: 80px;
+}
+
+/* Headings take focus after an in-page link; no ring for that programmatic focus */
+h2[tabindex='-1']:focus {
+  outline: none;
 }
 
 main {
@@ -273,8 +308,13 @@ footer p {
 
 /* Narrow windows, including 400% zoom */
 @media (max-width: 768px) {
-  .brand-title {
-    font-size: 1.4rem;
+  .header-inner {
+    padding: 0.75rem 1.5rem;
+    gap: 1rem;
+  }
+
+  .sections {
+    display: none;
   }
 
   .features,

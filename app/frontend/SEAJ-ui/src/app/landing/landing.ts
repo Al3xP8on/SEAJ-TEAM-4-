@@ -49,6 +49,8 @@ export class LandingComponent {
     'Your whole portfolio on one screen',
   ];
 
+  private readonly document = inject(DOCUMENT);
+
   /** Without a login there's no trade data, so this works from the regular schedule */
   private readonly now = signal(new Date());
 
@@ -57,8 +59,26 @@ export class LandingComponent {
     return { status, change: describeNextChange(this.now(), status) };
   });
 
+  /**
+   * Scrolls smoothly to a section (instantly for people who prefer reduced motion) and moves
+   * keyboard focus to its heading, so the next Tab continues from there.
+   */
+  goToSection(event: Event, id: string): void {
+    const section = this.document.getElementById(id);
+    if (!section) {
+      return;
+    }
+    event.preventDefault();
+    const reduceMotion = this.document.defaultView?.matchMedia?.(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    section.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+    section.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
+    history.replaceState(null, '', `#${id}`);
+  }
+
   constructor() {
-    pollWhileVisible(inject(DOCUMENT), 30_000, { immediate: true })
+    pollWhileVisible(this.document, 30_000, { immediate: true })
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.now.set(new Date()));
   }

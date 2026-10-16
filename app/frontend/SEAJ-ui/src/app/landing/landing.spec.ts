@@ -25,12 +25,30 @@ describe('LandingComponent', () => {
   it('uses links, not buttons, to reach the login page', async () => {
     const page = await render();
 
-    expect(texts(page, 'a[href="/login"]')).toEqual([
-      'Log in / Register',
-      'Create an account',
-      'Log in',
-    ]);
+    expect(texts(page, 'a[href="/login"]')).toEqual(['Log in', 'Create an account', 'Log in']);
+    expect(texts(page, 'a[href="/login?mode=register"]')).toEqual(['Sign up']);
     expect(page.querySelector('button')).toBeNull();
+  });
+
+  it('pairs the logo with the name as one link home', async () => {
+    const page = await render();
+    const brand = page.querySelector('header a.brand')!;
+
+    expect(brand.getAttribute('href')).toBe('/');
+    expect(brand.getAttribute('aria-label')).toBe('SEAJ Capital, home');
+    expect(brand.querySelector('.brand-name')?.textContent).toBe('SEAJ Capital');
+  });
+
+  it('links to sections that exist on the page', async () => {
+    const page = await render();
+    const targets = Array.from(page.querySelectorAll<HTMLAnchorElement>('nav.sections a')).map(
+      (a) => a.getAttribute('href'),
+    );
+
+    expect(targets).toEqual(['#features', '#how-it-works']);
+    for (const target of targets) {
+      expect(page.querySelector(target!)).not.toBeNull();
+    }
   });
 
   it('describes the features and steps under headings, with decorative icons', async () => {
@@ -85,6 +103,19 @@ describe('LandingComponent', () => {
     for (const word of ['Kafka', 'Alpaca', 'engine', 'verification code']) {
       expect(page.textContent).not.toContain(word);
     }
+  });
+
+  it('scrolls to a section and moves focus to its heading', async () => {
+    const page = await render();
+    document.body.appendChild(page);
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+
+    (page.querySelector('nav.sections a[href="#how-it-works"]') as HTMLAnchorElement).click();
+
+    expect(scroll).toHaveBeenCalledWith({ behavior: 'smooth' });
+    expect(document.activeElement?.textContent).toBe('How it works');
+    page.remove();
   });
 
   it('keeps feature cards out of the landmark list', async () => {
