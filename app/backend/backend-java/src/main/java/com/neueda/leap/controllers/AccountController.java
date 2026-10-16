@@ -47,13 +47,15 @@ public class AccountController {
     @Autowired
     private RestTemplate restTemplate;
 
+    private static final String CHALLENGE_ID = "challenge_id";
+
     @Value("${auth.service.url:http://auth-service:3000}")
     private String authServiceUrl;
 
     @ApiResponse(responseCode = "202", description = "Email verification challenge; no tokens issued")
     @PostMapping("/login")
     @Operation(summary = "Start username/password login", description = "Returns an email verification challenge. Verify the code before receiving tokens.")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<Object> login(@Valid @RequestBody LoginRequest request) {
         Map<String, String> payload = new HashMap<>();
         payload.put("username", request.getUsername());
         payload.put("password", request.getPassword());
@@ -63,14 +65,14 @@ public class AccountController {
     @ApiResponse(responseCode = "200", description = "Access and refresh tokens after email verification")
     @PostMapping("/login/verify")
     @Operation(summary = "Complete email second factor and receive tokens")
-    public ResponseEntity<?> verifyLogin(@Valid @RequestBody com.neueda.leap.dtos.EmailVerificationRequest request) {
-        return authPost("/auth/login/verify", Map.of("challenge_id", request.challenge_id(), "code", request.code()), 200);
+    public ResponseEntity<Object> verifyLogin(@Valid @RequestBody com.neueda.leap.dtos.EmailVerificationRequest request) {
+        return authPost("/auth/login/verify", Map.of(CHALLENGE_ID, request.challenge_id(), "code", request.code()), 200);
     }
 
     @ApiResponse(responseCode = "202", description = "Pending registration email verification")
     @PostMapping
     @Operation(summary = "Start account registration", description = "Requires unique username and email; returns an email verification challenge.")
-    public ResponseEntity<?> createAccount(@Valid @RequestBody AccountInput input) {
+    public ResponseEntity<Object> createAccount(@Valid @RequestBody AccountInput input) {
         Map<String, String> payload = new HashMap<>();
         payload.put("username", input.username());
         payload.put("email", input.email());
@@ -81,17 +83,17 @@ public class AccountController {
     @ApiResponse(responseCode = "201", description = "Verified account with generated ACC account ID")
     @PostMapping("/register/verify")
     @Operation(summary = "Verify registration email and create account")
-    public ResponseEntity<?> verifyRegistration(@Valid @RequestBody com.neueda.leap.dtos.EmailVerificationRequest request) {
-        return authPost("/auth/register/verify", Map.of("challenge_id", request.challenge_id(), "code", request.code()), 201);
+    public ResponseEntity<Object> verifyRegistration(@Valid @RequestBody com.neueda.leap.dtos.EmailVerificationRequest request) {
+        return authPost("/auth/register/verify", Map.of(CHALLENGE_ID, request.challenge_id(), "code", request.code()), 201);
     }
 
-    private ResponseEntity<?> authPost(String path, Map<String, String> payload, int expectedStatus) {
+    private ResponseEntity<Object> authPost(String path, Map<String, String> payload, int expectedStatus) {
         try {
-            ResponseEntity<?> response = restTemplate.postForEntity(authServiceUrl + path, payload, Object.class);
+            ResponseEntity<Object> response = restTemplate.postForEntity(authServiceUrl + path, payload, Object.class);
             if (response.getStatusCode().value() != expectedStatus || !(response.getBody() instanceof Map<?, ?> body)) {
                 return authError(503);
             }
-            if (expectedStatus == 202 && (!(body.get("challenge_id") instanceof String) || body.containsKey("access_token"))) {
+            if (expectedStatus == 202 && (!(body.get(CHALLENGE_ID) instanceof String) || body.containsKey("access_token"))) {
                 return authError(503);
             }
             return ResponseEntity.status(expectedStatus).body(body);
@@ -103,7 +105,7 @@ public class AccountController {
         }
     }
 
-    private ResponseEntity<?> authError(int status) {
+    private ResponseEntity<Object> authError(int status) {
         String message = switch (status) {
             case 400 -> "Invalid request";
             case 401 -> "Invalid credentials or verification code";
@@ -115,22 +117,15 @@ public class AccountController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteAccount(@PathVariable String id) {
-        try {
-            Account account = accountService.getAccountByIdentifier(id);
-            accountService.deleteAccount(account.getId());
-            return ResponseEntity.noContent().build();
-        } catch (AccountNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        }
+    public ResponseEntity<Object> deleteAccount(@PathVariable String id) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", "Use the email-verified account deletion flow in My Account"));
     }
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "List accounts", description = "Get all accounts (admin) or just your own account (regular user)")
-    public ResponseEntity<?> getAllAccounts() {
+    public ResponseEntity<Object> getAllAccounts() {
         try {
             // If admin, return all accounts; otherwise return only user's account
             if (securityUtilsService.isAdmin()) {

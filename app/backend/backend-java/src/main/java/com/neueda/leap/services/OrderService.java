@@ -23,6 +23,21 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.neueda.leap.dtos.PlaceOrderRequest;
+import com.neueda.leap.enums.TimeInForce;
+import com.neueda.leap.enums.OrderType;
+import com.neueda.leap.repositories.AccountRepository;
+import com.neueda.leap.repositories.InstrumentsRepository;
+import com.neueda.leap.repositories.PositionsRepository;
+import com.neueda.leap.messaging.ExecutionEvent;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import java.math.RoundingMode;
+import java.time.Instant;
+
 
 @Service
 @Transactional
@@ -36,9 +51,86 @@ public class OrderService {
     private OrderHistoryRepository orderHistoryRepository;
     
 
+    @Autowired private AccountRepository accounts;
+    @Autowired private InstrumentsRepository instruments;
+    @Autowired private PositionsRepository positions;
+    @Autowired private MarketPriceService prices;
+    @Autowired private OrderSettlementService settlement;
+    @Autowired private com.neueda.leap.messaging.OrderEventOutbox outbox;
+    @PersistenceContext private EntityManager entityManager;
+
+    public Order placeOrder(PlaceOrderRequest request) throws DuplicateOrderException {
+        if (request.getTimeInForce() != TimeInForce.GTC) {
+            throw invalid("Only good-till-cancelled orders are supported");
+        }
+        Account account = accounts.findByAccountId(request.getAccountId())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
+        account = accounts.findByIdForUpdate(account.getId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
+        entityManager.refresh(account, LockModeType.PESSIMISTIC_WRITE);
+        Instrument instrument = instruments.findBySymbol(request.getSymbol().trim().toUpperCase())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instrument not found"));
+        String key = request.getIdempotencyKey() == null ? UUID.randomUUID().toString() : request.getIdempotencyKey().trim();
+        OrderValidator.validateIdempotencyKey(key);
+        var previous = orderRepository.findByIdempotencyKey(key);
+        if (previous.isPresent()) {
+            Order old = previous.get();
+            if (!old.getAccount().getAccountId().equals(account.getAccountId())
+                || !old.getInstrument().getSymbol().equals(instrument.getSymbol())
+                || old.getSide() != request.getSide() || old.getQuantity() != request.getQuantity()
+                || old.getOrderType() != request.getOrderType()
+                || (old.getOrderType() == OrderType.LIMIT
+                    && (request.getPrice() == null || old.getPrice().compareTo(request.getPrice()) != 0))) {
+                throw new DuplicateOrderException("This submission key has already been used for another order");
+            }
+            return old;
+        }
+        BigDecimal price = request.getPrice();
+        if (request.getOrderType() == OrderType.MARKET) {
+            var quote = prices.getLatestPrice(instrument.getSymbol()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "No current quote available. Try a limit order or retry later."));
+            price = (request.getSide() == OrderSide.BUY ? quote.askPrice() : quote.bidPrice()).setScale(2, request.getSide() == OrderSide.BUY ? RoundingMode.CEILING : RoundingMode.FLOOR);
+        }
+        if (price == null || price.scale() > 2) throw invalid("Enter a positive limit price with at most two decimal places");
+        OrderValidator.validatePrice(price);
+        OrderValidator.validateQuantity(request.getQuantity());
+        List<Order> pending = getOrdersByAccount(account.getAccountId()).stream()
+            .filter(o -> o.getStatus().canBeCancelled()).toList();
+        if (request.getSide() == OrderSide.BUY) {
+            long held = positions.findByAccountIdAndSymbol(account.getId(), instrument.getSymbol()).map(p -> (long) p.getQuantity()).orElse(0L);
+            long queued = pending.stream().filter(o -> o.getSide() == OrderSide.BUY && o.getInstrument().getSymbol().equals(instrument.getSymbol())).mapToLong(Order::getQuantity).sum();
+            if (held + queued + request.getQuantity() > Integer.MAX_VALUE) throw invalid("Resulting position quantity is too large");
+            BigDecimal reserved = pending.stream().filter(o -> o.getSide() == OrderSide.BUY)
+                .map(Order::calculateTotalValue).reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (account.getCashBalance().subtract(reserved).compareTo(price.multiply(BigDecimal.valueOf(request.getQuantity()))) < 0)
+                throw invalid("Insufficient available cash after pending buy orders");
+        } else {
+            int held = positions.findByAccountIdAndSymbol(account.getId(), instrument.getSymbol()).map(p -> p.getQuantity()).orElse(0);
+            long reserved = pending.stream().filter(o -> o.getSide() == OrderSide.SELL && o.getInstrument().getSymbol().equals(instrument.getSymbol()))
+                .mapToLong(Order::getQuantity).sum();
+            if (held - reserved < request.getQuantity()) throw invalid("Insufficient holdings after pending sell orders");
+        }
+        Order order = persistOrder(account, instrument, request.getQuantity(), price, request.getSide(), key, request.getOrderType());
+        order.setStatus(OrderStatus.PENDING);
+        orderRepository.save(order);
+        recordOrderHistory(order.getId(), OrderStatus.PENDING);
+        outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_ACCEPTED, null);
+        outbox.command(order, "SUBMIT");
+        return order;
+    }
+
+    private OrderException invalid(String message) {
+        return new OrderException(message, OrderErrorCode.EXECUTION_FAILED);
+    }
+
     // Creates a new order with idempotency protection.
     // Checks if an order with the same idempotency key already exists to prevent duplicates.
     public Order createOrder(Account account, Instrument instrument, long quantity, BigDecimal price, OrderSide side, String idempotencyKey) throws DuplicateOrderException {
+        return persistOrder(account, instrument, quantity, price, side, idempotencyKey, OrderType.LIMIT);
+    }
+
+    private Order persistOrder(Account account, Instrument instrument, long quantity, BigDecimal price,
+            OrderSide side, String idempotencyKey, OrderType type) throws DuplicateOrderException {
         logger.info("OrderService.createOrder - Validating account: {} (Status: {}, Balance: {})", 
             account.getAccountId(), account.getStatus(), account.getCashBalance());
         OrderValidator.validateAccount(account);
@@ -61,22 +153,26 @@ public class OrderService {
 
         // Create and validate the order through the domain model
         Order order = new Order(account, instrument, quantity, price, side, idempotencyKey);
+        order.setOrderType(type);
         Order savedOrder = orderRepository.save(order);
 
         recordOrderHistory(savedOrder.getId(), OrderStatus.NEW);
+        outbox.lifecycle(savedOrder, com.neueda.leap.messaging.EventType.ORDER_PLACED, null);
 
         return savedOrder;
     }
 
-    // Validates the order state, processes account debits/credits, and tracks status change.
+    // Even the admin/recovery path goes through Kafka and the live-price execution engine.
     public Order executeOrder(UUID orderId) {
         Order order = findOrderOrThrow(orderId);
-        order.execute();
-
-        Order executedOrder = orderRepository.save(order);
-        recordOrderHistory(orderId, OrderStatus.FILLED);
-
-        return executedOrder;
+        if (!order.getStatus().canBeCancelled()) throw invalid("Order is not eligible for execution");
+        if (order.getStatus() == OrderStatus.NEW) {
+            order.setStatus(OrderStatus.PENDING);
+            recordOrderHistory(orderId, OrderStatus.PENDING);
+            outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_ACCEPTED, null);
+        }
+        outbox.command(order, "SUBMIT");
+        return order;
     }
 
     // Cancels a pending order and records the status change.
@@ -86,6 +182,8 @@ public class OrderService {
 
         Order cancelledOrder = orderRepository.save(order);
         recordOrderHistory(orderId, OrderStatus.CANCELLED);
+        outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_CANCELLED, "Cancelled by account user or administrator.");
+        outbox.command(order, "CANCEL");
 
         return cancelledOrder;
     }
@@ -93,11 +191,17 @@ public class OrderService {
     // Rejects an order
     // Records the rejection in order history.
     public Order rejectOrder(UUID orderId, String reason) {
+        if (reason == null || reason.isBlank() || reason.length() > 500) throw invalid("Provide a rejection reason of up to 500 characters");
         Order order = findOrderOrThrow(orderId);
+        if (!order.getStatus().canBeCancelled()) throw invalid("Only pending orders can be rejected");
         order.setStatus(OrderStatus.REJECTED);
 
         Order rejectedOrder = orderRepository.save(order);
-        recordOrderHistory(orderId, OrderStatus.REJECTED);
+        OrderHistory entry = new OrderHistory(orderId, OrderStatus.REJECTED);
+        entry.setReason(reason);
+        orderHistoryRepository.save(entry);
+        outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_REJECTED, reason);
+        outbox.command(order, "REJECT");
 
         return rejectedOrder;
     }
@@ -157,7 +261,7 @@ public class OrderService {
     }
 
     private Order findOrderOrThrow(UUID orderId) {
-        return orderRepository.findById(orderId)
+        return orderRepository.findByIdForUpdate(orderId)
             .orElseThrow(() -> new OrderException("Order not found", OrderErrorCode.EXECUTION_FAILED, orderId.toString()));
     }
 }

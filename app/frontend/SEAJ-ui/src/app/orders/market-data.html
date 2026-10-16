@@ -1,0 +1,310 @@
+@if (selectedInstrument(); as instrument) {
+  <section class="panel instrument-detail" aria-labelledby="market-instrument-title">
+    <div class="heading">
+      <div>
+        <p class="eyebrow">MARKET SNAPSHOT</p>
+        <h2 id="market-instrument-title">
+          {{ instrument.symbol }} <span>{{ instrument.currency }}</span>
+        </h2>
+        <p class="muted">{{ instrument.name }}</p>
+      </div>
+      <span class="asset-class">{{ instrument.assetClass }}</span>
+    </div>
+    @if (selectedSnapshot(); as snapshot) {
+      <div class="price-heading">
+        <div>
+          <strong class="close-price">{{ snapshot.price | currency: instrument.currency }}</strong>
+        </div>
+        @if (snapshot.changePercent !== null) {
+          <div class="change-summary">
+            <span class="gain change-badge" [class.negative]="snapshot.changePercent < 0">
+              {{ snapshot.changePercent > 0 ? '+' : ''
+              }}{{ snapshot.changePercent | number: '1.2-2' }}%
+            </span>
+            <span class="muted">vs. previous close</span>
+          </div>
+        }
+      </div>
+      <p class="price-time muted">
+        Last trade · {{ snapshot.timestamp | date: 'd MMM, HH:mm:ss' }}
+      </p>
+      <div class="chart-toolbar">
+        <div class="chart-periods" role="group" aria-label="Chart period">
+          <button
+            type="button"
+            [attr.aria-pressed]="chartPeriod() === '1D'"
+            (click)="chartPeriod.set('1D')"
+          >
+            1D
+          </button>
+          <button
+            type="button"
+            [attr.aria-pressed]="chartPeriod() === '1W'"
+            (click)="chartPeriod.set('1W'); inspectIndex.set(null)"
+          >
+            1W
+          </button>
+          <button
+            type="button"
+            [attr.aria-pressed]="chartPeriod() === '1M'"
+            (click)="chartPeriod.set('1M'); inspectIndex.set(null)"
+          >
+            1M
+          </button>
+        </div>
+        <span class="period-label muted">
+          {{ chartPeriod() === '1D' ? 'Intraday' : chartPeriod() === '1W' ? '1 week' : '1 month' }}
+        </span>
+      </div>
+      @if (chart(); as plot) {
+        <figure>
+          <div class="chart-range muted">
+            <span>Chart range</span>
+            <span>
+              {{ plot.low | currency: instrument.currency }} —
+              {{ plot.high | currency: instrument.currency }}
+            </span>
+          </div>
+          <svg
+            [attr.viewBox]="timeframe() === '1Min' ? '0 0 500 200' : '0 0 500 180'"
+            role="img"
+            tabindex="0"
+            [attr.aria-label]="
+              instrument.symbol + ' Alpaca price history. Use arrow keys to inspect prices.'
+            "
+            aria-describedby="chart-value"
+            (pointermove)="inspectChart($event)"
+            (pointerleave)="inspectIndex.set(null)"
+            (keydown)="inspectChartKey($event)"
+            (blur)="inspectIndex.set(null)"
+          >
+            <title>{{ instrument.name }} price history from Alpaca</title>
+            <desc>
+              {{ plot.points.length }} price points from {{ plot.first }} to {{ plot.last }}. Low
+              {{ plot.low }}, high {{ plot.high }} {{ instrument.currency }}.
+            </desc>
+            <defs>
+              <linearGradient id="market-area-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" class="area-start" />
+                <stop offset="100%" class="area-end" />
+              </linearGradient>
+            </defs>
+            <rect width="500" height="200" fill="transparent" />
+            <path class="grid" d="M12 12H488 M12 90H488 M12 168H488" />
+            @if (plot.points.length > 1) {
+              <polygon
+                class="price-area"
+                [attr.points]="
+                  plot.line +
+                  ' ' +
+                  plot.points[plot.points.length - 1].x +
+                  ',168 ' +
+                  plot.points[0].x +
+                  ',168'
+                "
+              />
+            }
+            @for (boundary of plot.boundaries; track boundary.next) {
+              <line
+                class="session-divider"
+                [attr.x1]="boundary.x"
+                [attr.x2]="boundary.x"
+                y1="12"
+                y2="168"
+              >
+                <title>
+                  End of {{ boundary.previous + 'T00:00:00Z' | date: 'd MMM' : 'UTC' }} · Start of
+                  {{ boundary.next + 'T00:00:00Z' | date: 'd MMM' : 'UTC' }}
+                </title>
+              </line>
+            }
+            @if (plot.previousClose; as close) {
+              <line
+                class="previous-close"
+                x1="12"
+                x2="488"
+                [attr.y1]="close.y"
+                [attr.y2]="close.y"
+              />
+            }
+            @if (plot.points.length > 1) {
+              <polyline class="price-line" [attr.points]="plot.line" />
+            }
+            @if (inspectedPoint(); as point) {
+              <circle class="price-point" [attr.cx]="point.x" [attr.cy]="point.y" r="4">
+                <title>
+                  {{ point.timestamp | date: 'd MMM, HH:mm' }} ·
+                  {{ point.value | currency: instrument.currency }}
+                </title>
+              </circle>
+            }
+            @for (session of plot.sessions; track session.date) {
+              <text class="session-label" [attr.x]="session.x" y="190" text-anchor="middle">
+                {{ session.date + 'T00:00:00Z' | date: 'd MMM' : 'UTC' }}
+              </text>
+            }
+          </svg>
+          <div class="chart-axis muted">
+            <span>{{ plot.first | date: (timeframe() === '1Min' ? 'HH:mm' : 'd MMM') }}</span
+            ><span>{{ plot.last | date: (timeframe() === '1Min' ? 'HH:mm' : 'd MMM') }}</span>
+          </div>
+          <div class="chart-reading">
+            @if (inspectedPoint(); as point) {
+              <p id="chart-value" aria-live="polite">
+                <strong>{{ point.value | currency: instrument.currency }}</strong>
+                <span class="muted">{{ point.timestamp | date: 'd MMM, HH:mm' }}</span>
+              </p>
+            }
+            @if (plot.previousClose; as close) {
+              <p class="close-legend muted">
+                <span aria-hidden="true"></span>Previous close ·
+                {{ close.value | currency: instrument.currency }}
+              </p>
+            }
+          </div>
+          <figcaption class="muted">
+            {{
+              timeframe() === '1Min'
+                ? 'Current and previous session where available · New York dates.'
+                : chartPeriod() === '1W'
+                  ? 'Last 5 available trading days.'
+                  : 'Last 30 available daily bars.'
+            }}
+          </figcaption>
+        </figure>
+      }
+      @if (chartLoading()) {
+        <p class="muted" role="status">Loading price history…</p>
+      }
+      @if (chartError() || chartMessage()) {
+        <p class="load-error" role="status">
+          {{ chartError() || chartMessage() }}
+          <button type="button" (click)="refresh()">Retry</button>
+        </p>
+      }
+      @if (!chartLoading() && !chart() && !chartError() && !chartMessage()) {
+        <p class="empty">No price history is available for this period.</p>
+      }
+      @if (snapshot.dailyBar; as price) {
+        <div class="session-stats">
+          <div class="stats-heading">
+            <h3>Session statistics</h3>
+            <span class="muted">{{ price.timestamp | date: 'd MMM y' : 'UTC' }}</span>
+          </div>
+          <dl class="stats">
+            <div>
+              <dt>Open</dt>
+              <dd>{{ price.open | currency: instrument.currency }}</dd>
+            </div>
+            <div>
+              <dt>Day high</dt>
+              <dd>{{ price.high | currency: instrument.currency }}</dd>
+            </div>
+            <div>
+              <dt>Day low</dt>
+              <dd>{{ price.low | currency: instrument.currency }}</dd>
+            </div>
+            <div>
+              <dt>Volume</dt>
+              <dd>{{ price.volume | number }}</dd>
+            </div>
+          </dl>
+        </div>
+      }
+      @if (snapshot.quote; as quote) {
+        <div class="quote-note">
+          <div class="quote-meta muted">
+            <span>Alpaca · {{ overview()?.feed?.toUpperCase() }}</span>
+            <span>Quote at {{ quote.priceTimeStamp | date: 'HH:mm:ss' }}</span>
+          </div>
+          <div class="quote-prices">
+            <strong><span>Bid </span>{{ quote.bidPrice | currency: instrument.currency }}</strong>
+            <strong><span>Ask </span>{{ quote.askPrice | currency: instrument.currency }}</strong>
+          </div>
+        </div>
+      }
+      <p class="refresh-note muted">Prices refresh every 10 seconds</p>
+    } @else {
+      <p class="empty" role="status">
+        {{
+          loading()
+            ? 'Loading market data…'
+            : unsupported()
+              ? 'Alpaca stock data is unavailable for this instrument.'
+              : connectionMessage() || 'No Alpaca price is available for this instrument yet.'
+        }}
+      </p>
+    }
+  </section>
+}
+
+<ng-template #overviewTemplate>
+  <section class="panel market-overview" aria-labelledby="market-title">
+    <div class="heading">
+      <div>
+        <p class="eyebrow">FROM OUR INSTRUMENTS</p>
+        <h2 id="market-title">Market data</h2>
+      </div>
+      <span class="asset-class">{{
+        overview()?.configured ? 'Alpaca · ' + overview()!.feed.toUpperCase() : 'Alpaca'
+      }}</span>
+    </div>
+    <p class="muted">Best performers · change from the previous close.</p>
+    @if (latestMarketTime(); as marketTime) {
+      <p class="data-date muted">Prices as of · {{ marketTime | date: 'd MMM, HH:mm:ss' }}</p>
+    }
+    @if (connectionMessage()) {
+      <p class="load-error" role="status">
+        {{ connectionMessage() }}
+        @if (overview()?.configured || error()) {
+          <button type="button" (click)="refresh()">Retry</button>
+        }
+      </p>
+    }
+    @if (leaders().length) {
+      <ol class="leaders">
+        @for (entry of leaders(); track entry.snapshot.symbol; let rank = $index) {
+          <li>
+            <button
+              type="button"
+              (click)="choose.emit(entry.snapshot.symbol)"
+              [attr.aria-label]="'View market data for ' + entry.snapshot.symbol"
+            >
+              <span class="rank">{{ rank + 1 }}</span>
+              <span class="instrument-name"
+                ><strong>{{ entry.snapshot.symbol }}</strong
+                ><small>{{ entry.instrument!.name }}</small></span
+              >
+              <span class="performance"
+                ><strong class="gain" [class.negative]="entry.snapshot.changePercent! < 0"
+                  >{{ entry.snapshot.changePercent! > 0 ? '+' : ''
+                  }}{{ entry.snapshot.changePercent | number: '1.2-2' }}%</strong
+                ><small>{{
+                  entry.snapshot.price | currency: entry.instrument!.currency
+                }}</small></span
+              >
+            </button>
+          </li>
+        }
+      </ol>
+    } @else if (!connectionMessage()) {
+      <p class="empty" role="status">
+        {{
+          loading() ? 'Loading market data…' : 'Waiting for Alpaca prices with a previous close.'
+        }}
+      </p>
+    }
+    <p class="muted footnote">
+      {{
+        overview()?.configured
+          ? 'US stocks and ETFs · ' +
+            overview()!.feed.toUpperCase() +
+            ' feed · refreshes every 10 seconds'
+          : 'US stocks and ETFs · live prices appear when the feed is connected'
+      }}
+    </p>
+  </section>
+</ng-template>
+@if (showOverview()) {
+  <ng-container [ngTemplateOutlet]="overviewTemplate" />
+}

@@ -191,7 +191,7 @@ public class Account implements Closable {
     public String getRoles() { return roles; }
     public String getEmail() { return email; }
     public String getPhone() { return phone; }
-    public String getHolderName() { return name; }  // Backward compatibility
+    public String getHolderName() { return getName(); }  // Backward compatibility
     public BigDecimal getCashBalance() { return cashBalance; }
     public AccountStatus getStatus() { return status; }
     public int getVersion() { return version; }

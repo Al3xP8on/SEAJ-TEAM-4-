@@ -3,11 +3,14 @@
 package com.neueda.leap.security;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.neueda.leap.repositories.AccountRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -33,6 +36,9 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     @Value("${jwt.shared-secret}")
     private String sharedSecret;
 
@@ -48,7 +54,19 @@ public class SecurityConfig {
             }
             return OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Email verification is required", null));
         };
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefault(), emailFactor));
+        OAuth2TokenValidator<Jwt> activeAccount = jwt -> {
+            try {
+                String subject = jwt.getSubject();
+                var account = subject != null && subject.matches("\\d+")
+                        ? accountRepository.findById(Long.valueOf(subject))
+                        : accountRepository.findByUsername(subject);
+                if (account.isPresent() && account.get().isActive()) return OAuth2TokenValidatorResult.success();
+            } catch (RuntimeException exception) {
+                // Reject deleted accounts and fail closed if account state cannot be read.
+            }
+            return OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Account is unavailable", null));
+        };
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefault(), emailFactor, activeAccount));
         return decoder;
     }
 
@@ -75,7 +93,8 @@ public class SecurityConfig {
 
         http
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .csrf(csrf -> csrf.disable())
+                // CSRF disabled: stateless JWT API — no session cookies, so no CSRF risk
+                .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

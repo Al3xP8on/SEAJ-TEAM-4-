@@ -4,7 +4,7 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { firstValueFrom } from 'rxjs';
-import { Router } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { LoginComponent } from './login';
 import { AuthService } from '../auth/auth.service';
 
@@ -14,15 +14,16 @@ const pair = (refresh = 'refresh-1') => ({
   refresh_token: refresh, expires_in: 120, token_type: 'Bearer',
 });
 describe('Angular email authentication', () => {
-  const router = { navigate: vi.fn() };
+  let router: Router;
   let fixture: ComponentFixture<LoginComponent>;
   let component: LoginComponent;
   let auth: AuthService;
   let http: HttpTestingController;
   beforeEach(() => {
     sessionStorage.clear();
-    router.navigate.mockReset();
-    TestBed.configureTestingModule({ imports: [LoginComponent], providers: [provideHttpClient(), provideHttpClientTesting(), { provide: Router, useValue: router }] });
+    TestBed.configureTestingModule({ imports: [LoginComponent], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
     auth = TestBed.inject(AuthService);
@@ -85,6 +86,26 @@ describe('Angular email authentication', () => {
     http.expectNone('/auth/register');
     expect(component.registerMessage()).toContain('valid phone number');
     expect(component.registerMessageType()).toBe('error');
+  });
+  it.each([
+    'missing-at.example.com', 'alice@@example.com', '@example.com',
+    'alice@example', 'alice@.com', 'alice@example.', 'alice@example..com',
+    'alice@exam ple.com', `${'a'.repeat(100_000)}@example.com`,
+  ])('blocks malformed or oversized registration email %#', (email) => {
+    component.showView('register'); component.regUsername = 'alice'; component.regPassword = 'SecurePass123!';
+    component.regEmail = email;
+    component.onRegister();
+    http.expectNone('/auth/register');
+    expect(component.registerLoading()).toBe(false);
+    expect(component.registerMessageType()).toBe('error');
+  });
+  it('accepts plus addressing and subdomains after trimming email input', () => {
+    component.showView('register'); component.regUsername = 'alice'; component.regPassword = 'SecurePass123!';
+    component.regEmail = ' alice+trading@mail.example.com ';
+    component.onRegister();
+    const request = http.expectOne('/auth/register');
+    expect(request.request.body.email).toBe('alice+trading@mail.example.com');
+    request.flush(challenge, { status: 202, statusText: 'Accepted' });
   });
   it('requires email at signup and shows account creation only after verification', async () => {
     component.showView('register'); component.regUsername = 'alice'; component.regPassword = 'SecurePass123!';

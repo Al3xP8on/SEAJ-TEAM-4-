@@ -56,25 +56,4 @@ public record Position (
 
     @Schema(description="Realized profit/loss from closed portions (null if fully open)")
     Optional<BigDecimal> realizedPnL
-){
-
-    public Position(
-        long positionId, long accountId, String symbol, int quantity, BigDecimal entryPrice, 
-        BigDecimal currentPrice, Optional<BigDecimal> unrealizedPnL, Optional<BigDecimal> unrealizedPnLPercent, Optional<BigDecimal> positionValue, 
-        PositionStatus status, LocalDateTime openedAt, Optional<LocalDateTime> closedAt, Optional<BigDecimal> realizedPnL
-    ){
-        this.positionId = positionId;
-        this.accountId = accountId;
-        this.symbol = symbol;
-        this.quantity = quantity;
-        this.entryPrice = entryPrice;
-        this.currentPrice = currentPrice;
-        this.unrealizedPnL = unrealizedPnL;
-        this.unrealizedPnLPercent = unrealizedPnLPercent;
-        this.positionValue = positionValue;
-        this.status = status;
-        this.openedAt = openedAt;
-        this.closedAt = closedAt;
-        this.realizedPnL = realizedPnL;
-    }
-}
+) {}

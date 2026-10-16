@@ -7,6 +7,8 @@ import com.neueda.leap.enums.OrderSide;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.models.Order;
+import com.neueda.leap.models.OrderHistory;
+import com.neueda.leap.repositories.OrderHistoryRepository;
 import com.neueda.leap.repositories.OrderRepository;
 import com.neueda.leap.services.OrderPricingValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +47,9 @@ public class TradesConsumerTest {
 
     @Mock
     private TradeEventPublisher tradeEventPublisher;
+
+    @Mock
+    private OrderHistoryRepository history;
 
     private ObjectMapper objectMapper;
     private UUID orderId;
@@ -92,7 +97,7 @@ public class TradesConsumerTest {
         OrderPricingValidator.PricingValidationResult approvalResult = 
             new OrderPricingValidator.PricingValidationResult(OrderStatus.PENDING, "Approved for execution");
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(pricingValidator.validateOrderPricing(order)).thenReturn(approvalResult);
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
@@ -124,7 +129,7 @@ public class TradesConsumerTest {
         OrderPricingValidator.PricingValidationResult rejectionResult = 
             new OrderPricingValidator.PricingValidationResult(OrderStatus.REJECTED, "Insufficient funds");
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(pricingValidator.validateOrderPricing(order)).thenReturn(rejectionResult);
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
@@ -133,6 +138,11 @@ public class TradesConsumerTest {
         ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
         verify(orderRepository).save(orderCaptor.capture());
         assertEquals(OrderStatus.REJECTED, orderCaptor.getValue().getStatus());
+        var historyCaptor = ArgumentCaptor.forClass(OrderHistory.class);
+        verify(history).save(historyCaptor.capture());
+        assertEquals(orderId, historyCaptor.getValue().getOrderId());
+        assertEquals(OrderStatus.REJECTED, historyCaptor.getValue().getStatus());
+        assertEquals("Insufficient funds", historyCaptor.getValue().getReason());
         verify(tradeEventPublisher).publishTradeEvent(any(TradeEvent.class));
     }
 
@@ -155,7 +165,7 @@ public class TradesConsumerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
 
         tradesConsumer.handleOrderPlaced(message, 0, 100L);
 
@@ -180,13 +190,13 @@ public class TradesConsumerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> 
             tradesConsumer.handleOrderPlaced(message, 0, 100L)
         );
 
-        verify(orderRepository).findById(orderId);
+        verify(orderRepository).findByIdForUpdate(orderId);
         verify(pricingValidator, never()).validateOrderPricing(any());
     }
 
@@ -255,7 +265,7 @@ public class TradesConsumerTest {
         OrderPricingValidator.PricingValidationResult approvalResult = 
             new OrderPricingValidator.PricingValidationResult(OrderStatus.PENDING, "Approved");
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(pricingValidator.validateOrderPricing(order)).thenReturn(approvalResult);
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
@@ -287,7 +297,7 @@ public class TradesConsumerTest {
         OrderPricingValidator.PricingValidationResult rejectionResult = 
             new OrderPricingValidator.PricingValidationResult(OrderStatus.REJECTED, "Instrument not tradeable");
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(pricingValidator.validateOrderPricing(order)).thenReturn(rejectionResult);
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
@@ -297,6 +307,7 @@ public class TradesConsumerTest {
         verify(tradeEventPublisher).publishTradeEvent(eventCaptor.capture());
         TradeEvent publishedEvent = eventCaptor.getValue();
         assertEquals("REJECTED", publishedEvent.getStatus());
+        assertEquals("Instrument not tradeable", publishedEvent.getReason());
     }
 
     @Test
@@ -318,7 +329,7 @@ public class TradesConsumerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
 
         tradesConsumer.handleOrderPlaced(message, 0, 100L);
 
@@ -345,11 +356,90 @@ public class TradesConsumerTest {
         EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
         String message = objectMapper.writeValueAsString(envelope);
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
 
         tradesConsumer.handleOrderPlaced(message, 0, 100L);
 
         verify(pricingValidator, never()).validateOrderPricing(any());
         verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should skip publishing when accountId is null in payload for accepted order")
+    void testPublishOrderAcceptedSkipsWhenAccountIdNull() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("orderId", orderId);
+        payload.put("accountId", null);
+        payload.put("symbol", "AAPL");
+        payload.put("side", "BUY");
+        payload.put("price", "150.50");
+        payload.put("quantity", 100);
+
+        EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
+        String message = objectMapper.writeValueAsString(envelope);
+
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
+        when(pricingValidator.validateOrderPricing(order)).thenReturn(
+            new OrderPricingValidator.PricingValidationResult(OrderStatus.PENDING, "Approved"));
+        when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        tradesConsumer.handleOrderPlaced(message, 0, 100L);
+
+        verify(tradeEventPublisher, never()).publishTradeEvent(any());
+    }
+
+    @Test
+    @DisplayName("Should skip publishing when symbol is null in payload for rejected order")
+    void testPublishOrderRejectedSkipsWhenSymbolNull() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("orderId", orderId);
+        payload.put("accountId", "ACC-001");
+        payload.put("symbol", null);
+        payload.put("side", "BUY");
+        payload.put("price", "150.50");
+        payload.put("quantity", 100);
+
+        EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
+        String message = objectMapper.writeValueAsString(envelope);
+
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
+        when(pricingValidator.validateOrderPricing(order)).thenReturn(
+            new OrderPricingValidator.PricingValidationResult(OrderStatus.REJECTED, "Rejected"));
+        when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        tradesConsumer.handleOrderPlaced(message, 0, 100L);
+
+        verify(tradeEventPublisher, never()).publishTradeEvent(any());
+    }
+
+    @Test
+    @DisplayName("Should extract orderId when payload contains a UUID instance directly")
+    void testExtractOrderIdFromUUIDInstance() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("orderId", orderId); // UUID instance, not String
+
+        java.lang.reflect.Method method = TradesConsumer.class.getDeclaredMethod("extractOrderId", java.util.Map.class);
+        method.setAccessible(true);
+        UUID result = (UUID) method.invoke(tradesConsumer, payload);
+        assertEquals(orderId, result);
+    }
+
+    @Test
+    void preservesTheReasonWhenEventPublicationFailsAndSkipsDuplicateValidation() throws Exception {
+        String reason = "No live quote available for symbol: AAPL";
+        var envelope = new EventEnvelope(UUID.randomUUID(), EventType.ORDER_PLACED, Instant.now(), 1,
+            Map.of("orderId", orderId.toString(), "accountId", "ACC-001", "symbol", "AAPL",
+                "side", "BUY", "price", "150.50", "quantity", 100));
+        String message = objectMapper.writeValueAsString(envelope);
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
+        when(pricingValidator.validateOrderPricing(order)).thenReturn(new OrderPricingValidator.PricingValidationResult(OrderStatus.REJECTED, reason));
+        doThrow(new RuntimeException("Kafka offline")).when(tradeEventPublisher).publishTradeEvent(any());
+        tradesConsumer.handleOrderPlaced(message, 0, 1L);
+        tradesConsumer.handleOrderPlaced(message, 0, 1L);
+        var capture = ArgumentCaptor.forClass(OrderHistory.class);
+        verify(history).save(capture.capture());
+        assertEquals(reason, capture.getValue().getReason());
+        assertEquals(OrderStatus.REJECTED, capture.getValue().getStatus());
+        verify(pricingValidator, times(1)).validateOrderPricing(order);
     }
 }

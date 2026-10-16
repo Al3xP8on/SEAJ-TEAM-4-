@@ -27,12 +27,23 @@ public class PlaceOrderRequest {
     @Positive(message = "Quantity must be positive")
     private int quantity;
     
-    @Schema(description = "Price per unit (must be positive)", example = "150.50")
+    @Schema(description = "Limit price per unit; omit for MARKET orders", example = "150.50")
     @Positive(message = "Price must be positive")
     private BigDecimal price;
     
-    @Schema(description = "Time in force - how long order remains active (defaults to GTC)", example = "GTC")
+    @Schema(description = "Time in force; only GTC is currently supported", example = "GTC")
     private TimeInForce timeInForce = TimeInForce.GTC;
+
+    @NotNull
+    private com.neueda.leap.enums.OrderType orderType = com.neueda.leap.enums.OrderType.LIMIT;
+
+    @jakarta.validation.constraints.Size(max = 100)
+    private String idempotencyKey;
+
+    public com.neueda.leap.enums.OrderType getOrderType() { return orderType; }
+    public void setOrderType(com.neueda.leap.enums.OrderType type) { orderType = type; }
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public void setIdempotencyKey(String key) { idempotencyKey = key; }
 
     public PlaceOrderRequest() {
     }

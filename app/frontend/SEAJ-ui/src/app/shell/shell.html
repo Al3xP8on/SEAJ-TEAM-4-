@@ -1,0 +1,24 @@
+<a class="skip-link" href="#main-content">Skip to main content</a>
+<header class="topbar">
+  <a class="brand" routerLink="/"
+    ><img class="brand-logo logo-light" src="seaj-capital-logo.png" alt="SEAJ Capital" /><img class="brand-logo logo-dark" src="seaj-capital-logo-white.png" alt="SEAJ Capital" /></a
+  >
+  <nav aria-label="Main navigation">
+    <a
+      routerLink="/dashboard"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      ariaCurrentWhenActive="page"
+      >Portfolio</a
+    >
+    <a
+      routerLink="/order"
+      [class.active]="ordersActive()"
+      [attr.aria-current]="ordersActive() ? 'page' : null"
+      >Orders</a
+    >
+  </nav>
+  <nav class="account-nav" aria-label="Account navigation"><a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">Settings</a></nav>
+  <button class="logout" type="button" (click)="logout()">Logout</button>
+</header>
+<div id="main-content" tabindex="-1"><router-outlet /></div>

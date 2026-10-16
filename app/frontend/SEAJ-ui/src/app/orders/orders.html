@@ -1,0 +1,515 @@
+<main [attr.inert]="confirming() || historyOrder() ? '' : null">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">YOUR TRADING DESK</p>
+      <h1>Place an order</h1>
+      <p class="muted">Put your next investment in motion.</p>
+    </div>
+    <span class="live"><span></span> Updates every 10 seconds</span>
+  </div>
+  @if (loading()) {
+    <p class="panel">Loading your trading desk…</p>
+  }
+  @if (error()) {
+    <div class="alert" role="alert">
+      {{ error() }}
+      @if (!accounts().length) {
+        <button type="button" (click)="load()">Retry</button>
+      }
+    </div>
+  }
+  @if (notice()) {
+    <div class="notice" role="status">{{ notice() }}</div>
+  }
+  @if (refreshError()) {
+    <p class="alert" role="status">{{ refreshError() }}</p>
+  }
+  @if (accounts().length) {
+    <div class="workspace">
+      <div class="ticket-column">
+        <section class="panel ticket" aria-labelledby="ticket-title">
+          <div class="section-heading ticket-heading">
+            <div>
+              <p class="eyebrow">NEW TRADE</p>
+              <h2 id="ticket-title">Order ticket</h2>
+            </div>
+            <span class="tag">{{ selectedInstrument()?.currency }}</span>
+          </div>
+          <form #ticket="ngForm" (ngSubmit)="submit(ticket)">
+            <fieldset [disabled]="submitting()">
+              <legend class="sr-only">Order ticket</legend>
+              @if (isAdmin) {
+                <label for="account">Trading account</label>
+                <select
+                  id="account"
+                  name="account"
+                  [(ngModel)]="accountId"
+                  (ngModelChange)="changeAccount()"
+                  required
+                >
+                  @for (a of accounts(); track a.accountId) {
+                    <option [value]="a.accountId">
+                      {{ a.name }} · {{ a.accountId
+                      }}{{ a.status !== 'ACTIVE' ? ' (' + a.status + ')' : '' }}
+                    </option>
+                  }
+                </select>
+              }
+              <label for="instrument">Instrument</label>
+              <div class="instrument-picker" (focusout)="closeInstrumentPicker($event)">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="10.5" cy="10.5" r="6.5" />
+                  <path d="m16 16 4 4" />
+                </svg>
+                <input
+                  id="instrument"
+                  type="text"
+                  role="combobox"
+                  autocomplete="off"
+                  aria-autocomplete="list"
+                  aria-controls="instrument-options"
+                  [attr.aria-expanded]="pickerOpen()"
+                  [attr.aria-activedescendant]="
+                    pickerOpen() && filteredInstruments().length
+                      ? 'instrument-option-' + activeInstrument()
+                      : null
+                  "
+                  placeholder="Search by symbol or instrument name"
+                  [ngModel]="
+                    pickerOpen()
+                      ? instrumentSearch()
+                      : symbol + ' — ' + (selectedInstrument()?.name ?? '')
+                  "
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="searchInstruments($event)"
+                  (focus)="openInstrumentPicker()"
+                  (click)="!pickerOpen() && openInstrumentPicker()"
+                  (keydown)="instrumentKey($event)"
+                />
+                @if (pickerOpen()) {
+                  <div
+                    id="instrument-options"
+                    class="instrument-options"
+                    role="listbox"
+                    aria-label="Instruments"
+                  >
+                    @for (i of filteredInstruments(); track i.symbol; let index = $index) {
+                      <button
+                        type="button"
+                        role="option"
+                        tabindex="-1"
+                        [id]="'instrument-option-' + index"
+                        [attr.aria-selected]="i.symbol === symbol"
+                        [class.active-option]="index === activeInstrument()"
+                        (pointerdown)="$event.preventDefault()"
+                        (click)="selectInstrument(i.symbol)"
+                      >
+                        <strong>{{ i.symbol }}</strong
+                        ><span>{{ i.name }}</span>
+                      </button>
+                    } @empty {
+                      <p class="help">No instruments match your search.</p>
+                    }
+                  </div>
+                }
+              </div>
+              <div class="quote-strip" [attr.data-side]="side">
+                @if (quote(); as q) {
+                  <div [class.selected-quote]="side === 'SELL'">
+                    <span>Bid</span><strong>{{ q.bidPrice | currency }}</strong>
+                  </div>
+                  <div [class.selected-quote]="side === 'BUY'">
+                    <span>Ask</span><strong>{{ q.askPrice | currency }}</strong>
+                  </div>
+                  <div>
+                    <span>As of</span><strong>{{ q.priceTimeStamp | date: 'HH:mm:ss' }}</strong>
+                  </div>
+                } @else {
+                  <p>No current quote. You can still place a limit order.</p>
+                }
+              </div>
+              <div class="form-row">
+                <div>
+                  <span class="field-label" id="direction-label">Direction</span>
+                  <div class="side-switch" role="group" aria-labelledby="direction-label">
+                    <button
+                      type="button"
+                      class="buy-option"
+                      [attr.aria-pressed]="side === 'BUY'"
+                      (click)="side = 'BUY'; edited()"
+                    >
+                      Buy
+                    </button>
+                    <button
+                      type="button"
+                      class="sell-option"
+                      [attr.aria-pressed]="side === 'SELL'"
+                      (click)="side = 'SELL'; edited()"
+                    >
+                      Sell
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label for="type">Order type</label
+                  ><select id="type" name="type" [(ngModel)]="orderType" (ngModelChange)="edited()">
+                    <option value="MARKET">Market</option>
+                    <option value="LIMIT">Limit</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row" [class.market-quantity]="orderType === 'MARKET'">
+                <div>
+                  <label for="quantity" class="quantity-label">
+                    Quantity <span>Whole units</span></label
+                  ><input
+                    id="quantity"
+                    name="quantity"
+                    type="number"
+                    min="1"
+                    max="2147483647"
+                    step="1"
+                    required
+                    [(ngModel)]="quantity"
+                    (ngModelChange)="edited()"
+                  />
+                </div>
+                @if (orderType === 'LIMIT') {
+                  <div>
+                    <label for="price">Limit price ($)</label
+                    ><input
+                      id="price"
+                      name="price"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      required
+                      [(ngModel)]="limitPrice"
+                      (ngModelChange)="edited()"
+                      placeholder="0.00"
+                    />
+                  </div>
+                }
+              </div>
+              <p class="help">
+                @if (orderType === 'MARKET') {
+                  Market orders use the available quote. The final execution price may differ.
+                } @else {
+                  {{ side === 'BUY' ? 'Buy at or below' : 'Sell at or above' }} your limit. Your
+                  order stays pending until a matching quote is available or you cancel it.
+                }
+              </p>
+              <div class="estimate">
+                <div class="estimate-total">
+                  <span>{{
+                    orderType === 'MARKET' ? 'Estimated order value' : 'Value at limit price'
+                  }}</span>
+                  <strong>{{ unitPrice() === null ? '—' : (estimatedTotal() | currency) }}</strong>
+                </div>
+                <p class="estimate-detail">
+                  {{ quantity ?? 0 | number }} {{ quantity === 1 ? 'unit' : 'units' }} ×
+                  {{ unitPrice() === null ? '—' : (unitPrice() | currency) }}
+                </p>
+                <div class="estimate-available">
+                  <span>
+                    {{ side === 'BUY' ? 'Available cash' : 'Available units' }}
+                    <small>After pending orders</small>
+                  </span>
+                  <strong>
+                    @if (side === 'BUY') {
+                      {{ availableCash() | currency }}
+                    } @else {
+                      {{ availableHolding() | number }}
+                    }
+                  </strong>
+                </div>
+              </div>
+              @if (review) {
+                <div class="review" role="status">
+                  <strong>Review your {{ side.toLowerCase() }} order</strong>
+                  <p>
+                    {{ quantity }} units of {{ symbol }} · {{ orderType.toLowerCase() }} ·
+                    {{ accountId }}
+                  </p>
+                  <p>Good till cancelled. Check these details before submitting.</p>
+                </div>
+              }
+              <button
+                class="primary full"
+                type="submit"
+                [disabled]="
+                  loading() ||
+                  !account() ||
+                  account()?.status !== 'ACTIVE' ||
+                  (orderType === 'MARKET' && !quote())
+                "
+              >
+                {{
+                  submitting()
+                    ? 'Submitting…'
+                    : review
+                      ? 'Confirm ' + side.toLowerCase() + ' order'
+                      : 'Review ' + side.toLowerCase() + ' order'
+                }}
+                @if (!submitting()) {
+                  <span aria-hidden="true">→</span>
+                }
+              </button>
+              @if (review) {
+                <button class="quiet full" type="button" (click)="review = false">
+                  Back to editing
+                </button>
+              }
+            </fieldset>
+          </form>
+        </section>
+        @if (marketSymbol()) {
+          <ng-container [ngTemplateOutlet]="marketData.overviewTemplate() ?? null" />
+        }
+      </div>
+      <aside class="portfolio">
+        <section class="panel balance-panel">
+          <p class="eyebrow">ACCOUNT CASH</p>
+          <p class="cash">{{ account()?.cashBalance ?? 0 | currency }}</p>
+          <p class="muted">{{ account()?.holderName }} · {{ accountId }}</p>
+          <hr />
+          <div class="section-heading cash-reserved">
+            <span>Reserved for pending buys</span><strong>{{ reservedCash() | currency }}</strong>
+          </div>
+          <div class="section-heading cash-available">
+            <span>Available for orders</span><strong>{{ availableCash() | currency }}</strong>
+          </div>
+          <p class="help balance-help">
+            Account cash minus reserved cash is available for new orders.
+          </p>
+        </section>
+        <app-market-data
+          #marketData
+          [instruments]="instruments()"
+          [selectedSymbol]="marketSymbol()"
+          [showOverview]="!marketSymbol()"
+          (choose)="selectInstrument($event)"
+        />
+        <div class="desk-note">
+          <span>↗</span>
+          <div>
+            <strong>A little clarity before you trade</strong>
+            <p>
+              Only whole units are supported. Our execution engine uses live Alpaca bid and ask
+              prices.
+            </p>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <section class="panel orders-panel" aria-labelledby="orders-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="orders-title">{{ isAdmin ? 'All account orders' : 'Your orders' }}</h2>
+          <p class="muted">{{ pendingCount() }} pending · Status updates automatically</p>
+        </div>
+        <button type="button" class="quiet" (click)="refresh()">Refresh</button>
+      </div>
+      <div class="filters">
+        <input
+          aria-label="Search orders"
+          placeholder="Search symbol, name or order ID"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+        />
+        <select
+          aria-label="Filter order status"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="statusFilter.set($event)"
+        >
+          <option value="ALL">All statuses</option>
+          <option value="PENDING">Pending</option>
+          <option value="FILLED">Filled</option>
+          <option value="CANCELLED">Cancelled</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+        @if (isAdmin) {
+          <select
+            aria-label="Filter account"
+            [ngModel]="accountFilter()"
+            (ngModelChange)="accountFilter.set($event)"
+          >
+            <option value="">All accounts</option>
+            @for (a of accounts(); track a.accountId) {
+              <option [value]="a.accountId">{{ a.name }} · {{ a.accountId }}</option>
+            }
+          </select>
+        }
+      </div>
+      <div class="table-scroll" role="region" aria-label="Order data table" tabindex="0">
+        <table class="order-table">
+          <caption class="sr-only">
+            Orders matching the current filters, including prices, status and available actions
+          </caption>
+          <thead>
+            <tr>
+              <th>Instrument</th>
+              @if (isAdmin) {
+                <th>Account</th>
+              }
+              <th>Side / type</th>
+              <th class="num">Units</th>
+              <th class="num">Order price</th>
+              <th class="num">Fill price</th>
+              <th>Status</th>
+              <th>Placed</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (o of visibleOrders(); track o.orderId) {
+              <tr>
+                <td>
+                  <strong>{{ o.ticker }}</strong
+                  ><small>{{ o.instrumentName }}</small>
+                </td>
+                @if (isAdmin) {
+                  <td>
+                    {{ o.accountHolderName }}<small>{{ o.accountId }}</small>
+                  </td>
+                }
+                <td>
+                  <span [class.sell]="o.side === 'SELL'" class="direction">{{ o.side }}</span
+                  ><small>{{ o.orderType === 'MARKET' ? 'Market' : 'Limit' }}</small>
+                </td>
+                <td class="num">{{ o.quantity | number }}</td>
+                <td class="num">
+                  {{ o.price | currency }}
+                  @if (o.orderType === 'MARKET') {
+                    <small>Initial estimate</small>
+                  }
+                </td>
+                <td class="num">
+                  @if (o.executionPrice !== null) {
+                    {{ o.executionPrice | currency }}
+                  } @else {
+                    —
+                  }
+                </td>
+                <td>
+                  <span class="badge" [attr.data-status]="o.status">{{
+                    statusLabel(o.status)
+                  }}</span>
+                </td>
+                <td>
+                  {{ o.createdAt | date: 'MMM d'
+                  }}<small>{{ o.createdAt | date: 'HH:mm:ss' }}</small>
+                </td>
+                <td class="row-actions">
+                  <button type="button" class="text-button" (click)="showHistory(o)">
+                    {{ o.status === 'REJECTED' ? 'View reason' : 'Details' }}
+                  </button>
+                  @if (isPending(o)) {
+                    <button
+                      type="button"
+                      class="text-button danger"
+                      [disabled]="!!actionId()"
+                      (click)="confirming.set(o); rejectionReason = ''"
+                    >
+                      Cancel{{ isAdmin ? ' / reject' : '' }}
+                    </button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="9" class="empty">No orders match this view.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</main>
+<footer [attr.inert]="confirming() || historyOrder() ? '' : null">
+  © 2026 SEAJ Capital <span>Trade with a clearer view.</span>
+</footer>
+@if (confirming(); as o) {
+  <div class="modal-backdrop">
+    <section class="modal panel" role="dialog" aria-modal="true" aria-labelledby="cancel-title">
+      <h2 id="cancel-title">Cancel pending order?</h2>
+      <p>{{ o.side }} {{ o.quantity }} {{ o.ticker }} · {{ o.accountId }}</p>
+      <p class="help">
+        Cancellation is available until the order fills. A fill may complete while this dialog is
+        open.
+      </p>
+      @if (error()) {
+        <p class="alert" role="alert">{{ error() }}</p>
+      }
+      <div class="modal-actions">
+        <button
+          type="button"
+          class="quiet"
+          [disabled]="!!actionId()"
+          (click)="confirming.set(null)"
+        >
+          Keep order</button
+        ><button type="button" class="primary" [disabled]="!!actionId()" (click)="cancel(o)">
+          {{ actionId() ? 'Updating…' : 'Cancel order' }}
+        </button>
+      </div>
+      @if (isAdmin) {
+        <hr />
+        <label for="rejection-reason">Admin rejection reason</label
+        ><input
+          id="rejection-reason"
+          maxlength="500"
+          [(ngModel)]="rejectionReason"
+          placeholder="Explain why this order is rejected"
+        /><button
+          type="button"
+          class="text-button danger"
+          [disabled]="!rejectionReason.trim() || !!actionId()"
+          (click)="reject(o)"
+        >
+          Reject order
+        </button>
+      }
+    </section>
+  </div>
+}
+@if (historyOrder(); as o) {
+  <div class="modal-backdrop">
+    <section class="modal panel" role="dialog" aria-modal="true" aria-labelledby="history-title">
+      <div class="section-heading">
+        <h2 id="history-title">{{ o.ticker }} order details</h2>
+        <button class="quiet" type="button" (click)="historyOrder.set(null)">Close</button>
+      </div>
+      <p class="muted">{{ o.side }} {{ o.quantity }} units · {{ o.accountId }}</p>
+      <p class="order-id">{{ o.orderId }}</p>
+      @if (historyLoading()) {
+        <p>Loading timeline…</p>
+      }
+      @if (historyError()) {
+        <p class="alert" role="alert">{{ historyError() }}</p>
+      }
+      @if (historyRejectionReason(); as reason) {
+        <div class="alert rejection-reason" role="status">
+          <strong>Order rejected</strong>
+          <p>{{ reason }}</p>
+        </div>
+      }
+      <ol class="timeline">
+        @for (entry of history(); track $index) {
+          <li>
+            <strong>{{ entry.status === 'NEW' ? 'Created' : statusLabel(entry.status) }}</strong
+            ><span>{{ entry.timestamp | date: 'medium' }}</span>
+            @if (entry.reason) {
+              <p>{{ entry.reason }}</p>
+            }
+          </li>
+        } @empty {
+          @if (!historyLoading() && !historyError()) {
+            <li>No timeline entries available.</li>
+          }
+        }
+      </ol>
+    </section>
+  </div>
+}

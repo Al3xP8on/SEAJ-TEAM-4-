@@ -1,71 +1,97 @@
-<header>
-  <h1>SEAJ Capital</h1>
-  <button type="button" class="logout-btn" (click)="logout()">Logout</button>
-</header>
-
 <main>
-  <div class="dashboard">
-    @if (loading()) {
-      <p class="status">Loading your account…</p>
-    } @else if (error()) {
-      <div class="card error-card" role="alert">
-        <p>{{ error() }}</p>
-        <button type="button" class="submit-btn retry-btn" (click)="load()">Try again</button>
-      </div>
-    } @else if (account(); as account) {
-      <h2 class="welcome">Welcome, {{ account.holderName }}</h2>
-
-      <div class="cards">
-        <section class="card balance-card" aria-labelledby="balance-title">
-          <h3 id="balance-title">Cash Balance</h3>
-          <p class="balance">{{ account.cashBalance | currency: 'USD' }}</p>
-          <p class="caption">Account {{ account.accountId }}</p>
-        </section>
-
-        <section class="card positions-card" aria-labelledby="positions-title">
-          <h3 id="positions-title">Positions</h3>
-
-          @if (holdings().length > 0) {
-            <table class="positions-table">
-              <thead>
-                <tr>
-                  <th scope="col">Symbol</th>
-                  <th scope="col" class="num">Quantity</th>
-                  <th scope="col" class="num">Avg Cost</th>
-                  <th scope="col" class="num">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (holding of holdings(); track holding.positionId) {
-                  <tr>
-                    <td class="symbol">{{ holding.symbol }}</td>
-                    <td class="num">{{ holding.quantity | number }}</td>
-                    <td class="num">{{ holding.averageCost | currency: 'USD' }}</td>
-                    <td class="num">{{ holding.value | currency: 'USD' }}</td>
-                  </tr>
-                }
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th scope="row" colspan="3">Total</th>
-                  <td class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
-                </tr>
-              </tfoot>
-            </table>
-          } @else {
-            <p class="empty">You don't hold any positions yet.</p>
-          }
-        </section>
-      </div>
-    }
-
-    <div class="actions">
-      <button type="button" class="submit-btn" (click)="goToOrderTicket()">Place Order</button>
-      <button type="button" class="secondary-btn" (click)="goToBlotter()">Order History</button>
+  @if (loading()) {
+    <p class="status" role="status">Loading your account…</p>
+  } @else if (error()) {
+    <div class="panel error-panel" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" class="primary" (click)="load()">Try again</button>
     </div>
-  </div>
+  } @else if (account(); as account) {
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">YOUR ACCOUNT</p>
+        <h1 class="welcome">Welcome, {{ account.holderName }}</h1>
+        <p class="muted">Account {{ account.accountId }}</p>
+      </div>
+      <div class="actions">
+        <button type="button" class="primary" (click)="goToOrderTicket()">Place Order</button>
+        <button type="button" class="quiet" (click)="goToBlotter()">Order History</button>
+      </div>
+    </div>
+
+    <div class="summary">
+      <section hlmCard class="cash-card" aria-labelledby="cash-title">
+        <div hlmCardHeader>
+          <h2 hlmCardTitle id="cash-title" class="eyebrow">CASH BALANCE</h2>
+        </div>
+        <div hlmCardContent>
+          <p class="balance">{{ account.cashBalance | currency: 'USD' }}</p>
+          <p class="muted">Available to trade</p>
+        </div>
+      </section>
+
+      <section hlmCard aria-labelledby="holdings-title">
+        <div hlmCardHeader>
+          <h2 hlmCardTitle id="holdings-title" class="eyebrow">HOLDINGS VALUE</h2>
+        </div>
+        <div hlmCardContent>
+          <p class="figure holdings-value">{{ holdingsValue() | currency: 'USD' }}</p>
+          <p class="muted">{{ holdings().length }} {{ holdings().length === 1 ? 'holding' : 'holdings' }}, at cost</p>
+        </div>
+      </section>
+
+      <section hlmCard aria-labelledby="total-title">
+        <div hlmCardHeader>
+          <h2 hlmCardTitle id="total-title" class="eyebrow">TOTAL PORTFOLIO</h2>
+        </div>
+        <div hlmCardContent>
+          <p class="figure total-value">{{ totalValue() | currency: 'USD' }}</p>
+          <p class="muted">Cash + holdings</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel positions-panel" aria-labelledby="positions-title">
+      <div class="section-heading">
+        <h2 id="positions-title">Positions</h2>
+        <span class="tag">{{ holdings().length }} {{ holdings().length === 1 ? 'holding' : 'holdings' }}</span>
+      </div>
+
+      @if (holdings().length > 0) {
+        <div class="table-scroll">
+          <table class="positions-table">
+            <caption class="sr-only">Current positions with quantities, average costs and values in US dollars</caption>
+            <thead>
+              <tr>
+                <th scope="col">Symbol</th>
+                <th scope="col" class="num">Quantity</th>
+                <th scope="col" class="num">Avg cost</th>
+                <th scope="col" class="num">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (holding of holdings(); track holding.positionId) {
+                <tr>
+                  <th scope="row" class="symbol">{{ holding.symbol }}</th>
+                  <td class="num">{{ holding.quantity | number }}</td>
+                  <td class="num">{{ holding.averageCost | currency: 'USD' }}</td>
+                  <td class="num">{{ holding.value | currency: 'USD' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row" colspan="3">Total</th>
+                <td class="num total">{{ holdingsValue() | currency: 'USD' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      } @else {
+        <p class="empty">You don't hold any positions yet.</p>
+      }
+    </section>
+  }
 </main>
 
-<footer>
-  <p>© 2026 SEAJ Capital. All rights reserved.</p>
-</footer>
+<footer>© 2026 SEAJ Capital <span>Trade with a clearer view.</span></footer>

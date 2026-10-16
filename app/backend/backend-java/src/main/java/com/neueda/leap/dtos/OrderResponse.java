@@ -66,26 +66,18 @@ public record OrderResponse (
 
     @Schema(description = "Order creation timestamp", example = "2026-09-22T10:15:00Z")
     @NotNull(message = "Creation time must not be null")
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    com.neueda.leap.enums.OrderType orderType,
+    BigDecimal executionPrice
 
 ){
 
     public OrderResponse(String orderId, String accountId, String accountHolderName,
-                        String ticker, String instrumentName, long quantity, BigDecimal price,
-                        BigDecimal totalValue, OrderSide side, OrderStatus status,
-                        String idempotencyKey, LocalDateTime createdAt) {
-        this.orderId = orderId;
-        this.accountId = accountId;
-        this.accountHolderName = accountHolderName;
-        this.ticker = ticker;
-        this.instrumentName = instrumentName;
-        this.quantity = quantity;
-        this.price = price;
-        this.totalValue = totalValue;
-        this.side = side;
-        this.status = status;
-        this.idempotencyKey = idempotencyKey;
-        this.createdAt = createdAt;
+                         String ticker, String instrumentName, long quantity, BigDecimal price,
+                         BigDecimal totalValue, OrderSide side, OrderStatus status,
+                         String idempotencyKey, LocalDateTime createdAt) {
+        this(orderId, accountId, accountHolderName, ticker, instrumentName, quantity, price,
+             totalValue, side, status, idempotencyKey, createdAt, com.neueda.leap.enums.OrderType.LIMIT, null);
     }
 
     /** Maps an order entity to the API response, without exposing the full account or instrument */
@@ -105,7 +97,9 @@ public record OrderResponse (
             order.getSide(),
             order.getStatus(),
             order.getIdempotencyKey(),
-            order.getCreatedAt()
+            order.getCreatedAt(),
+            order.getOrderType(),
+            order.getExecutionPrice()
         );
     }
 }

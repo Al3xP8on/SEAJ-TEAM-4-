@@ -31,7 +31,7 @@ public class MarketDataConsumer {
         this.objectMapper.registerModule(new JavaTimeModule());
     }
     
-    @KafkaListener(topics = "market-data", groupId = "market-data-consumer-group")
+    @KafkaListener(topics = "${trading.kafka.topics.market-data:market-data}", groupId = "market-data-consumer-group")
     public void consumeMarketData(
             @Payload String message,
             @Header(KafkaHeaders.RECEIVED_KEY) String symbol) {
@@ -65,6 +65,9 @@ public class MarketDataConsumer {
             if (payloadSymbol == null || bidPrice == null || askPrice == null || lastPrice == null) {
                 throw new PoisonMessageException("Missing required fields in market data payload");
             }
+            if (eventEnvelope.eventType() != EventType.PRICE_UPDATE) return;
+            Object source = payload.get("source");
+            if (source == null || !java.util.Set.of("ALPACA_IEX", "ALPACA_SIP").contains(source)) return;
             
             // Convert objects to appropriate types
             MarketPrice marketPrice = new MarketPrice(
@@ -74,6 +77,8 @@ public class MarketDataConsumer {
                 toBigDecimal(lastPrice),
                 toInstant(timestamp)
             );
+            if (marketPrice.bidPrice().signum() <= 0 || marketPrice.askPrice().compareTo(marketPrice.bidPrice()) < 0
+                    || marketPrice.lastPrice().signum() <= 0) throw new PoisonMessageException("Invalid Alpaca quote prices");
             
             // Store the latest price
             latestPriceStore.updatePrice(marketPrice);
@@ -90,7 +95,7 @@ public class MarketDataConsumer {
         if (value instanceof java.math.BigDecimal bd) {
             return bd;
         } else if (value instanceof Number num) {
-            return java.math.BigDecimal.valueOf(num.doubleValue());
+            return new java.math.BigDecimal(num.toString());
         } else if (value instanceof String str) {
             return new java.math.BigDecimal(str);
         }
@@ -100,13 +105,18 @@ public class MarketDataConsumer {
     private Instant toInstant(Object value) {
         if (value instanceof Instant instant) {
             return instant;
-        } else if (value instanceof Long timestamp) {
-            return Instant.ofEpochMilli(timestamp);
-        } else if (value instanceof Double dbl) {
-            return Instant.ofEpochMilli(dbl.longValue());
+        } else if (value instanceof Number number) {
+            java.math.BigDecimal timestamp = new java.math.BigDecimal(number.toString());
+            // Legacy feeds use epoch milliseconds; Jackson's Instant serializer uses decimal seconds.
+            if (timestamp.abs().compareTo(new java.math.BigDecimal("100000000000")) >= 0) {
+                return Instant.ofEpochMilli(timestamp.longValue());
+            }
+            long seconds = timestamp.longValue();
+            long nanos = timestamp.subtract(java.math.BigDecimal.valueOf(seconds)).movePointRight(9).longValue();
+            return Instant.ofEpochSecond(seconds, nanos);
         } else if (value instanceof String str) {
             return Instant.parse(str);
         }
-        return Instant.now();
+        throw new IllegalArgumentException("Market data must include its original quote timestamp");
     }
 }

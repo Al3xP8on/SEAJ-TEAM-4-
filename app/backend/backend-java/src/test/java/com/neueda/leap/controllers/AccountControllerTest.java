@@ -89,37 +89,11 @@ class AccountControllerTest {
         assertEquals(status, response.getStatusCode().value());
         assertFalse(response.getBody().toString().contains("sensitive"));
     }
-    @Test void returnsNoContentAfterDeletingAccount() throws Exception {
-        Account account = mock(Account.class);
-        when(account.getId()).thenReturn(1L);
-        when(service.getAccountByIdentifier("ACC-001")).thenReturn(account);
-
+    @Test void rejectsDirectDeletionThatWouldBypassEmailVerification() {
         var response = controller().deleteAccount("ACC-001");
-
-        assertEquals(204, response.getStatusCode().value());
-        assertNull(response.getBody());
-        verify(service).deleteAccount(1L);
-    }
-    @Test void returnsNotFoundWhenDeletingMissingAccount() throws Exception {
-        when(service.getAccountByIdentifier("ACC-001")).thenThrow(new AccountNotFoundException("missing"));
-
-        var response = controller().deleteAccount("ACC-001");
-
-        assertEquals(404, response.getStatusCode().value());
-        assertEquals("missing", response.getBody());
-        verify(service, never()).deleteAccount(anyLong());
-    }
-    @Test void reportsUnexpectedDeletionFailure() throws Exception {
-        Account account = mock(Account.class);
-        when(account.getId()).thenReturn(1L);
-        when(service.getAccountByIdentifier("ACC-001")).thenReturn(account);
-        doThrow(new IllegalStateException("offline")).when(service).deleteAccount(1L);
-
-        var response = controller().deleteAccount("ACC-001");
-
-        assertEquals(500, response.getStatusCode().value());
-        assertEquals("offline", response.getBody());
-        verify(service).deleteAccount(1L);
+        assertEquals(403, response.getStatusCode().value());
+        assertTrue(response.getBody().toString().contains("email-verified"));
+        verifyNoInteractions(service);
     }
     @Test void listsAccountsAndHandlesRepositoryFailure() {
         // Mock admin user
@@ -131,6 +105,16 @@ class AccountControllerTest {
         var response = controller().getAllAccounts();
         assertEquals(500, response.getStatusCode().value());
         assertEquals("Error retrieving accounts: offline", response.getBody());
+    }
+
+    @Test void nonAdminGetAllAccountsReturnsOnlyOwnAccount() {
+        Account account = mock(Account.class);
+        AccountController controller = controller();
+        when(securityUtilsService.isAdmin()).thenReturn(false);
+        when(securityUtilsService.getAuthenticatedUserAccount()).thenReturn(account);
+        var response = controller.getAllAccounts();
+        assertEquals(200, response.getStatusCode().value());
+        assertTrue(((List<?>) response.getBody()).contains(account));
     }
     @Test void returnsIndividualAccountResources() throws Exception {
         Account account = mock(Account.class);
@@ -155,6 +139,24 @@ class AccountControllerTest {
         assertEquals("AAPL", controller.getPositions("ACC-001").getBody().get(0).symbol());
         assertEquals(OrderStatus.FILLED, controller.getOrders("ACC-001").getBody().status());
     }
+    @Test void nonAdminCanOnlyAccessOwnAccount() throws Exception {
+        Account account = mock(Account.class);
+        when(account.getId()).thenReturn(1L);
+        when(account.getAccountId()).thenReturn("ACC-001");
+        when(account.getName()).thenReturn("Alice");
+        when(service.getAccountByIdentifier("ACC-001")).thenReturn(account);
+        when(service.getBalance(1L)).thenReturn(BigDecimal.TEN);
+        when(service.getPositions(1L)).thenReturn(List.of());
+        when(service.getOrders(1L)).thenReturn(mock(OrderHistory.class));
+        AccountController controller = controller();
+        when(securityUtilsService.isAdmin()).thenReturn(false);
+        // Should call validateAccountOwnership for non-admin
+        assertEquals(200, controller.getAccount("ACC-001").getStatusCode().value());
+        assertEquals(200, controller.getBalance("ACC-001").getStatusCode().value());
+        assertEquals(200, controller.getPositions("ACC-001").getStatusCode().value());
+        verify(securityUtilsService, atLeast(3)).validateAccountOwnership("ACC-001");
+    }
+
     @Test void returnsNotFoundForMissingAccountResources() throws Exception {
         when(service.getAccountByIdentifier("ACC-001")).thenThrow(new AccountNotFoundException("missing"));
         AccountController controller = controller();

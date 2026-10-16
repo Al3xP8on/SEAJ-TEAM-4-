@@ -51,6 +51,11 @@ public class KafkaConfig {
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        configProps.put(ProducerConfig.ACKS_CONFIG, "all");
+        configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        configProps.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000);
+        configProps.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 5000);
+        configProps.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 15000);
         
         return new DefaultKafkaProducerFactory<>(configProps);
     }
@@ -74,6 +79,11 @@ public class KafkaConfig {
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        configProps.put(ProducerConfig.ACKS_CONFIG, "all");
+        configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        configProps.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000);
+        configProps.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 5000);
+        configProps.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 15000);
         
         return new DefaultKafkaProducerFactory<>(configProps);
     }

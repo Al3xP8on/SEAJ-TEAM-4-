@@ -5,6 +5,7 @@ CREATE TABLE order_history (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     order_id        UUID NOT NULL REFERENCES orders(id),
     status          order_status NOT NULL,
+    reason          VARCHAR(500),
     changed_on      TIMESTAMP NOT NULL DEFAULT NOW(),
     note            TEXT
 );

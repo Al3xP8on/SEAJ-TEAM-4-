@@ -2,8 +2,13 @@
 // Keeps password hashes out of normal queries and serialization while mapping required insert values.
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 import { Exclude } from 'class-transformer';
+export interface BankDetails { id?: string; bank_name: string; holder_name: string; account_number: string; routing_number: string; expiry_month?: number; expiry_year?: number; kind?: string; }
+export interface CashTransfer { id: string; action: 'deposit' | 'withdraw'; amount: string; bank_name: string; account_last4: string; created_at: string; status: 'Completed'; }
 @Entity('accounts')
 export class User {
+  @Exclude() @Column({ name: 'saved_cards', type: 'jsonb', default: () => "'[]'::jsonb" }) savedCards: BankDetails[];
+  @Exclude() @Column({ name: 'bank_details', type: 'jsonb', nullable: true, select: false }) bankDetails: BankDetails | null;
+  @Column({ name: 'cash_transfers', type: 'jsonb', default: () => "'[]'::jsonb" }) cashTransfers: CashTransfer[];
   @PrimaryGeneratedColumn({ type: 'bigint' }) id: string;
   @Column({ name: 'account_id', length: 32 })
   accountId: string;

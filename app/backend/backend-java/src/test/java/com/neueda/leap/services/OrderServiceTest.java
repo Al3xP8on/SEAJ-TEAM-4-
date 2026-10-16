@@ -31,6 +31,11 @@ import static org.mockito.Mockito.*;
 @DisplayName("OrderService Tests")
 public class OrderServiceTest {
 
+    @Mock private MarketPriceService prices;
+    @Mock private OrderSettlementService settlement;
+
+    @Mock jakarta.persistence.EntityManager entityManager;
+    @org.mockito.Mock com.neueda.leap.messaging.OrderEventOutbox outbox;
     @InjectMocks
     private OrderService orderService;
 
@@ -91,30 +96,22 @@ public class OrderServiceTest {
     @Test
     @DisplayName("Should execute an order successfully")
     void testExecuteOrderSuccess() {
-        UUID orderId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
-        Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.PENDING, LocalDateTime.now());
-        Order executedOrder = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.FILLED, LocalDateTime.now());
-
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-        when(orderRepository.save(any(Order.class))).thenReturn(executedOrder);
-
-        Order result = orderService.executeOrder(orderId);
-
-        assertNotNull(result);
-        assertEquals(OrderStatus.FILLED, result.getStatus());
-        verify(orderRepository).findById(orderId);
-        verify(orderRepository).save(any(Order.class));
-        verify(orderHistoryRepository).save(any(OrderHistory.class));
+        UUID id = UUID.randomUUID();
+        Order order = new Order(id, account, instrument, 10, new BigDecimal("150.50"), OrderSide.BUY, "manual", OrderStatus.PENDING, LocalDateTime.now());
+        when(orderRepository.findByIdForUpdate(id)).thenReturn(Optional.of(order));
+        assertEquals(OrderStatus.PENDING, orderService.executeOrder(id).getStatus());
+        verify(outbox).command(order, "SUBMIT");
+        verifyNoInteractions(settlement, prices);
     }
 
     @Test
     @DisplayName("Should throw OrderException when executing non-existent order")
     void testExecuteOrderNotFound() {
         UUID orderId = UUID.randomUUID();
-        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.empty());
 
         assertThrows(OrderException.class, () -> orderService.executeOrder(orderId));
-        verify(orderRepository).findById(orderId);
+        verify(orderRepository).findByIdForUpdate(orderId);
         verify(orderRepository, never()).save(any(Order.class));
     }
 
@@ -125,14 +122,14 @@ public class OrderServiceTest {
         Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
         Order cancelledOrder = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.CANCELLED, LocalDateTime.now());
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenReturn(cancelledOrder);
 
         Order result = orderService.cancelOrder(orderId);
 
         assertNotNull(result);
         assertEquals(OrderStatus.CANCELLED, result.getStatus());
-        verify(orderRepository).findById(orderId);
+        verify(orderRepository).findByIdForUpdate(orderId);
         verify(orderRepository).save(any(Order.class));
         verify(orderHistoryRepository).save(any(OrderHistory.class));
     }
@@ -141,10 +138,10 @@ public class OrderServiceTest {
     @DisplayName("Should throw OrderException when cancelling non-existent order")
     void testCancelOrderNotFound() {
         UUID orderId = UUID.randomUUID();
-        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.empty());
 
         assertThrows(OrderException.class, () -> orderService.cancelOrder(orderId));
-        verify(orderRepository).findById(orderId);
+        verify(orderRepository).findByIdForUpdate(orderId);
     }
 
     @Test
@@ -154,14 +151,14 @@ public class OrderServiceTest {
         Order order = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.NEW, LocalDateTime.now());
         Order rejectedOrder = new Order(orderId, account, instrument, 100, new BigDecimal("150.50"), OrderSide.BUY, "idem-key", OrderStatus.REJECTED, LocalDateTime.now());
 
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenReturn(rejectedOrder);
 
         Order result = orderService.rejectOrder(orderId, "Insufficient funds");
 
         assertNotNull(result);
         assertEquals(OrderStatus.REJECTED, result.getStatus());
-        verify(orderRepository).findById(orderId);
+        verify(orderRepository).findByIdForUpdate(orderId);
         verify(orderRepository).save(any(Order.class));
         verify(orderHistoryRepository).save(any(OrderHistory.class));
     }

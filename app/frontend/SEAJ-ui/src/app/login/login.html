@@ -1,7 +1,16 @@
 <!-- Presents registration, username login and six-digit email verification in Angular.
      Uses the existing page styling and displays safe status messages without exposing tokens. -->
 <header>
-  <h1>SEAJ Capital</h1>
+  <div class="brand-lockup">
+    <a class="logo-link" routerLink="/" aria-label="Go to SEAJ Capital landing page">
+      <img class="site-logo logo-light" src="seaj-capital-logo.png" alt="" />
+      <img class="site-logo logo-dark" src="seaj-capital-logo-white.png" alt="" />
+    </a>
+  </div>
+  <span class="brand-title">SEAJ Capital</span>
+  <nav>
+    <a class="nav-btn" routerLink="/">Back to Landing</a>
+  </nav>
 </header>
 
 <main>
@@ -40,7 +49,7 @@
       </div>
       <div class="form-group">
         <label for="regEmail">Email</label>
-        <input id="regEmail" type="email" [(ngModel)]="regEmail" name="regEmail" required
+        <input id="regEmail" type="email" [(ngModel)]="regEmail" name="regEmail" required maxlength="255"
           placeholder="your@email.com" />
       </div>
       <div class="form-group">

@@ -4,7 +4,6 @@ import java.time.ZonedDateTime;
 import java.math.BigDecimal;
 import java.util.Objects;
 
-import com.neueda.leap.exceptions.InvalidSymbolException;
 import com.neueda.leap.validators.SymbolPriceValidator;
 
 
@@ -60,10 +59,4 @@ public class SymbolPrice {
         return Objects.hash(symbol, price, timestamp);
     }
 
-    private String validateSymbol(String symbol){
-        if(symbol == null || symbol.trim().isEmpty()){
-            throw new InvalidSymbolException("Invalid symbol: " + symbol);
-        }
-        return symbol;
-    }
 }

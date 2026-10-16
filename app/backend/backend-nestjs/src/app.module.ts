@@ -1,5 +1,9 @@
 // Wires the authentication service to environment configuration and the shared PostgreSQL database.
 // Registers account, session and email-challenge entities and runs the authentication migrations.
+import { AccountSettings1791982800000 } from './migrations/account-settings.migration';
+import { EmailChange1791986400000 } from './migrations/email-change.migration';
+import { SavedCards1791990000000 } from './migrations/saved-cards.migration';
+import { AccountDeletion1791993600000 } from './migrations/account-deletion.migration';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -32,6 +36,10 @@ import { AccountRoles1791896400000 } from './migrations/align-account-roles.migr
           AuthSessions1791763200000,
           EmailVerification1791849600000,
           AccountRoles1791896400000,
+          AccountSettings1791982800000,
+          EmailChange1791986400000,
+          SavedCards1791990000000,
+          AccountDeletion1791993600000,
         ],
         migrationsRun: true,
         synchronize: false,

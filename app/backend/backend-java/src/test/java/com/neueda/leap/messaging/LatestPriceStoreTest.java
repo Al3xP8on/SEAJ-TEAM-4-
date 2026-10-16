@@ -32,7 +32,7 @@ class LatestPriceStoreTest {
         assertFalse(store.isNotStale(null));
         assertTrue(store.isStale(price(Instant.now().minusSeconds(120))));
         assertTrue(store.isNotStale(price(Instant.now())));
-        assertTrue(store.isNotStale(price(Instant.now().plusSeconds(120))));
+        assertTrue(store.isStale(price(Instant.now().plusSeconds(120))));
     }
     @Test void reportsAgeAndRemovesPrices() {
         store.updatePrice(price(Instant.now().minusSeconds(120)));
@@ -45,10 +45,9 @@ class LatestPriceStoreTest {
         assertEquals(0, store.getSize());
         assertTrue(store.getPriceIfNotStale("AAPL").isEmpty());
     }
-    @Test void currentlyReturnsStoredPricesEvenWhenStale() {
-        // Staleness filtering is explicitly disabled in the production store.
+    @Test void doesNotUseStalePricesForOrders() {
         MarketPrice stale = price(Instant.now().minusSeconds(120));
         store.updatePrice(stale);
-        assertSame(stale, store.getPriceIfNotStale("AAPL").orElseThrow());
+        assertTrue(store.getPriceIfNotStale("AAPL").isEmpty());
     }
 }
