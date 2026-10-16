@@ -370,14 +370,6 @@ describe('DashboardComponent', () => {
     expect(page.querySelector('.buying-power')?.textContent?.trim()).toBe('$7,500.00');
   });
 
-  it('passes holdings, totals and reserved cash to the portfolio check', async () => {
-    const { page } = await render();
-
-    // AAPL is 31.2% of the $29,203.25 portfolio and MSFT 28.4%, both above 25%
-    const warnings = Array.from(page.querySelectorAll('app-portfolio-check .check.warning p'));
-    expect(warnings.map((p) => p.textContent?.trim().split(' ')[0])).toEqual(['AAPL', 'MSFT']);
-  });
-
   it('shows a message instead of the order list when there are no orders', async () => {
     dashboard.load.mockReturnValue(of({ ...DATA, orders: [] }));
     const { page } = await render();

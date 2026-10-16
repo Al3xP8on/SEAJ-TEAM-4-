@@ -9,6 +9,7 @@ const FACTS: BriefingFacts = {
     { symbol: 'MSFT', value: 4000, dayChange: -180 },
     { symbol: 'NVDA', value: 2000, dayChange: null },
   ],
+  cash: 10000,
   buyingPower: 10000,
   reserved: 0,
   openOrders: 0,
@@ -90,6 +91,21 @@ describe('writeBriefing', () => {
       kind: 'orders',
       title: '2 orders waiting to fill',
       icon: 'lucideClock',
+    });
+  });
+
+  it('warns when open buy orders exceed the cash balance', () => {
+    const item = find(
+      writeBriefing({ ...FACTS, cash: 100, reserved: 250, buyingPower: 0 }),
+      'cash',
+    );
+
+    expect(item).toEqual({
+      kind: 'cash',
+      icon: 'lucideTriangleAlert',
+      tone: 'warn',
+      title: 'Open buy orders exceed your cash',
+      detail: '$250.00 in open buy orders against $100.00 cash',
     });
   });
 

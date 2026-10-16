@@ -1,3 +1,6 @@
+/** A holding above this share of the total portfolio is flagged */
+export const CONCENTRATION_LIMIT = 0.25;
+
 /** Everything the briefing describes, already worked out by the dashboard */
 export interface BriefingFacts {
   totalValue: number;
@@ -6,7 +9,9 @@ export interface BriefingFacts {
   /** true when no holding has a live price, so values are at cost */
   atCost: boolean;
   holdings: { symbol: string; value: number; dayChange: number | null }[];
+  cash: number;
   buyingPower: number;
+  /** Cash held back by open BUY orders; the backend only debits cash when an order fills */
   reserved: number;
   openOrders: number;
   concentrationLimit: number;
@@ -72,14 +77,7 @@ export function writeBriefing(facts: BriefingFacts): BriefingItem[] {
     items.push(diversification(facts));
   }
 
-  items.push({
-    kind: 'cash',
-    icon: 'lucideWallet',
-    tone: 'neutral',
-    title: `${money(facts.buyingPower)} to trade`,
-    detail:
-      facts.reserved > 0 ? `After ${money(facts.reserved)} set aside for open buy orders` : null,
-  });
+  items.push(cash(facts));
 
   if (facts.openOrders > 0) {
     items.push(waiting(facts.openOrders));
@@ -137,6 +135,26 @@ function diversification(facts: BriefingFacts): BriefingItem {
         ? `${names[0]} is ${percent(over[0].share)} of your portfolio`
         : `${names.slice(0, -1).join(', ')} and ${names.at(-1)} are each above ${limit}`,
     detail: `Above the ${limit} guideline`,
+  };
+}
+
+function cash(facts: BriefingFacts): BriefingItem {
+  if (facts.reserved > facts.cash) {
+    return {
+      kind: 'cash',
+      icon: 'lucideTriangleAlert',
+      tone: 'warn',
+      title: 'Open buy orders exceed your cash',
+      detail: `${money(facts.reserved)} in open buy orders against ${money(facts.cash)} cash`,
+    };
+  }
+  return {
+    kind: 'cash',
+    icon: 'lucideWallet',
+    tone: 'neutral',
+    title: `${money(facts.buyingPower)} to trade`,
+    detail:
+      facts.reserved > 0 ? `After ${money(facts.reserved)} set aside for open buy orders` : null,
   };
 }
 

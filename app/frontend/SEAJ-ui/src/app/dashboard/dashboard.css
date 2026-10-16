@@ -217,12 +217,9 @@ h2 {
   align-items: stretch;
 }
 
-.activity-row {
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
-  gap: 24px;
+.recent {
+  display: block;
   margin-top: 24px;
-  align-items: stretch;
 }
 
 /* The sign and arrow carry the direction; colour only reinforces it */
@@ -286,7 +283,6 @@ footer {
 @media (max-width: 800px) {
   .summary,
   .holdings-row,
-  .activity-row,
   .chart-row {
     grid-template-columns: 1fr;
   }

@@ -198,16 +198,7 @@
       />
     </div>
 
-    <div class="activity-row">
-      <app-recent-orders [orders]="orders()" />
-
-      <app-portfolio-check
-        [holdings]="holdings()"
-        [totalValue]="totalValue()"
-        [cash]="account.cashBalance"
-        [reserved]="reservedCash()"
-      />
-    </div>
+    <app-recent-orders class="recent" [orders]="orders()" />
   }
 </main>
 

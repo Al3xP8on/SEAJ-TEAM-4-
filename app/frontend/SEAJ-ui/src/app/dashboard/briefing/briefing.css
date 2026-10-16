@@ -72,3 +72,9 @@ h2 {
 [data-tone='bad'] .detail {
   color: var(--destructive);
 }
+
+.note {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin: 12px 0 0;
+}

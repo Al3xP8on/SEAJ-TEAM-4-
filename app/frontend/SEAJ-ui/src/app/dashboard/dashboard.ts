@@ -9,11 +9,10 @@ import { Account, Position } from './dashboard.models';
 import { MarketOverview, MarketSnapshot, Order } from '../orders/orders.models';
 import { DashboardData, DashboardService } from './dashboard.service';
 import { AllocationChartComponent, AllocationSlice } from './allocation-chart/allocation-chart';
-import { CONCENTRATION_LIMIT, PortfolioCheckComponent } from './portfolio-check/portfolio-check';
 import { RecentOrdersComponent } from './recent-orders/recent-orders';
 import { PerformanceChartComponent } from './performance-chart/performance-chart';
 import { BriefingComponent } from './briefing/briefing';
-import { BriefingFacts } from './briefing/write-briefing';
+import { BriefingFacts, CONCENTRATION_LIMIT } from './briefing/write-briefing';
 import { pollWhileVisible } from './poll-while-visible';
 import { MarketClockComponent } from './market-clock/market-clock';
 import { WatchlistComponent } from './watchlist/watchlist';
@@ -46,7 +45,6 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     HlmCardImports,
     HlmTableImports,
     AllocationChartComponent,
-    PortfolioCheckComponent,
     RecentOrdersComponent,
     PerformanceChartComponent,
     BriefingComponent,
@@ -171,6 +169,7 @@ export class DashboardComponent implements OnInit {
       value: h.value,
       dayChange: h.dayChange,
     })),
+    cash: this.account()?.cashBalance ?? 0,
     buyingPower: this.buyingPower(),
     reserved: this.reservedCash(),
     openOrders: this.orders().filter((o) => OPEN_STATUSES.includes(o.status)).length,
