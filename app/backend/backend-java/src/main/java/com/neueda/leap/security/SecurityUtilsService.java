@@ -84,9 +84,11 @@ public class SecurityUtilsService {
         Account userAccount = getAuthenticatedUserAccount();
         
         if (!userAccount.getAccountId().equals(targetAccountId)) {
-            logger.warn("User '{}' (account: {}) attempted unauthorized access to account: {}",
+                if (logger.isWarnEnabled()) {
+                logger.warn("User '{}' (account: {}) attempted unauthorized access to account: {}",
                     LogMaskingUtil.sanitize(userAccount.getUsername()), LogMaskingUtil.maskAccountId(userAccount.getAccountId()),
                     LogMaskingUtil.maskAccountId(targetAccountId));
+                }
             throw new AuthorizationException(
                     String.format("User does not have permission to access account: %s", targetAccountId)
             );
@@ -109,11 +111,13 @@ public class SecurityUtilsService {
         String orderAccountId = order.getAccount().getAccountId();
         
         if (!userAccount.getAccountId().equals(orderAccountId)) {
-            logger.warn("User '{}' (account: {}) attempted unauthorized access to order: {} (account: {})",
+                if (logger.isWarnEnabled()) {
+                logger.warn("User '{}' (account: {}) attempted unauthorized access to order: {} (account: {})",
                     LogMaskingUtil.sanitize(userAccount.getUsername()), LogMaskingUtil.maskAccountId(userAccount.getAccountId()),
                     LogMaskingUtil.maskId(order.getId()), LogMaskingUtil.maskAccountId(orderAccountId));
+                }
             throw new AuthorizationException(
-                    String.format("User does not have permission to access this order")
+                    "User does not have permission to access this order"
             );
         }
     }

@@ -104,11 +104,6 @@ h2 {
   margin-bottom: 24px;
 }
 
-/* Tinted like the Orders page balance panel */
-.cash-card {
-  background: var(--muted);
-}
-
 .figure {
   font-size: 1.625rem;
   letter-spacing: -0.6px;

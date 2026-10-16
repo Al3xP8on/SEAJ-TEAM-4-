@@ -167,7 +167,7 @@ public class PriceHistory {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         PriceHistory that = (PriceHistory) o;
-        return symbol.equals(that.symbol) && priceDate.equals(that.priceDate);
+        return Objects.equals(symbol, that.symbol) && Objects.equals(priceDate, that.priceDate);
     }
 
     @Override

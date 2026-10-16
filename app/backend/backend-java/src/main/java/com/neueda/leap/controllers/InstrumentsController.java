@@ -51,7 +51,7 @@ public class InstrumentsController {
     }
 
     @GetMapping("/{symbol}")
-    public ResponseEntity<?> getInstrumentBySymbol(@PathVariable String symbol) {
+    public ResponseEntity<Object> getInstrumentBySymbol(@PathVariable String symbol) {
         Optional<Instrument> instrument = instrumentsService.getInstrumentBySymbol(symbol);
         
         if (instrument.isEmpty()) {

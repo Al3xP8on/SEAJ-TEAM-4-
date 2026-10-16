@@ -1,5 +1,15 @@
-import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe, DecimalPipe, DOCUMENT } from '@angular/common';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  TemplateRef,
+  viewChild,
+} from '@angular/core';
+import { CurrencyPipe, DatePipe, DecimalPipe, DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import {
   EMPTY,
   Observable,
@@ -15,7 +25,7 @@ import { OrdersService } from './orders.service';
 
 @Component({
   selector: 'app-market-data',
-  imports: [CurrencyPipe, DatePipe, DecimalPipe],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, NgTemplateOutlet],
   templateUrl: './market-data.html',
   styleUrl: './market-data.css',
 })
@@ -30,6 +40,8 @@ export class MarketDataComponent {
   });
   readonly instruments = input.required<Instrument[]>();
   readonly selectedSymbol = input('');
+  readonly showOverview = input(true);
+  readonly overviewTemplate = viewChild<TemplateRef<unknown>>('overviewTemplate');
   readonly choose = output<string>();
   readonly overview = signal<MarketOverview | null>(null);
   readonly loading = signal(true);

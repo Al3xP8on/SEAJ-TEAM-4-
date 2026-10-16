@@ -365,6 +365,66 @@ public class TradesConsumerTest {
     }
 
     @Test
+    @DisplayName("Should skip publishing when accountId is null in payload for accepted order")
+    void testPublishOrderAcceptedSkipsWhenAccountIdNull() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("orderId", orderId);
+        payload.put("accountId", null);
+        payload.put("symbol", "AAPL");
+        payload.put("side", "BUY");
+        payload.put("price", "150.50");
+        payload.put("quantity", 100);
+
+        EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
+        String message = objectMapper.writeValueAsString(envelope);
+
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
+        when(pricingValidator.validateOrderPricing(order)).thenReturn(
+            new OrderPricingValidator.PricingValidationResult(OrderStatus.PENDING, "Approved"));
+        when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        tradesConsumer.handleOrderPlaced(message, 0, 100L);
+
+        verify(tradeEventPublisher, never()).publishTradeEvent(any());
+    }
+
+    @Test
+    @DisplayName("Should skip publishing when symbol is null in payload for rejected order")
+    void testPublishOrderRejectedSkipsWhenSymbolNull() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("orderId", orderId);
+        payload.put("accountId", "ACC-001");
+        payload.put("symbol", null);
+        payload.put("side", "BUY");
+        payload.put("price", "150.50");
+        payload.put("quantity", 100);
+
+        EventEnvelope envelope = new EventEnvelope(eventId, EventType.ORDER_PLACED, Instant.now(), 1, payload);
+        String message = objectMapper.writeValueAsString(envelope);
+
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
+        when(pricingValidator.validateOrderPricing(order)).thenReturn(
+            new OrderPricingValidator.PricingValidationResult(OrderStatus.REJECTED, "Rejected"));
+        when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        tradesConsumer.handleOrderPlaced(message, 0, 100L);
+
+        verify(tradeEventPublisher, never()).publishTradeEvent(any());
+    }
+
+    @Test
+    @DisplayName("Should extract orderId when payload contains a UUID instance directly")
+    void testExtractOrderIdFromUUIDInstance() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("orderId", orderId); // UUID instance, not String
+
+        java.lang.reflect.Method method = TradesConsumer.class.getDeclaredMethod("extractOrderId", java.util.Map.class);
+        method.setAccessible(true);
+        UUID result = (UUID) method.invoke(tradesConsumer, payload);
+        assertEquals(orderId, result);
+    }
+
+    @Test
     void preservesTheReasonWhenEventPublicationFailsAndSkipsDuplicateValidation() throws Exception {
         String reason = "No live quote available for symbol: AAPL";
         var envelope = new EventEnvelope(UUID.randomUUID(), EventType.ORDER_PLACED, Instant.now(), 1,
