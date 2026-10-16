@@ -173,7 +173,14 @@
       />
     </div>
 
-    <app-market-movers class="movers" [snapshots]="market()?.snapshots ?? []" [names]="names()" />
+    <div class="market-row">
+      <app-market-movers [snapshots]="market()?.snapshots ?? []" [names]="names()" />
+      <app-watchlist
+        [accountId]="account.accountId"
+        [snapshots]="market()?.snapshots ?? []"
+        [names]="names()"
+      />
+    </div>
   }
 </main>
 

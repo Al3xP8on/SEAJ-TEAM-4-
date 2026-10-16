@@ -187,9 +187,12 @@ h2 {
   margin-top: 24px;
 }
 
-.movers {
-  display: block;
+.market-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 24px;
   margin-top: 24px;
+  align-items: stretch;
 }
 
 .activity-row {
@@ -265,7 +268,8 @@ footer {
 @media (max-width: 800px) {
   .summary,
   .holdings-row,
-  .activity-row {
+  .activity-row,
+  .market-row {
     grid-template-columns: 1fr;
   }
 

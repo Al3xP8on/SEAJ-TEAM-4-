@@ -2,6 +2,10 @@
   display: block;
 }
 
+.movers-card {
+  height: 100%;
+}
+
 h2 {
   font-size: 1.125rem;
   font-weight: 600;
