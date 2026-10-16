@@ -1,0 +1,83 @@
+<dl class="stats">
+  <div>
+    <dt>Price</dt>
+    <dd class="price">
+      @if (price() !== null) {
+        {{ price() | currency: 'USD' }}
+      } @else {
+        <span aria-hidden="true">—</span><span class="sr-only">Not available</span>
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Today</dt>
+    <dd class="today change" [class.loss]="(today()?.amount ?? 0) < 0">
+      @if (today(); as t) {
+        <span aria-hidden="true">{{ t.amount < 0 ? '▼' : '▲' }}</span>
+        {{ t.amount > 0 ? '+' : '' }}{{ t.amount | currency: 'USD' }} ({{ t.percent > 0 ? '+' : ''
+        }}{{ t.percent | percent: '1.2-2' }})
+      } @else {
+        <span aria-hidden="true">—</span><span class="sr-only">Not available</span>
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Today's range</dt>
+    <dd class="day-range">
+      @if (snapshot()?.dailyBar; as day) {
+        {{ day.low | currency: 'USD' }} – {{ day.high | currency: 'USD' }}
+      } @else {
+        <span aria-hidden="true">—</span><span class="sr-only">Not available</span>
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>30-day range</dt>
+    <dd class="month-range">
+      @if (monthRange(); as r) {
+        {{ r.low | currency: 'USD' }} – {{ r.high | currency: 'USD' }}
+      } @else {
+        <span aria-hidden="true">—</span><span class="sr-only">Not available</span>
+      }
+    </dd>
+  </div>
+</dl>
+
+<h3 class="section">Your position</h3>
+@if (position(); as p) {
+  <dl class="stats position">
+    <div>
+      <dt>Shares</dt>
+      <dd>{{ p.quantity | number }}</dd>
+    </div>
+    <div>
+      <dt>Average cost</dt>
+      <dd>{{ p.averageCost | currency: 'USD' }}</dd>
+    </div>
+    <div>
+      <dt>Value</dt>
+      <dd>{{ p.value | currency: 'USD' }}</dd>
+    </div>
+    <div>
+      <dt>P&amp;L</dt>
+      <dd class="change pnl" [class.loss]="(p.pnl ?? 0) < 0">
+        @if (p.pnl !== null) {
+          {{ p.pnl > 0 ? '+' : '' }}{{ p.pnl | currency: 'USD' }}
+        } @else {
+          <span aria-hidden="true">—</span><span class="sr-only">No live price</span>
+        }
+      </dd>
+    </div>
+  </dl>
+} @else {
+  <p class="muted not-held">You don't hold {{ symbol() }}.</p>
+}
+
+<h3 class="section">Last 30 trading days</h3>
+@if (bars() === null) {
+  <p class="muted" role="status">Loading {{ symbol() }} price history…</p>
+} @else if (points().length > 1) {
+  <app-line-chart [points]="points()" [description]="description()" [loss]="falling()" />
+} @else {
+  <p class="muted">No price history is available for {{ symbol() }} right now.</p>
+}

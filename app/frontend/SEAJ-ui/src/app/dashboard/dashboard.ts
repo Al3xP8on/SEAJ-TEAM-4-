@@ -18,7 +18,15 @@ import { pollWhileVisible } from './poll-while-visible';
 import { MarketClockComponent } from './market-clock/market-clock';
 import { MarketMoversComponent } from './market-movers/market-movers';
 import { WatchlistComponent } from './watchlist/watchlist';
-import { CandlestickChartComponent } from './candlestick-chart/candlestick-chart';
+import { StockPosition, StockSummaryComponent } from './stock-summary/stock-summary';
+import {
+  HlmDialog,
+  HlmDialogContent,
+  HlmDialogDescription,
+  HlmDialogHeader,
+  HlmDialogPortal,
+  HlmDialogTitle,
+} from '@spartan-ng/helm/dialog';
 
 // The backend refreshes market prices every 10 seconds, so polling faster gains nothing
 const MARKET_REFRESH_MS = 10_000;
@@ -46,7 +54,14 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     MarketClockComponent,
     MarketMoversComponent,
     WatchlistComponent,
-    CandlestickChartComponent,
+    StockSummaryComponent,
+    // Listed one by one so @defer can move them, and the overlay code, out of the initial bundle
+    HlmDialog,
+    HlmDialogContent,
+    HlmDialogDescription,
+    HlmDialogHeader,
+    HlmDialogPortal,
+    HlmDialogTitle,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
@@ -63,10 +78,8 @@ export class DashboardComponent implements OnInit {
   readonly orders = signal<Order[]>([]);
   readonly market = signal<MarketOverview | null>(null);
   readonly names = signal(new Map<string, string>());
-  /** The symbol whose candlestick chart is open, if any */
+  /** The symbol shown in the pop-up, if any */
   readonly chartSymbol = signal<string | null>(null);
-  /** The button that opened the chart, so closing it returns focus there */
-  private chartOpener: HTMLElement | null = null;
   readonly loading = signal(true);
   readonly error = signal('');
 
@@ -224,16 +237,29 @@ export class DashboardComponent implements OnInit {
     this.orders.set(orders);
   }
 
-  openChart(symbol: string, event: Event | HTMLElement): void {
-    this.chartOpener = event instanceof HTMLElement ? event : (event.currentTarget as HTMLElement);
-    // The chart moves focus to its heading once shown, which also scrolls it into view
+  /** Opens a symbol's summary pop-up */
+  openChart(symbol: string): void {
     this.chartSymbol.set(symbol);
   }
 
   closeChart(): void {
     this.chartSymbol.set(null);
-    this.chartOpener?.focus();
-    this.chartOpener = null;
+  }
+
+  snapshotFor(symbol: string): MarketSnapshot | null {
+    return this.snapshots().get(symbol) ?? null;
+  }
+
+  positionFor(symbol: string): StockPosition | null {
+    const holding = this.holdings().find((h) => h.symbol === symbol);
+    return holding
+      ? {
+          quantity: holding.quantity,
+          averageCost: holding.averageCost,
+          value: holding.value,
+          pnl: holding.pnl,
+        }
+      : null;
   }
 
   goToOrderTicket(): void {

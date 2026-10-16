@@ -16,8 +16,8 @@ export class WatchlistComponent {
   readonly accountId = input.required<string>();
   readonly snapshots = input.required<MarketSnapshot[]>();
   readonly names = input(new Map<string, string>());
-  /** Asks the dashboard to open a symbol's chart; trigger gets focus back on close */
-  readonly chart = output<{ symbol: string; trigger: HTMLElement }>();
+  /** Asks the dashboard to open a symbol's summary pop-up */
+  readonly chart = output<string>();
 
   readonly error = signal('');
   readonly limit = WATCHLIST_LIMIT;
@@ -61,10 +61,6 @@ export class WatchlistComponent {
       field.value = '';
       this.error.set('');
     }
-  }
-
-  openChart(symbol: string, event: Event): void {
-    this.chart.emit({ symbol, trigger: event.currentTarget as HTMLElement });
   }
 
   remove(symbol: string): void {

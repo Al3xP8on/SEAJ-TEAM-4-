@@ -182,9 +182,18 @@ h2 {
   font-weight: 600;
 }
 
-.candles {
-  display: block;
-  margin-top: 24px;
+/* Wider than the dialog default so the chart has room on a desktop screen */
+.stock-dialog {
+  width: min(880px, calc(100vw - 48px));
+  max-width: none;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.dialog-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  padding-right: 32px;
 }
 
 /* A symbol that opens its chart: looks like the symbol, behaves like a button */

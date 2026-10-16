@@ -289,22 +289,34 @@ describe('DashboardComponent', () => {
     expect(rows[0].querySelector('.company')).toBeNull(); // no name known for NVDA
   });
 
-  it("opens a holding's candlestick chart and returns focus when it closes", async () => {
+  it("opens a holding's summary in a centred dialog and returns focus on close", async () => {
+    dashboard.marketPrices.mockReturnValue(of(MARKET));
     const { fixture, page } = await render();
     document.body.appendChild(page);
-    const open = page.querySelector('.positions-table .symbol-link') as HTMLButtonElement;
+    const open = Array.from(page.querySelectorAll('.positions-table .symbol-link')).find(
+      (b) => b.textContent?.trim() === 'AAPL',
+    ) as HTMLButtonElement;
     expect(open.getAttribute('aria-label')).toBe('View AAPL chart');
 
     open.focus();
     open.click();
     await fixture.whenStable();
-    expect(page.querySelector('app-candlestick-chart h2')?.textContent).toContain('AAPL');
+    // The dialog renders in an overlay on the body, outside the dashboard element
+    const dialog = document.querySelector('hlm-dialog-content') as HTMLElement;
+    expect(dialog.closest('[role="dialog"]')).not.toBeNull();
+    expect(dialog.querySelector('h2')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'AAPL Apple Inc.',
+    );
+    // The position matches the dashboard: 50 shares at 182.40, worth 9,500 at 190
+    expect(dialog.querySelector('app-stock-summary .pnl')?.textContent?.trim()).toBe('+$380.00');
     expect(dashboard.bars).toHaveBeenCalledWith('AAPL', '1Day');
 
-    (page.querySelector('app-candlestick-chart .close') as HTMLButtonElement).click();
+    (dialog.querySelector('button[hlmDialogClose]') as HTMLButtonElement).click();
+    await new Promise((resolve) => setTimeout(resolve, 300));
     await fixture.whenStable();
-    expect(page.querySelector('app-candlestick-chart')).toBeNull();
+    expect(document.querySelector('hlm-dialog-content app-stock-summary')).toBeNull();
     expect(document.activeElement).toBe(open);
+    page.remove();
   });
 
   it('offers to place an order when there are no holdings', async () => {
