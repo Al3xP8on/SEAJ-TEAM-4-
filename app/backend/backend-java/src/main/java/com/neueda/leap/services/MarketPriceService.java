@@ -33,13 +33,14 @@ public class MarketPriceService {
         }
         
         String normalizedSymbol = symbol.trim().toUpperCase();
+        String safeSymbol = normalizedSymbol.replace('\r', '_').replace('\n', '_');
         
         Optional<MarketPrice> price = latestPriceStore.getPriceIfNotStale(normalizedSymbol);
         
         if (price.isEmpty()) {
-            logger.warn("No fresh price available for symbol: {}", normalizedSymbol);
+            logger.warn("No fresh price available for symbol: {}", safeSymbol);
         } else {
-            logger.debug("Retrieved fresh price for symbol: {}", normalizedSymbol);
+            logger.debug("Retrieved fresh price for symbol: {}", safeSymbol);
         }
         
         return price;
@@ -80,7 +81,8 @@ public class MarketPriceService {
         
         if (price.isEmpty()) {
             String normalizedSymbol = symbol.trim().toUpperCase();
-            logger.error("No fresh price available for execution on symbol: {}", normalizedSymbol);
+            String safeSymbol = normalizedSymbol.replace('\r', '_').replace('\n', '_');
+            logger.error("No fresh price available for execution on symbol: {}", safeSymbol);
             throw new InvalidSymbolException("No fresh price available for symbol: " + normalizedSymbol);
         }
         
