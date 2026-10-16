@@ -83,6 +83,7 @@ describe('DashboardComponent', () => {
   const dashboard = {
     load: vi.fn<() => Observable<DashboardData>>(),
     marketPrices: vi.fn<() => Observable<MarketOverview | null>>(),
+    bars: vi.fn(() => of(null)),
   };
 
   async function render() {

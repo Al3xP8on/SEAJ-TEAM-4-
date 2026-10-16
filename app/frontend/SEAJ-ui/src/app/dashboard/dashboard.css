@@ -175,6 +175,11 @@ h2 {
   font-weight: 600;
 }
 
+.performance {
+  display: block;
+  margin-top: 24px;
+}
+
 .activity-row {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);

@@ -1,0 +1,78 @@
+<section hlmCard class="performance-card" aria-labelledby="performance-title">
+  <div hlmCardHeader>
+    <h2 hlmCardTitle id="performance-title">Portfolio performance</h2>
+    <div hlmCardAction>
+      <div class="periods" role="group" aria-label="Chart period">
+        @for (option of periods; track option) {
+          <button type="button" [attr.aria-pressed]="period() === option" (click)="select(option)">
+            {{ option }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+  <div hlmCardContent>
+    <p class="muted scope">
+      Value of your current holdings at past prices. Trades and cash are not included.
+    </p>
+
+    @if (series() === null) {
+      <p class="muted" role="status">Loading price history…</p>
+    } @else if (holdings().length === 0) {
+      <p class="empty">You don't hold any positions yet, so there's nothing to chart.</p>
+    } @else if (summary(); as s) {
+      <p class="change" [class.loss]="s.change < 0">
+        <span aria-hidden="true">{{ s.change < 0 ? '▼' : '▲' }}</span>
+        {{ s.change > 0 ? '+' : '' }}{{ s.change | currency: 'USD' }} ({{ s.change > 0 ? '+' : ''
+        }}{{ s.percent | percent: '1.2-2' }}) over {{ period() }}
+      </p>
+
+      @if (plot(); as p) {
+        <svg
+          class="chart"
+          [class.loss]="s.change < 0"
+          [attr.viewBox]="'0 0 ' + width + ' ' + height"
+          preserveAspectRatio="none"
+          role="img"
+          tabindex="0"
+          [attr.aria-label]="
+            'Holdings value over ' +
+            period() +
+            ', from ' +
+            (points()[0].value | currency: 'USD') +
+            ' to ' +
+            (points().at(-1)!.value | currency: 'USD') +
+            '. Use the arrow keys to read values.'
+          "
+          aria-describedby="performance-readout"
+          (keydown)="onKey($event)"
+          (pointermove)="onPointer($event)"
+          (pointerleave)="clearInspect()"
+          (blur)="clearInspect()"
+        >
+          <path class="area" [attr.d]="p.area" />
+          <polyline class="line" [attr.points]="p.line" />
+          @if (marker(); as m) {
+            <line class="guide" [attr.x1]="m.x" [attr.x2]="m.x" y1="0" [attr.y2]="height" />
+            <circle class="dot" [attr.cx]="m.x" [attr.cy]="m.y" r="4" />
+          }
+        </svg>
+      }
+
+      <p id="performance-readout" class="readout" aria-live="polite">
+        @if (inspected(); as point) {
+          <time [attr.datetime]="point.time">{{ point.time | date: dateFormat() }}</time> ·
+          <strong>{{ point.value | currency: 'USD' }}</strong>
+        } @else {
+          High {{ s.high | currency: 'USD' }} · Low {{ s.low | currency: 'USD' }}
+        }
+      </p>
+    } @else {
+      <p class="empty">No price history is available for your holdings right now.</p>
+    }
+
+    @if (series()?.missing?.length) {
+      <p class="muted note">Not included (no price history): {{ series()!.missing.join(', ') }}</p>
+    }
+  </div>
+</section>

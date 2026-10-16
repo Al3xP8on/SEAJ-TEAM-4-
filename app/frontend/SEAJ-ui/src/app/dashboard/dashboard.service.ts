@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { Account, Position } from './dashboard.models';
-import { MarketOverview, Order } from '../orders/orders.models';
+import { MarketChart, MarketOverview, Order } from '../orders/orders.models';
 
 export interface DashboardData {
   account: Account;
@@ -14,6 +14,7 @@ export interface DashboardData {
 const ACCOUNTS_URL = '/api/v1/accounts';
 const ORDERS_URL = '/api/v1/orders/account';
 const MARKET_URL = '/api/v1/market-data/overview';
+const BARS_URL = '/api/v1/market-data';
 
 /** Loads the logged-in user's account, positions and orders from the Java API */
 @Injectable({ providedIn: 'root' })
@@ -44,6 +45,13 @@ export class DashboardService {
    */
   marketPrices(): Observable<MarketOverview | null> {
     return this.http.get<MarketOverview>(MARKET_URL).pipe(catchError(() => of(null)));
+  }
+
+  /** Price history for one symbol, cached by the backend (1 minute for 1Min bars, 5 for 1Day) */
+  bars(symbol: string, timeframe: '1Min' | '1Day'): Observable<MarketChart | null> {
+    return this.http
+      .get<MarketChart>(`${BARS_URL}/${encodeURIComponent(symbol)}/bars`, { params: { timeframe } })
+      .pipe(catchError(() => of(null)));
   }
 }
 

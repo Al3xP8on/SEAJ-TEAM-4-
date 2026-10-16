@@ -11,6 +11,7 @@ import { DashboardData, DashboardService } from './dashboard.service';
 import { AllocationChartComponent, AllocationSlice } from './allocation-chart/allocation-chart';
 import { PortfolioCheckComponent } from './portfolio-check/portfolio-check';
 import { RecentOrdersComponent } from './recent-orders/recent-orders';
+import { PerformanceChartComponent } from './performance-chart/performance-chart';
 
 // The backend refreshes market prices every 10 seconds, so polling faster gains nothing
 const MARKET_REFRESH_MS = 10_000;
@@ -33,6 +34,7 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     AllocationChartComponent,
     PortfolioCheckComponent,
     RecentOrdersComponent,
+    PerformanceChartComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
