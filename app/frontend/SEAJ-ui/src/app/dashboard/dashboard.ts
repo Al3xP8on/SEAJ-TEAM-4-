@@ -1,6 +1,6 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DOCUMENT, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMPTY, catchError, exhaustMap, interval, startWith, timer } from 'rxjs';
+import { EMPTY, catchError, exhaustMap } from 'rxjs';
 import { CurrencyPipe, DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmTableImports } from '@spartan-ng/helm/table';
@@ -14,6 +14,8 @@ import { RecentOrdersComponent } from './recent-orders/recent-orders';
 import { PerformanceChartComponent } from './performance-chart/performance-chart';
 import { BriefingComponent } from './briefing/briefing';
 import { BriefingFacts } from './briefing/write-briefing';
+import { pollWhileVisible } from './poll-while-visible';
+import { marketStatus } from './market-status';
 
 // The backend refreshes market prices every 10 seconds, so polling faster gains nothing
 const MARKET_REFRESH_MS = 10_000;
@@ -47,11 +49,15 @@ export class DashboardComponent implements OnInit {
   private readonly router = inject(Router);
 
   private readonly destroy = inject(DestroyRef);
+  private readonly document = inject(DOCUMENT);
 
   readonly account = signal<Account | null>(null);
   readonly positions = signal<Position[]>([]);
   readonly orders = signal<Order[]>([]);
   readonly market = signal<MarketOverview | null>(null);
+  readonly names = signal(new Map<string, string>());
+  /** Moves on with each price refresh, so the market status stays current */
+  private readonly now = signal(new Date());
   readonly loading = signal(true);
   readonly error = signal('');
 
@@ -60,7 +66,7 @@ export class DashboardComponent implements OnInit {
       new Map<string, MarketSnapshot>((this.market()?.snapshots ?? []).map((m) => [m.symbol, m])),
   );
 
-  /** Valued at the latest price where there is one, otherwise at cost */
+  /** Valued at the latest price where there is one, otherwise at cost; largest first */
   readonly holdings = computed(() =>
     this.positions()
       .filter((p) => HELD_STATUSES.includes(p.status) && p.quantity > 0)
@@ -78,7 +84,8 @@ export class DashboardComponent implements OnInit {
           dayChange:
             price === null || previousClose === null ? null : p.quantity * (price - previousClose),
         };
-      }),
+      })
+      .sort((a, b) => b.value - a.value),
   );
 
   readonly holdingsValue = computed(() => this.holdings().reduce((total, h) => total + h.value, 0));
@@ -114,6 +121,12 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly pricesAsOf = computed(() => this.market()?.updatedAt ?? null);
+
+  readonly marketStatus = computed(() => {
+    const trades = (this.market()?.snapshots ?? []).map((s) => s.timestamp).filter(Boolean);
+    const latest = trades.length > 0 ? trades.reduce((a, b) => (a > b ? a : b)) : null;
+    return marketStatus(this.now(), latest);
+  });
 
   /** Cash committed to open BUY orders */
   readonly reservedCash = computed(() =>
@@ -156,21 +169,29 @@ export class DashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Names don't change during a visit, so they load once rather than with every refresh
+    this.dashboard
+      .instrumentNames()
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe((names) => this.names.set(names));
     this.load();
-    timer(2000, 2000)
+    // Both refreshes pause while the tab is hidden and catch up as soon as it's visible again
+    pollWhileVisible(this.document, 2000, { immediate: false })
       .pipe(
         exhaustMap(() => this.dashboard.load().pipe(catchError(() => EMPTY))),
         takeUntilDestroyed(this.destroy),
       )
       .subscribe((data) => this.show(data));
     // Prices load with the page, then refresh in step with the backend
-    interval(MARKET_REFRESH_MS)
+    pollWhileVisible(this.document, MARKET_REFRESH_MS, { immediate: true })
       .pipe(
-        startWith(0),
         exhaustMap(() => this.dashboard.marketPrices()),
         takeUntilDestroyed(this.destroy),
       )
-      .subscribe((market) => this.market.set(market));
+      .subscribe((market) => {
+        this.now.set(new Date());
+        this.market.set(market);
+      });
   }
 
   load(): void {

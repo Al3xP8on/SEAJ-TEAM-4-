@@ -1,9 +1,10 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, DOCUMENT, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { CurrencyPipe, DatePipe, PercentPipe } from '@angular/common';
-import { forkJoin, interval, map, of, startWith, switchMap } from 'rxjs';
+import { forkJoin, map, of, switchMap } from 'rxjs';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { DashboardService } from '../dashboard.service';
+import { pollWhileVisible } from '../poll-while-visible';
 import {
   PerformanceHolding,
   PerformanceSeries,
@@ -28,6 +29,7 @@ const PADDING = 12;
 })
 export class PerformanceChartComponent {
   private readonly dashboard = inject(DashboardService);
+  private readonly document = inject(DOCUMENT);
 
   readonly holdings = input.required<PerformanceHolding[]>();
 
@@ -118,8 +120,7 @@ export class PerformanceChartComponent {
             return of({ points: [], missing: [] });
           }
           const timeframe = timeframeFor(period);
-          return interval(REFRESH_MS[period]).pipe(
-            startWith(0),
+          return pollWhileVisible(this.document, REFRESH_MS[period], { immediate: true }).pipe(
             switchMap(() =>
               forkJoin(holdings.map((h) => this.dashboard.bars(h.symbol, timeframe))),
             ),

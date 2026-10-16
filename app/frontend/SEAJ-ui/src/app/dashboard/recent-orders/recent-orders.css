@@ -13,10 +13,11 @@ h2 {
 }
 
 .link {
+  min-height: 24px;
   border: 0;
   background: none;
-  padding: 0;
-  color: var(--primary);
+  padding: 2px 0;
+  color: var(--positive);
   font-size: 0.8125rem;
   font-weight: 600;
   text-decoration: underline;
@@ -34,13 +35,17 @@ h2 {
 }
 
 .order {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
   font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
 }
 
 .order .summary-line {
@@ -73,7 +78,7 @@ h2 {
 
 .badge[data-status='FILLED'] {
   background: var(--secondary);
-  color: var(--primary);
+  color: var(--positive);
 }
 
 .badge[data-status='REJECTED'] {
@@ -83,5 +88,73 @@ h2 {
 .empty {
   text-align: center;
   padding: 32px;
+  margin: 0;
+}
+
+.details {
+  min-height: 24px;
+  padding: 2px 6px;
+  border: 0;
+  background: none;
+  color: var(--positive);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* A vertical timeline: a rule down the left with a marker per step */
+.journey {
+  margin: 10px 0 2px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--muted);
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 16px;
+  border-left: 2px solid var(--border);
+}
+
+.steps li {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 4px 0;
+}
+
+.steps li::before {
+  content: '';
+  position: absolute;
+  left: -22px;
+  top: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--positive);
+}
+
+.when {
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.elapsed {
+  margin-left: 8px;
+  font-weight: 600;
+}
+
+.total {
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--muted-foreground);
   margin: 0;
 }

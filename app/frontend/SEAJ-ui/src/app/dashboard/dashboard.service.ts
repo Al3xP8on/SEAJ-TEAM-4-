@@ -3,7 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { Account, Position } from './dashboard.models';
-import { MarketChart, MarketOverview, Order } from '../orders/orders.models';
+import {
+  Instrument,
+  MarketChart,
+  MarketOverview,
+  Order,
+  OrderHistory,
+} from '../orders/orders.models';
 
 export interface DashboardData {
   account: Account;
@@ -15,6 +21,7 @@ const ACCOUNTS_URL = '/api/v1/accounts';
 const ORDERS_URL = '/api/v1/orders/account';
 const MARKET_URL = '/api/v1/market-data/overview';
 const BARS_URL = '/api/v1/market-data';
+const INSTRUMENTS_URL = '/api/v1/instruments';
 
 /** Loads the logged-in user's account, positions and orders from the Java API */
 @Injectable({ providedIn: 'root' })
@@ -45,6 +52,21 @@ export class DashboardService {
    */
   marketPrices(): Observable<MarketOverview | null> {
     return this.http.get<MarketOverview>(MARKET_URL).pipe(catchError(() => of(null)));
+  }
+
+  /** An order's status changes with timestamps; null if unavailable */
+  orderHistory(orderId: string): Observable<OrderHistory[] | null> {
+    return this.http
+      .get<OrderHistory[]>(`/api/v1/orders/${encodeURIComponent(orderId)}/history`)
+      .pipe(catchError(() => of(null)));
+  }
+
+  /** Company names by symbol, for labelling holdings; empty if unavailable */
+  instrumentNames(): Observable<Map<string, string>> {
+    return this.http.get<Instrument[]>(INSTRUMENTS_URL).pipe(
+      map((instruments) => new Map(instruments.map((i) => [i.symbol, i.name]))),
+      catchError(() => of(new Map<string, string>())),
+    );
   }
 
   /** Price history for one symbol, cached by the backend (1 minute for 1Min bars, 5 for 1Day) */

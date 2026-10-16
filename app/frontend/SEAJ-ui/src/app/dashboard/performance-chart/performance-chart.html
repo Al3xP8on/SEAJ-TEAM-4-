@@ -59,12 +59,18 @@
         </svg>
       }
 
-      <p id="performance-readout" class="readout" aria-live="polite">
+      <p id="performance-readout" class="readout">
         @if (inspected(); as point) {
           <time [attr.datetime]="point.time">{{ point.time | date: dateFormat() }}</time> ·
           <strong>{{ point.value | currency: 'USD' }}</strong>
         } @else {
           High {{ s.high | currency: 'USD' }} · Low {{ s.low | currency: 'USD' }}
+        }
+      </p>
+      <!-- Announces only values being inspected, never the background refresh -->
+      <p class="sr-only live" aria-live="polite">
+        @if (inspected(); as point) {
+          {{ point.time | date: dateFormat() }}, {{ point.value | currency: 'USD' }}
         }
       </p>
     } @else {

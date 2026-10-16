@@ -80,7 +80,7 @@ h2 {
 }
 
 .check.ok h3 {
-  color: var(--primary);
+  color: var(--positive);
 }
 
 .note {

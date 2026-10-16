@@ -5,7 +5,7 @@
 
 /* Marked out from the number cards by a brand stripe, not by colour of text */
 .briefing {
-  border-left: 4px solid var(--primary);
+  border-left: 4px solid var(--positive);
 }
 
 h2 {

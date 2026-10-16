@@ -47,7 +47,7 @@ h2 {
 
 /* The sign and arrow carry the direction; colour only reinforces it */
 .change {
-  color: var(--primary);
+  color: var(--positive);
   font-size: 0.875rem;
   font-weight: 600;
   margin: 0 0 12px;
@@ -66,20 +66,15 @@ h2 {
   touch-action: none;
 }
 
-.chart:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 4px;
-}
-
 .line {
   fill: none;
-  stroke: var(--primary);
+  stroke: var(--positive);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
 
 .area {
-  fill: var(--primary);
+  fill: var(--positive);
   opacity: 0.08;
 }
 

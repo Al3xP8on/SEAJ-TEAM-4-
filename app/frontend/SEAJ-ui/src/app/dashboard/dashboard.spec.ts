@@ -84,6 +84,20 @@ describe('DashboardComponent', () => {
     load: vi.fn<() => Observable<DashboardData>>(),
     marketPrices: vi.fn<() => Observable<MarketOverview | null>>(),
     bars: vi.fn(() => of(null)),
+    orderHistory: vi.fn((orderId: string) =>
+      of([
+        { orderId, status: 'NEW', timestamp: '2026-10-06T14:30:00.000', reason: null },
+        { orderId, status: 'PENDING', timestamp: '2026-10-06T14:30:00.050', reason: null },
+      ]),
+    ),
+    instrumentNames: vi.fn(() =>
+      of(
+        new Map([
+          ['AAPL', 'Apple Inc.'],
+          ['MSFT', 'Microsoft Corporation'],
+        ]),
+      ),
+    ),
   };
 
   async function render() {
@@ -178,6 +192,16 @@ describe('DashboardComponent', () => {
     expect(page.querySelector('.total-pnl')?.textContent?.trim()).toBe('');
   });
 
+  it('says whether the US market is open, from the schedule and recent trades', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-15T14:30:30Z')); // Thursday 10:30 in New York
+    dashboard.marketPrices.mockReturnValue(of(MARKET)); // latest trade 14:30:00
+    const { page } = await render();
+
+    expect(page.querySelector('.market-status')?.textContent?.trim()).toBe('US market open');
+    vi.useRealTimers();
+  });
+
   it('values holdings at the latest price, with price and P&L per row', async () => {
     dashboard.marketPrices.mockReturnValue(of(MARKET));
     const { page } = await render();
@@ -241,6 +265,33 @@ describe('DashboardComponent', () => {
     );
   });
 
+  it('sorts holdings by value and shows company names where known', async () => {
+    // At market MSFT (8,000) leads NVDA at cost (1,781.25); make NVDA worth the most
+    dashboard.marketPrices.mockReturnValue(
+      of({ ...MARKET, snapshots: [...MARKET.snapshots, snapshot('NVDA', 1000, null)] }),
+    );
+    const { page } = await render();
+    const rows = Array.from(page.querySelectorAll('.positions-table tbody tr'));
+
+    // NVDA 15 x 1,000 = 15,000; AAPL 9,500; MSFT 8,000
+    expect(rows.map((r) => r.querySelector('.symbol')?.textContent)).toEqual([
+      'NVDA',
+      'AAPL',
+      'MSFT',
+    ]);
+    expect(rows[1].querySelector('.company')?.textContent).toBe('Apple Inc.');
+    expect(rows[0].querySelector('.company')).toBeNull(); // no name known for NVDA
+  });
+
+  it('offers to place an order when there are no holdings', async () => {
+    dashboard.load.mockReturnValue(of({ ...DATA, positions: [] }));
+    const { page } = await render();
+
+    button(page, 'Place order').click();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/order']);
+  });
+
   it('shows a message instead of the table when there are no holdings', async () => {
     const closedOnly: Position[] = [
       { positionId: 9, symbol: 'TSLA', quantity: 0, averageCost: 240, status: 'CLOSED' },
@@ -297,6 +348,29 @@ describe('DashboardComponent', () => {
     // AAPL is 31.2% of the $29,203.25 portfolio and MSFT 28.4%, both above 25%
     const warnings = Array.from(page.querySelectorAll('app-portfolio-check .check.warning p'));
     expect(warnings.map((p) => p.textContent?.trim().split(' ')[0])).toEqual(['AAPL', 'MSFT']);
+  });
+
+  it("opens an order's journey from its Details button", async () => {
+    const { fixture, page } = await render();
+    const details = page.querySelector('.order-list .order .details') as HTMLButtonElement;
+    expect(details.textContent?.replace(/\s+/g, ' ').trim()).toBe('Details for SELL 10 MSFT');
+    expect(details.getAttribute('aria-expanded')).toBe('false');
+
+    details.click();
+    await fixture.whenStable();
+
+    expect(details.getAttribute('aria-expanded')).toBe('true');
+    expect(dashboard.orderHistory).toHaveBeenCalledWith('o2');
+    const steps = Array.from(page.querySelectorAll('#journey-o2 .steps li')).map((li) =>
+      li.textContent?.replace(/\s+/g, ' ').trim(),
+    );
+    expect(steps[0]).toContain('Order received');
+    expect(steps[1]).toContain('Passed checks and sent to market');
+    expect(steps[1]).toContain('+50 ms');
+
+    details.click();
+    await fixture.whenStable();
+    expect(page.querySelector('#journey-o2')).toBeNull();
   });
 
   it('shows a message instead of the order list when there are no orders', async () => {

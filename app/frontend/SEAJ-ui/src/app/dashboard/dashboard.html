@@ -12,7 +12,10 @@
         <p class="eyebrow">YOUR ACCOUNT</p>
         <h1 class="welcome">Welcome, {{ account.holderName }}</h1>
         <p class="muted">
-          Account {{ account.accountId }}
+          Account {{ account.accountId }} ·
+          <span class="market-status" [attr.data-status]="marketStatus()">
+            <span class="dot" aria-hidden="true"></span>US market {{ marketStatus() }}
+          </span>
           @if (pricesAsOf(); as asOf) {
             · Prices as of
             <time class="as-of" [attr.datetime]="asOf">{{ asOf | date: 'HH:mm:ss' }}</time>
@@ -79,7 +82,7 @@
         <div hlmCardHeader>
           <h2 hlmCardTitle id="positions-title">Positions</h2>
           <div hlmCardAction>
-            <span class="tag">{{ holdingsLabel() }}</span>
+            <span class="tag">{{ holdingsLabel() }} · sorted by value</span>
           </div>
         </div>
         <div hlmCardContent>
@@ -99,7 +102,12 @@
                 <tbody hlmTBody>
                   @for (holding of holdings(); track holding.positionId) {
                     <tr hlmTr>
-                      <th hlmTh scope="row" class="symbol">{{ holding.symbol }}</th>
+                      <th hlmTh scope="row">
+                        <span class="symbol">{{ holding.symbol }}</span>
+                        @if (names().get(holding.symbol); as name) {
+                          <span class="company">{{ name }}</span>
+                        }
+                      </th>
                       <td hlmTd class="num">{{ holding.quantity | number }}</td>
                       <td hlmTd class="num">{{ holding.averageCost | currency: 'USD' }}</td>
                       <td hlmTd class="num price">
@@ -136,7 +144,10 @@
               </table>
             </div>
           } @else {
-            <p class="empty">You don't hold any positions yet.</p>
+            <div class="empty">
+              <p>You don't hold any positions yet.</p>
+              <button type="button" class="primary" (click)="goToOrderTicket()">Place order</button>
+            </div>
           }
         </div>
       </section>

@@ -58,6 +58,8 @@ describe('PerformanceChartComponent', () => {
     expect(text('.change')).toBe('▲ +$25.00 (+8.33%) over 1M');
     expect(text('.readout')).toBe('High $325.00 · Low $300.00');
     expect(dashboard.bars).toHaveBeenCalledWith('AAPL', '1Day');
+    // The summary is visible, but only inspected values are announced
+    expect(text('.live')).toBe('');
   });
 
   it('describes the chart for screen readers', async () => {
@@ -80,6 +82,7 @@ describe('PerformanceChartComponent', () => {
     await fixture.whenStable();
     expect(text('.readout')).toContain('$325.00');
     expect(page.querySelector('circle.dot')).not.toBeNull();
+    expect(text('.live')).toBe('Oct 12, $325.00');
 
     svg.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await fixture.whenStable();
