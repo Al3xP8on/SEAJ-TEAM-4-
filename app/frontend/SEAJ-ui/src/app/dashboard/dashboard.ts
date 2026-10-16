@@ -9,9 +9,11 @@ import { Account, Position } from './dashboard.models';
 import { MarketOverview, MarketSnapshot, Order } from '../orders/orders.models';
 import { DashboardData, DashboardService } from './dashboard.service';
 import { AllocationChartComponent, AllocationSlice } from './allocation-chart/allocation-chart';
-import { PortfolioCheckComponent } from './portfolio-check/portfolio-check';
+import { CONCENTRATION_LIMIT, PortfolioCheckComponent } from './portfolio-check/portfolio-check';
 import { RecentOrdersComponent } from './recent-orders/recent-orders';
 import { PerformanceChartComponent } from './performance-chart/performance-chart';
+import { BriefingComponent } from './briefing/briefing';
+import { BriefingFacts } from './briefing/write-briefing';
 
 // The backend refreshes market prices every 10 seconds, so polling faster gains nothing
 const MARKET_REFRESH_MS = 10_000;
@@ -35,6 +37,7 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     PortfolioCheckComponent,
     RecentOrdersComponent,
     PerformanceChartComponent,
+    BriefingComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
@@ -125,6 +128,21 @@ export class DashboardComponent implements OnInit {
   );
 
   readonly totalValue = computed(() => (this.account()?.cashBalance ?? 0) + this.holdingsValue());
+
+  readonly briefing = computed<BriefingFacts>(() => ({
+    totalValue: this.totalValue(),
+    dayChange: this.dayChange(),
+    atCost: this.holdings().length > 0 && this.holdings().every((h) => h.price === null),
+    holdings: this.holdings().map((h) => ({
+      symbol: h.symbol,
+      value: h.value,
+      dayChange: h.dayChange,
+    })),
+    buyingPower: this.buyingPower(),
+    reserved: this.reservedCash(),
+    openOrders: this.orders().filter((o) => OPEN_STATUSES.includes(o.status)).length,
+    concentrationLimit: CONCENTRATION_LIMIT,
+  }));
 
   /** Largest four holdings, the rest grouped as "Other", then cash */
   readonly allocation = computed<AllocationSlice[]>(() => {

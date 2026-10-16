@@ -223,6 +223,24 @@ describe('DashboardComponent', () => {
     expect(percents).toEqual(['32.4%', '27.3%', '6.1%', '34.2%']);
   });
 
+  it('opens with a plain-English briefing of the account', async () => {
+    dashboard.marketPrices.mockReturnValue(of(MARKET));
+    const { page } = await render();
+    const briefing = page
+      .querySelector('app-briefing .sentences')
+      ?.textContent?.replace(/\s+/g, ' ')
+      .trim();
+
+    // AAPL 9,500 (32%) and MSFT 8,000 (27%) of 29,281.25; MSFT's open SELL holds back no cash
+    expect(briefing).toBe(
+      'Your portfolio is worth $29,281.25, up $50.00 (0.29%) today. ' +
+        'AAPL moved the most today, up $250.00. ' +
+        'AAPL and MSFT are each above the 25% guideline. ' +
+        'You have $10,000.00 available to trade. ' +
+        '1 order is waiting to fill.',
+    );
+  });
+
   it('shows a message instead of the table when there are no holdings', async () => {
     const closedOnly: Position[] = [
       { positionId: 9, symbol: 'TSLA', quantity: 0, averageCost: 240, status: 'CLOSED' },

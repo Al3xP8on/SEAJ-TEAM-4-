@@ -1,0 +1,23 @@
+:host {
+  display: block;
+  margin-bottom: 24px;
+}
+
+/* Marked out from the number cards by a brand stripe, not by colour of text */
+.briefing {
+  border-left: 4px solid var(--primary);
+}
+
+h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Comfortable reading: a readable line length and generous spacing */
+.sentences {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  max-width: 75ch;
+  margin: 0;
+}
