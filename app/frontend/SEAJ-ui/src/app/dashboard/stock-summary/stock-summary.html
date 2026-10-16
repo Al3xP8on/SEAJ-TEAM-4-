@@ -77,7 +77,12 @@
 @if (bars() === null) {
   <p class="muted" role="status">Loading {{ symbol() }} price history…</p>
 } @else if (points().length > 1) {
-  <app-line-chart [points]="points()" [description]="description()" [loss]="falling()" />
+  <app-line-chart
+    [points]="points()"
+    [description]="description()"
+    [loss]="falling()"
+    valueLabel="Close"
+  />
 } @else {
   <p class="muted">No price history is available for {{ symbol() }} right now.</p>
 }

@@ -29,6 +29,8 @@ export class LineChartComponent {
   readonly dateFormat = input('MMM d');
   /** Draws the line in the falling colour */
   readonly loss = input(false);
+  /** Heading for the value column of the data table, e.g. "Close" */
+  readonly valueLabel = input('Value');
 
   readonly width = WIDTH;
   readonly height = HEIGHT;

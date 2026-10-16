@@ -48,3 +48,48 @@
   margin: 10px 0 0;
   font-variant-numeric: tabular-nums;
 }
+
+.data {
+  margin-top: 12px;
+  font-size: 0.8125rem;
+}
+
+.data summary {
+  min-height: 24px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.table-scroll {
+  overflow-y: auto;
+  max-height: 280px;
+  margin-top: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  font-weight: 500;
+}
+
+tbody th {
+  font-weight: 400;
+}
+
+.num {
+  text-align: right;
+}

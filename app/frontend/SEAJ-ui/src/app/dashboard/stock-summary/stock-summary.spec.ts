@@ -83,6 +83,14 @@ describe('StockSummaryComponent', () => {
     expect(page.querySelector('svg')?.getAttribute('aria-label')).toBe(
       'AAPL closing price over the last 2 trading days, from $104.00 to $110.00. Use the arrow keys to read values.',
     );
+    // The same figures as a table, oldest first
+    const rows = Array.from(page.querySelectorAll('details table tbody tr')).map((r) =>
+      Array.from(r.children)
+        .map((cell) => cell.textContent?.trim())
+        .join(' '),
+    );
+    expect(page.querySelector('details thead')?.textContent).toContain('Close');
+    expect(rows).toEqual(['Oct 13 $104.00', 'Oct 14 $110.00']);
   });
 
   it("says when you don't hold the stock, and copes without live prices", async () => {
