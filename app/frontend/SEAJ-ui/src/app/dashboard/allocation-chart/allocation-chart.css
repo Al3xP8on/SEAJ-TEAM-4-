@@ -1,0 +1,46 @@
+.allocation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+.chart {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  flex: none;
+}
+
+.legend {
+  flex: 1 1 140px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.label {
+  flex: 1;
+}
+
+.percent {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

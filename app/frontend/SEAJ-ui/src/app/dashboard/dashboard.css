@@ -90,6 +90,13 @@ h2 {
   background: var(--muted);
 }
 
+.holdings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
 .summary {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
@@ -124,14 +131,6 @@ h2 {
   word-break: break-word;
 }
 
-.section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
 .tag {
   background: var(--muted);
   border-radius: 5px;
@@ -140,44 +139,112 @@ h2 {
   color: var(--foreground);
 }
 
-.table-scroll {
-  overflow-x: auto;
-}
-
-.positions-table {
+/* Table layout and borders come from spartan's table; only dashboard-specific touches here */
+.data-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8125rem;
 }
 
-.positions-table th,
-.positions-table td {
+.data-table th,
+.data-table td {
   padding: 13px 8px;
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
-.positions-table thead th {
+.data-table thead th {
   font-size: 0.6875rem;
   color: var(--foreground);
   font-weight: 500;
   white-space: nowrap;
 }
 
-.positions-table .num {
+.data-table .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.positions-table .symbol {
+.data-table .symbol {
   font-weight: 600;
   color: var(--foreground);
 }
 
-.positions-table tfoot th,
-.positions-table tfoot td {
-  border-bottom: none;
+.data-table .company {
+  margin-left: 6px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+
+.data-table tfoot th,
+.data-table tfoot td {
   font-weight: 600;
+}
+
+.candles {
+  display: block;
+  margin-top: 24px;
+}
+
+/* A symbol that opens its chart: looks like the symbol, behaves like a button */
+.symbol-link {
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.performance {
+  display: block;
+  margin-top: 24px;
+}
+
+.market-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+  align-items: stretch;
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+  gap: 24px;
+  margin-top: 24px;
+  align-items: stretch;
+}
+
+/* The sign and arrow carry the direction; colour only reinforces it */
+.change {
+  color: var(--positive);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.pnl {
+  color: var(--positive);
+}
+
+.change.loss,
+.pnl.loss {
+  color: var(--destructive);
+}
+
+.cash-actions {
+  margin-top: 16px;
+}
+
+.buying-power {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .empty {
@@ -185,6 +252,10 @@ h2 {
   padding: 32px;
   color: var(--foreground);
   margin: 0;
+}
+
+.empty p {
+  margin: 0 0 16px;
 }
 
 .status {
@@ -213,7 +284,10 @@ footer {
 }
 
 @media (max-width: 800px) {
-  .summary {
+  .summary,
+  .holdings-row,
+  .activity-row,
+  .market-row {
     grid-template-columns: 1fr;
   }
 
@@ -222,5 +296,17 @@ footer {
   }
 }
 
-.card { min-width: 0; } .positions-scroll { overflow-x: auto; }
-@media (max-width: 520px) { main { padding: 1rem; } .card { padding: 1rem; } }
+.card {
+  min-width: 0;
+}
+.positions-scroll {
+  overflow-x: auto;
+}
+@media (max-width: 520px) {
+  main {
+    padding: 1rem;
+  }
+  .card {
+    padding: 1rem;
+  }
+}

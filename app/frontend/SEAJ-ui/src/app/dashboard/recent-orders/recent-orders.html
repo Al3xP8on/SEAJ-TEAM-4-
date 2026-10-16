@@ -1,0 +1,75 @@
+<section hlmCard class="orders-card" aria-labelledby="orders-title">
+  <div hlmCardHeader>
+    <h2 hlmCardTitle id="orders-title">Recent orders</h2>
+    <div hlmCardAction>
+      <button type="button" class="link" (click)="goToBlotter()">View all in blotter</button>
+    </div>
+  </div>
+  <div hlmCardContent>
+    @if (recentOrders().length > 0) {
+      <ul class="order-list">
+        @for (order of recentOrders(); track order.orderId) {
+          <li class="order">
+            <div class="row">
+              <span class="summary-line">
+                <strong class="side">{{ order.side }}</strong>
+                {{ order.quantity | number }}
+                <span class="symbol">{{ order.ticker }}</span> &#64;
+                {{ order.executionPrice ?? order.price | currency: 'USD' }}
+              </span>
+              {{ ' '
+              }}<time [attr.datetime]="order.createdAt">{{
+                order.createdAt | date: 'MMM d, HH:mm'
+              }}</time>
+              {{ ' '
+              }}<span class="badge" [attr.data-status]="order.status">{{ order.status }}</span>
+              <button
+                type="button"
+                class="details"
+                [attr.aria-expanded]="expanded() === order.orderId"
+                [attr.aria-controls]="'journey-' + order.orderId"
+                (click)="toggle(order.orderId)"
+              >
+                Details<span class="sr-only">
+                  for {{ order.side }} {{ order.quantity }} {{ order.ticker }}</span
+                >
+              </button>
+            </div>
+            @if (expanded() === order.orderId) {
+              <div class="journey" [id]="'journey-' + order.orderId">
+                @let state = journey();
+                @if (state?.state === 'loading') {
+                  <p class="muted" role="status">Loading this order's journey…</p>
+                } @else if (state?.state === 'error') {
+                  <p class="muted" role="status">This order's journey couldn't be loaded.</p>
+                } @else if (state?.state === 'ready') {
+                  <ol class="steps">
+                    @for (step of state.steps; track $index) {
+                      <li>
+                        <span class="label">{{ step.label }}</span>
+                        {{ ' '
+                        }}<span class="when">
+                          <time [attr.datetime]="step.time">{{
+                            step.time | date: 'HH:mm:ss'
+                          }}</time>
+                          @if (step.elapsed) {
+                            {{ ' ' }}<span class="elapsed">{{ step.elapsed }}</span>
+                          }
+                        </span>
+                      </li>
+                    }
+                  </ol>
+                  @if (state.total) {
+                    <p class="total">{{ state.total }}</p>
+                  }
+                }
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="empty">You haven't placed any orders yet.</p>
+    }
+  </div>
+</section>

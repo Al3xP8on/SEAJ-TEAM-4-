@@ -1,0 +1,134 @@
+<section hlmCard class="candle-card" aria-labelledby="candle-title">
+  <div hlmCardHeader>
+    <h2 hlmCardTitle id="candle-title" #heading tabindex="-1">
+      {{ symbol() }}
+      @if (name()) {
+        {{ ' ' }}<span class="company">{{ name() }}</span>
+      }
+      {{ ' ' }}<span class="sub">· daily candles</span>
+    </h2>
+    <div hlmCardAction>
+      <button type="button" class="close" (click)="closed.emit()">
+        Close<span class="sr-only"> {{ symbol() }} chart</span>
+      </button>
+    </div>
+  </div>
+  <div hlmCardContent>
+    @if (candles() === null) {
+      <p class="muted" role="status">Loading {{ symbol() }} price history…</p>
+    } @else if (summary(); as s) {
+      <p class="muted scope">
+        Last {{ candles()!.length }} trading days. Hollow candles closed higher than they opened;
+        filled candles closed lower.
+      </p>
+
+      <svg
+        class="chart"
+        [attr.viewBox]="'0 0 ' + width + ' ' + height"
+        preserveAspectRatio="none"
+        role="img"
+        tabindex="0"
+        [attr.aria-label]="
+          symbol() +
+          ' daily candles from ' +
+          (s.from.timestamp | date: 'MMM d') +
+          ' to ' +
+          (s.to.timestamp | date: 'MMM d') +
+          ': opened at ' +
+          (s.from.open | currency: 'USD') +
+          ', latest close ' +
+          (s.to.close | currency: 'USD') +
+          ', high ' +
+          (s.high | currency: 'USD') +
+          ', low ' +
+          (s.low | currency: 'USD') +
+          '. Use the arrow keys to read each day.'
+        "
+        (keydown)="onKey($event)"
+        (pointermove)="onPointer($event)"
+        (pointerleave)="clearInspect()"
+        (blur)="clearInspect()"
+      >
+        @for (c of plot(); track $index) {
+          <g class="candle" [class.up]="c.up" [class.inspected]="inspectIndex() === $index">
+            <line
+              class="wick"
+              [attr.x1]="c.x"
+              [attr.x2]="c.x"
+              [attr.y1]="c.wickTop"
+              [attr.y2]="c.wickBottom"
+            />
+            <rect
+              class="body"
+              [attr.x]="c.bodyX"
+              [attr.y]="c.bodyY"
+              [attr.width]="c.bodyWidth"
+              [attr.height]="c.bodyHeight"
+            />
+          </g>
+        }
+      </svg>
+
+      <p class="readout">
+        @if (inspected(); as day) {
+          <time [attr.datetime]="day.timestamp">{{ day.timestamp | date: 'EEE MMM d' }}</time> ·
+          Open {{ day.open | currency: 'USD' }} · High {{ day.high | currency: 'USD' }} · Low
+          {{ day.low | currency: 'USD' }} · Close {{ day.close | currency: 'USD' }}
+        } @else {
+          {{ s.change >= 0 ? 'Up' : 'Down' }}
+          {{ (s.change < 0 ? -s.change : s.change) | percent: '1.2-2' }} over the period · High
+          {{ s.high | currency: 'USD' }} · Low {{ s.low | currency: 'USD' }}
+        }
+      </p>
+      <!-- Announces only days being inspected, never the background refresh -->
+      <p class="sr-only live" aria-live="polite">
+        @if (inspected(); as day) {
+          {{ day.timestamp | date: 'EEE MMM d' }}: open {{ day.open | currency: 'USD' }}, high
+          {{ day.high | currency: 'USD' }}, low {{ day.low | currency: 'USD' }}, close
+          {{ day.close | currency: 'USD' }}, {{ day.up ? 'up' : 'down' }}
+          {{ (day.change < 0 ? -day.change : day.change) | percent: '1.2-2' }}
+        }
+      </p>
+
+      <details class="data">
+        <summary>Show as a table</summary>
+        <div class="table-scroll">
+          <table>
+            <caption class="sr-only">
+              {{
+                symbol()
+              }}
+              daily prices
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col" class="num">Open</th>
+                <th scope="col" class="num">High</th>
+                <th scope="col" class="num">Low</th>
+                <th scope="col" class="num">Close</th>
+                <th scope="col" class="num">Change</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (day of candles(); track day.timestamp) {
+                <tr>
+                  <th scope="row">{{ day.timestamp | date: 'MMM d' }}</th>
+                  <td class="num">{{ day.open | currency: 'USD' }}</td>
+                  <td class="num">{{ day.high | currency: 'USD' }}</td>
+                  <td class="num">{{ day.low | currency: 'USD' }}</td>
+                  <td class="num">{{ day.close | currency: 'USD' }}</td>
+                  <td class="num">
+                    {{ day.change > 0 ? '+' : '' }}{{ day.change | percent: '1.2-2' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </details>
+    } @else {
+      <p class="empty">No price history is available for {{ symbol() }} right now.</p>
+    }
+  </div>
+</section>

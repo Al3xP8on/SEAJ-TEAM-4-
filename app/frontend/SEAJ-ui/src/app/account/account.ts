@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AccountService, Profile, Settings, BankInput, Bank } from './account.service';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { AppearanceService } from '../appearance/appearance.service';
 import { Account } from '../dashboard/dashboard.models';
@@ -20,6 +20,7 @@ export class AccountComponent {
   readonly appearance = inject(AppearanceService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute, { optional: true });
   readonly deletionBusy = signal(false);
   readonly withdrawalRequired = signal(false);
   readonly deletionError = signal('');
@@ -67,7 +68,13 @@ export class AccountComponent {
   currentPassword = '';
   newPassword = '';
   confirmPassword = '';
-  constructor() { this.load(); }
+  constructor() {
+    // Deep links such as /account?section=cash&action=withdraw, used by the dashboard's cash card
+    const params = this.route?.snapshot.queryParamMap;
+    if (params?.get('section') === 'cash') this.section.set('cash');
+    if (params?.get('action') === 'withdraw') this.action = 'withdraw';
+    this.load();
+  }
   load() {
     this.loading.set(true); this.loadError.set('');
     this.service.load().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

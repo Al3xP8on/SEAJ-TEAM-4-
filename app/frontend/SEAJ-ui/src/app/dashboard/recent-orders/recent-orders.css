@@ -1,0 +1,160 @@
+:host {
+  display: block;
+}
+
+.orders-card {
+  height: 100%;
+}
+
+h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.link {
+  min-height: 24px;
+  border: 0;
+  background: none;
+  padding: 2px 0;
+  color: var(--positive);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  color: var(--primary-hover);
+}
+
+.order-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.order {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.order .summary-line {
+  flex: 1;
+  min-width: 0;
+}
+
+.order .side,
+.order .symbol {
+  font-weight: 600;
+}
+
+.order time {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* Status is spelled out, so colour only reinforces it */
+.badge {
+  display: inline-block;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--muted);
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+.badge[data-status='FILLED'] {
+  background: var(--secondary);
+  color: var(--positive);
+}
+
+.badge[data-status='REJECTED'] {
+  color: var(--destructive);
+}
+
+.empty {
+  text-align: center;
+  padding: 32px;
+  margin: 0;
+}
+
+.details {
+  min-height: 24px;
+  padding: 2px 6px;
+  border: 0;
+  background: none;
+  color: var(--positive);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* A vertical timeline: a rule down the left with a marker per step */
+.journey {
+  margin: 10px 0 2px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--muted);
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 16px;
+  border-left: 2px solid var(--border);
+}
+
+.steps li {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 4px 0;
+}
+
+.steps li::before {
+  content: '';
+  position: absolute;
+  left: -22px;
+  top: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--positive);
+}
+
+.when {
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.elapsed {
+  margin-left: 8px;
+  font-weight: 600;
+}
+
+.total {
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--muted-foreground);
+  margin: 0;
+}
