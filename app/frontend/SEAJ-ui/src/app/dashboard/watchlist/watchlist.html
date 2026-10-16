@@ -8,7 +8,14 @@
         @for (row of rows(); track row.symbol) {
           <li>
             <span class="who">
-              <span class="symbol">{{ row.symbol }}</span>
+              <button
+                type="button"
+                class="symbol-link"
+                [attr.aria-label]="'View ' + row.symbol + ' chart'"
+                (click)="openChart(row.symbol, $event)"
+              >
+                <span class="symbol">{{ row.symbol }}</span>
+              </button>
               @if (row.name) {
                 {{ ' ' }}<span class="company">{{ row.name }}</span>
               }

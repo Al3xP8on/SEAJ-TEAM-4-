@@ -18,6 +18,7 @@ import { pollWhileVisible } from './poll-while-visible';
 import { MarketClockComponent } from './market-clock/market-clock';
 import { MarketMoversComponent } from './market-movers/market-movers';
 import { WatchlistComponent } from './watchlist/watchlist';
+import { CandlestickChartComponent } from './candlestick-chart/candlestick-chart';
 
 // The backend refreshes market prices every 10 seconds, so polling faster gains nothing
 const MARKET_REFRESH_MS = 10_000;
@@ -45,6 +46,7 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     MarketClockComponent,
     MarketMoversComponent,
     WatchlistComponent,
+    CandlestickChartComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
@@ -61,6 +63,10 @@ export class DashboardComponent implements OnInit {
   readonly orders = signal<Order[]>([]);
   readonly market = signal<MarketOverview | null>(null);
   readonly names = signal(new Map<string, string>());
+  /** The symbol whose candlestick chart is open, if any */
+  readonly chartSymbol = signal<string | null>(null);
+  /** The button that opened the chart, so closing it returns focus there */
+  private chartOpener: HTMLElement | null = null;
   readonly loading = signal(true);
   readonly error = signal('');
 
@@ -216,6 +222,18 @@ export class DashboardComponent implements OnInit {
     this.account.set(account);
     this.positions.set(positions);
     this.orders.set(orders);
+  }
+
+  openChart(symbol: string, event: Event | HTMLElement): void {
+    this.chartOpener = event instanceof HTMLElement ? event : (event.currentTarget as HTMLElement);
+    // The chart moves focus to its heading once shown, which also scrolls it into view
+    this.chartSymbol.set(symbol);
+  }
+
+  closeChart(): void {
+    this.chartSymbol.set(null);
+    this.chartOpener?.focus();
+    this.chartOpener = null;
   }
 
   goToOrderTicket(): void {

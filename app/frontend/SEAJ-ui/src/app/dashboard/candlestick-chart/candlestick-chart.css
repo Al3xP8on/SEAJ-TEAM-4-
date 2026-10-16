@@ -1,0 +1,139 @@
+:host {
+  display: block;
+}
+
+h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  /* Clear the sticky navigation when focus scrolls the chart into view */
+  scroll-margin-top: calc(var(--app-nav-height, 0px) + 24px);
+}
+
+/* Focus lands here when the chart opens; keep it visible but quiet */
+h2:focus {
+  outline: none;
+}
+
+h2:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 4px;
+}
+
+.company,
+.sub {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+
+.close {
+  min-height: 24px;
+  padding: 2px 6px;
+  border: 0;
+  background: none;
+  color: var(--positive);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.muted {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+.scope {
+  margin-bottom: 10px;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  height: 240px;
+  touch-action: none;
+}
+
+/* Rising days hollow, falling days filled, so direction never relies on colour alone */
+.wick {
+  stroke: var(--destructive);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.body {
+  fill: var(--destructive);
+  stroke: var(--destructive);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.up .wick,
+.up .body {
+  stroke: var(--positive);
+}
+
+.up .body {
+  fill: var(--card);
+}
+
+.inspected .body {
+  stroke-width: 3;
+}
+
+.readout {
+  font-size: 0.8125rem;
+  margin: 10px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.data {
+  margin-top: 12px;
+  font-size: 0.8125rem;
+}
+
+.data summary {
+  min-height: 24px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  max-height: 320px;
+  margin-top: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  font-weight: 500;
+}
+
+.num {
+  text-align: right;
+}
+
+.empty {
+  text-align: center;
+  padding: 32px;
+  margin: 0;
+}

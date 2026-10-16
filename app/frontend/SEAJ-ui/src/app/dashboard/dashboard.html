@@ -101,7 +101,14 @@
                   @for (holding of holdings(); track holding.positionId) {
                     <tr hlmTr>
                       <th hlmTh scope="row">
-                        <span class="symbol">{{ holding.symbol }}</span>
+                        <button
+                          type="button"
+                          class="symbol-link"
+                          [attr.aria-label]="'View ' + holding.symbol + ' chart'"
+                          (click)="openChart(holding.symbol, $event)"
+                        >
+                          <span class="symbol">{{ holding.symbol }}</span>
+                        </button>
                         @if (names().get(holding.symbol); as name) {
                           {{ ' ' }}<span class="company">{{ name }}</span>
                         }
@@ -160,6 +167,15 @@
       </section>
     </div>
 
+    @if (chartSymbol(); as symbol) {
+      <app-candlestick-chart
+        class="candles"
+        [symbol]="symbol"
+        [name]="names().get(symbol) ?? null"
+        (closed)="closeChart()"
+      />
+    }
+
     <app-performance-chart class="performance" [holdings]="holdings()" />
 
     <div class="activity-row">
@@ -176,6 +192,7 @@
     <div class="market-row">
       <app-market-movers [snapshots]="market()?.snapshots ?? []" [names]="names()" />
       <app-watchlist
+        (chart)="openChart($event.symbol, $event.trigger)"
         [accountId]="account.accountId"
         [snapshots]="market()?.snapshots ?? []"
         [names]="names()"

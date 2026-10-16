@@ -40,6 +40,18 @@ h2 {
   font-weight: 600;
 }
 
+.symbol-link {
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
 .company {
   margin-left: 4px;
   font-size: 0.75rem;

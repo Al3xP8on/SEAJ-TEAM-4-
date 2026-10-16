@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { CurrencyPipe, PercentPipe } from '@angular/common';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { MarketSnapshot } from '../../orders/orders.models';
@@ -16,6 +16,8 @@ export class WatchlistComponent {
   readonly accountId = input.required<string>();
   readonly snapshots = input.required<MarketSnapshot[]>();
   readonly names = input(new Map<string, string>());
+  /** Asks the dashboard to open a symbol's chart; trigger gets focus back on close */
+  readonly chart = output<{ symbol: string; trigger: HTMLElement }>();
 
   readonly error = signal('');
   readonly limit = WATCHLIST_LIMIT;
@@ -59,6 +61,10 @@ export class WatchlistComponent {
       field.value = '';
       this.error.set('');
     }
+  }
+
+  openChart(symbol: string, event: Event): void {
+    this.chart.emit({ symbol, trigger: event.currentTarget as HTMLElement });
   }
 
   remove(symbol: string): void {

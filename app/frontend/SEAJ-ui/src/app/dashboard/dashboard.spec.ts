@@ -289,6 +289,24 @@ describe('DashboardComponent', () => {
     expect(rows[0].querySelector('.company')).toBeNull(); // no name known for NVDA
   });
 
+  it("opens a holding's candlestick chart and returns focus when it closes", async () => {
+    const { fixture, page } = await render();
+    document.body.appendChild(page);
+    const open = page.querySelector('.positions-table .symbol-link') as HTMLButtonElement;
+    expect(open.getAttribute('aria-label')).toBe('View AAPL chart');
+
+    open.focus();
+    open.click();
+    await fixture.whenStable();
+    expect(page.querySelector('app-candlestick-chart h2')?.textContent).toContain('AAPL');
+    expect(dashboard.bars).toHaveBeenCalledWith('AAPL', '1Day');
+
+    (page.querySelector('app-candlestick-chart .close') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    expect(page.querySelector('app-candlestick-chart')).toBeNull();
+    expect(document.activeElement).toBe(open);
+  });
+
   it('offers to place an order when there are no holdings', async () => {
     dashboard.load.mockReturnValue(of({ ...DATA, positions: [] }));
     const { page } = await render();
