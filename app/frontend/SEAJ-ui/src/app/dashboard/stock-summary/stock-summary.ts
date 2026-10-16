@@ -6,6 +6,8 @@ import { MarketBar, MarketSnapshot } from '../../orders/orders.models';
 import { DashboardService } from '../dashboard.service';
 import { pollWhileVisible } from '../poll-while-visible';
 import { LineChartComponent, LinePoint } from '../line-chart/line-chart';
+import { TrendIconComponent } from '../trend/trend-icon';
+import { TickDirective } from '../trend/tick';
 
 // Daily bars are cached for 5 minutes by the backend
 const REFRESH_MS = 300_000;
@@ -26,7 +28,14 @@ export interface StockPosition {
  */
 @Component({
   selector: 'app-stock-summary',
-  imports: [CurrencyPipe, DecimalPipe, PercentPipe, LineChartComponent],
+  imports: [
+    CurrencyPipe,
+    DecimalPipe,
+    PercentPipe,
+    LineChartComponent,
+    TrendIconComponent,
+    TickDirective,
+  ],
   templateUrl: './stock-summary.html',
   styleUrl: './stock-summary.css',
 })

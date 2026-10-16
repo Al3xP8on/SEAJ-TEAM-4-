@@ -4,44 +4,53 @@
   </div>
   <div hlmCardContent>
     @if (rows().length > 0) {
-      <ul class="rows" aria-labelledby="watchlist-title">
-        @for (row of rows(); track row.symbol) {
-          <li>
-            <span class="who">
-              <button
+      <div class="scroll" role="region" aria-label="Watchlist tickers" tabindex="0">
+        <ul class="rows" aria-labelledby="watchlist-title">
+          @for (row of rows(); track row.symbol) {
+            <li>
+              <span class="who">
+                <button
+                  type="button"
+                  class="symbol-link"
+                  [attr.aria-label]="'View ' + row.symbol + ' chart'"
+                  (click)="chart.emit(row.symbol)"
+                >
+                  <span class="symbol">{{ row.symbol }}</span>
+                </button>
+                @if (row.name) {
+                  {{ ' ' }}<span class="company">{{ row.name }}</span>
+                }
+              </span>
+              {{ ' '
+              }}<span class="price" [appTick]="row.price">
+                @if (row.price !== null) {
+                  {{ row.price | currency: 'USD' }}
+                } @else {
+                  <span aria-hidden="true">—</span><span class="sr-only">No live price</span>
+                }
+              </span>
+              {{ ' '
+              }}<span class="change" [class.loss]="(row.change ?? 0) < 0">
+                @if (row.change !== null) {
+                  <app-trend-icon [value]="row.change" />
+                  {{ row.change > 0 ? '+' : '' }}{{ row.change | percent: '1.2-2' }}
+                }
+              </span>
+              {{ ' '
+              }}<button
                 type="button"
-                class="symbol-link"
-                [attr.aria-label]="'View ' + row.symbol + ' chart'"
-                (click)="chart.emit(row.symbol)"
+                hlmBtn
+                variant="ghost"
+                size="icon-sm"
+                (click)="remove(row.symbol)"
               >
-                <span class="symbol">{{ row.symbol }}</span>
+                <ng-icon name="lucideX" aria-hidden="true" />
+                <span class="sr-only">Remove {{ row.symbol }} from watchlist</span>
               </button>
-              @if (row.name) {
-                {{ ' ' }}<span class="company">{{ row.name }}</span>
-              }
-            </span>
-            {{ ' '
-            }}<span class="price">
-              @if (row.price !== null) {
-                {{ row.price | currency: 'USD' }}
-              } @else {
-                <span aria-hidden="true">—</span><span class="sr-only">No live price</span>
-              }
-            </span>
-            {{ ' '
-            }}<span class="change" [class.loss]="(row.change ?? 0) < 0">
-              @if (row.change !== null) {
-                <span aria-hidden="true">{{ row.change < 0 ? '▼' : '▲' }}</span>
-                {{ row.change > 0 ? '+' : '' }}{{ row.change | percent: '1.2-2' }}
-              }
-            </span>
-            {{ ' '
-            }}<button type="button" class="remove" (click)="remove(row.symbol)">
-              Remove<span class="sr-only"> {{ row.symbol }} from watchlist</span>
-            </button>
-          </li>
-        }
-      </ul>
+            </li>
+          }
+        </ul>
+      </div>
     } @else {
       <p class="muted">Add tickers you want to keep an eye on.</p>
     }
@@ -65,7 +74,9 @@
             [attr.aria-invalid]="error() ? true : null"
             [attr.aria-describedby]="error() ? 'watchlist-error' : null"
           />
-          <button type="submit" class="primary">Add</button>
+          <button type="submit" hlmBtn class="hover:bg-(--primary-hover)">
+            <ng-icon name="lucidePlus" aria-hidden="true" />Add
+          </button>
         </div>
         <datalist id="watchlist-symbols">
           @for (symbol of available(); track symbol) {

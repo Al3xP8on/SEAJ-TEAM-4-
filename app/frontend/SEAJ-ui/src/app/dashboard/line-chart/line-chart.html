@@ -37,30 +37,32 @@
   }
 </p>
 
-<!-- The exact figures for anyone who'd rather read than trace a line -->
-<details class="data">
-  <summary>Show as a table</summary>
-  <div class="table-scroll">
-    <table>
-      <caption class="sr-only">
-        {{
-          description()
-        }}
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">{{ dateFormat().includes('H') ? 'Time' : 'Date' }}</th>
-          <th scope="col" class="num">{{ valueLabel() }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (point of points(); track point.time) {
+@if (showTable()) {
+  <!-- The exact figures for anyone who'd rather read than trace a line -->
+  <details class="data">
+    <summary>Show as a table</summary>
+    <div class="table-scroll">
+      <table>
+        <caption class="sr-only">
+          {{
+            description()
+          }}
+        </caption>
+        <thead>
           <tr>
-            <th scope="row">{{ point.time | date: dateFormat() }}</th>
-            <td class="num">{{ point.value | currency: 'USD' }}</td>
+            <th scope="col">{{ dateFormat().includes('H') ? 'Time' : 'Date' }}</th>
+            <th scope="col" class="num">{{ valueLabel() }}</th>
           </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-</details>
+        </thead>
+        <tbody>
+          @for (point of points(); track point.time) {
+            <tr>
+              <th scope="row">{{ point.time | date: dateFormat() }}</th>
+              <td class="num">{{ point.value | currency: 'USD' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </details>
+}

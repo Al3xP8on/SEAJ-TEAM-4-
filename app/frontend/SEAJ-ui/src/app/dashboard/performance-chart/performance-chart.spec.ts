@@ -53,9 +53,10 @@ describe('PerformanceChartComponent', () => {
   ];
 
   it('shows the change over the period with the high and low', async () => {
-    const { text } = await render(HOLDINGS);
+    const { page, text } = await render(HOLDINGS);
 
-    expect(text('.change')).toBe('▲ +$25.00 (+8.33%) over 1M');
+    expect(text('.change')).toBe('+$25.00 (+8.33%) over 1M');
+    expect(page.querySelector('.change app-trend-icon')?.getAttribute('data-direction')).toBe('up');
     expect(text('.readout')).toBe('High $325.00 · Low $300.00');
     expect(dashboard.bars).toHaveBeenCalledWith('AAPL', '1Day');
     // The summary is visible, but only inspected values are announced
@@ -65,14 +66,14 @@ describe('PerformanceChartComponent', () => {
   it('describes the chart for screen readers', async () => {
     const { page } = await render(HOLDINGS);
 
-    expect(page.querySelector('svg')?.getAttribute('aria-label')).toBe(
+    expect(page.querySelector('app-line-chart svg')?.getAttribute('aria-label')).toBe(
       'Holdings value over 1M, from $300.00 to $325.00. Use the arrow keys to read values.',
     );
   });
 
   it('reads out values with the keyboard', async () => {
     const { fixture, page, text } = await render(HOLDINGS);
-    const svg = page.querySelector('svg')!;
+    const svg = page.querySelector('app-line-chart svg')!;
 
     svg.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }));
     await fixture.whenStable();

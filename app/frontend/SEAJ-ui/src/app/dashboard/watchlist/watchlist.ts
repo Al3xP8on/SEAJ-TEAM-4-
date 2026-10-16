@@ -3,10 +3,24 @@ import { CurrencyPipe, PercentPipe } from '@angular/common';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { MarketSnapshot } from '../../orders/orders.models';
 import { WATCHLIST_LIMIT, WatchlistService } from './watchlist.service';
+import { TrendIconComponent } from '../trend/trend-icon';
+import { TickDirective } from '../trend/tick';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucidePlus, lucideX } from '@ng-icons/lucide';
 
 @Component({
   selector: 'app-watchlist',
-  imports: [CurrencyPipe, PercentPipe, HlmCardImports],
+  imports: [
+    CurrencyPipe,
+    PercentPipe,
+    HlmCardImports,
+    TrendIconComponent,
+    TickDirective,
+    HlmButton,
+    NgIcon,
+  ],
+  providers: [provideIcons({ lucidePlus, lucideX })],
   templateUrl: './watchlist.html',
   styleUrl: './watchlist.css',
 })

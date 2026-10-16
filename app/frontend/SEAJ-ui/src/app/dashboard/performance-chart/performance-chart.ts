@@ -6,6 +6,7 @@ import { HlmCardImports } from '@spartan-ng/helm/card';
 import { DashboardService } from '../dashboard.service';
 import { pollWhileVisible } from '../poll-while-visible';
 import { LineChartComponent } from '../line-chart/line-chart';
+import { TrendIconComponent } from '../trend/trend-icon';
 import {
   PerformanceHolding,
   PerformanceSeries,
@@ -21,7 +22,7 @@ const REFRESH_MS: Record<Period, number> = { '1D': 60_000, '1W': 300_000, '1M': 
 
 @Component({
   selector: 'app-performance-chart',
-  imports: [CurrencyPipe, PercentPipe, HlmCardImports, LineChartComponent],
+  imports: [CurrencyPipe, PercentPipe, HlmCardImports, LineChartComponent, TrendIconComponent],
   templateUrl: './performance-chart.html',
   styleUrl: './performance-chart.css',
 })

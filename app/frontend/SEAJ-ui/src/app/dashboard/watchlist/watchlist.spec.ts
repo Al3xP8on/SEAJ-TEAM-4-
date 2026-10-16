@@ -48,7 +48,7 @@ describe('WatchlistComponent', () => {
 
     await submit('aapl');
 
-    expect(rows()).toEqual(['AAPL Apple Inc. $190.00 ▲ +1.50% Remove AAPL from watchlist']);
+    expect(rows()).toEqual(['AAPL Apple Inc. $190.00 +1.50% Remove AAPL from watchlist']);
     expect(input.value).toBe('');
   });
 
@@ -73,7 +73,11 @@ describe('WatchlistComponent', () => {
     const { fixture, page, submit, rows } = await render();
     await submit('TSLA');
 
-    (page.querySelector('.remove') as HTMLButtonElement).click();
+    (
+      Array.from(page.querySelectorAll('.rows button')).find((b) =>
+        b.textContent?.includes('Remove'),
+      ) as HTMLButtonElement
+    ).click();
     await fixture.whenStable();
 
     expect(rows()).toEqual([]);

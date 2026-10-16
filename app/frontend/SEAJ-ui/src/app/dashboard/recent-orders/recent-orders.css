@@ -12,22 +12,6 @@ h2 {
   margin: 0;
 }
 
-.link {
-  min-height: 24px;
-  border: 0;
-  background: none;
-  padding: 2px 0;
-  color: var(--positive);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.link:hover {
-  color: var(--primary-hover);
-}
-
 .order-list {
   list-style: none;
   margin: 0;
@@ -64,29 +48,14 @@ h2 {
   white-space: nowrap;
 }
 
-/* Status is spelled out, so colour only reinforces it */
-.badge {
-  display: inline-block;
-  border-radius: 5px;
-  padding: 4px 8px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  background: var(--muted);
-  color: var(--foreground);
-  white-space: nowrap;
-}
-
-.badge[data-status='FILLED'] {
-  background: var(--secondary);
-  color: var(--positive);
-}
-
-.badge[data-status='REJECTED'] {
-  color: var(--destructive);
-}
-
 .empty {
   text-align: center;
   padding: 32px;
   margin: 0;
+}
+
+/* About five orders, then the list scrolls */
+.scroll {
+  max-height: 15rem;
+  overflow-y: auto;
 }
