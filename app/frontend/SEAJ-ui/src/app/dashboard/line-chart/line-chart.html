@@ -1,0 +1,38 @@
+@if (plot(); as p) {
+  <svg
+    class="chart"
+    [class.loss]="loss()"
+    [attr.viewBox]="'0 0 ' + width + ' ' + height"
+    preserveAspectRatio="none"
+    role="img"
+    tabindex="0"
+    [attr.aria-label]="description() + '. Use the arrow keys to read values.'"
+    [attr.aria-describedby]="readoutId"
+    (keydown)="onKey($event)"
+    (pointermove)="onPointer($event)"
+    (pointerleave)="clearInspect()"
+    (blur)="clearInspect()"
+  >
+    <path class="area" [attr.d]="p.area" />
+    <polyline class="line" [attr.points]="p.line" />
+    @if (marker(); as m) {
+      <line class="guide" [attr.x1]="m.x" [attr.x2]="m.x" y1="0" [attr.y2]="height" />
+      <circle class="dot" [attr.cx]="m.x" [attr.cy]="m.y" r="4" />
+    }
+  </svg>
+}
+
+<p [id]="readoutId" class="readout">
+  @if (inspected(); as point) {
+    <time [attr.datetime]="point.time">{{ point.time | date: dateFormat() }}</time> ·
+    <strong>{{ point.value | currency: 'USD' }}</strong>
+  } @else {
+    High {{ range().high | currency: 'USD' }} · Low {{ range().low | currency: 'USD' }}
+  }
+</p>
+<!-- Announces only values being inspected, never a background refresh -->
+<p class="sr-only live" aria-live="polite">
+  @if (inspected(); as point) {
+    {{ point.time | date: dateFormat() }}, {{ point.value | currency: 'USD' }}
+  }
+</p>
