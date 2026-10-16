@@ -15,7 +15,9 @@
       "@spartan-ng/helm/card": ["./src/app/ui/card/src/index.ts"],
       "@spartan-ng/helm/utils": ["./src/app/ui/utils/src/index.ts"],
       "@spartan-ng/helm/table": ["./src/app/ui/table/src/index.ts"],
-      "@spartan-ng/helm/switch": ["./src/app/ui/switch/src/index.ts"]
+      "@spartan-ng/helm/switch": ["./src/app/ui/switch/src/index.ts"],
+      "@spartan-ng/helm/dialog": ["./src/app/ui/dialog/src/index.ts"],
+      "@spartan-ng/helm/button": ["./src/app/ui/button/src/index.ts"]
     }
   },
   "angularCompilerOptions": {
