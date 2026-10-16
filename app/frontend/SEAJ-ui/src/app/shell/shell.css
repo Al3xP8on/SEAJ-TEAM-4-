@@ -9,7 +9,7 @@
   top: 0;
   z-index: 10;
   height: auto;
-  min-height: 5rem;
+  min-height: 4.5rem;
   flex-wrap: wrap;
   display: flex;
   align-items: center;
@@ -36,11 +36,16 @@ button {
 .brand-logo {
   display: block;
   width: 146px;
-  height: auto;
+  height: 72px;
+  box-sizing: border-box;
+  object-fit: contain;
   background: #ffffff;
   border-radius: 4px;
   padding: 4px;
 }
+.brand-logo.logo-dark { display: none; }
+:host-context(:root.dark) .brand-logo.logo-light { display: none; }
+:host-context(:root.dark) .brand-logo.logo-dark { display: block; background: transparent; padding: 0; width: 146px; height: 72px; }
 nav {
   display: flex;
   flex-wrap: wrap;
@@ -90,6 +95,7 @@ nav .active {
   }
   .brand-logo {
     width: 112px;
+    height: 56px;
   }
   nav {
     gap: 14px;

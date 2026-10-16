@@ -110,3 +110,5 @@ html:not([data-text-size='100']) .topbar { position: static; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+

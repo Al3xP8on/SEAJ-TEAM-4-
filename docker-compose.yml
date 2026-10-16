@@ -37,6 +37,18 @@ services:
       ALPACA_API_SECRET_KEY: "${ALPACA_API_SECRET_KEY:-}"
       ALPACA_DATA_FEED: "${ALPACA_DATA_FEED:-iex}"
 
+  frontend:
+    build:
+      context: app/frontend/SEAJ-ui
+      dockerfile: Dockerfile
+    container_name: seaj_frontend
+    mem_limit: 128m
+    ports:
+      - "8085:80"
+    depends_on:
+      - app
+      - auth-service
+
   auth-service:
     build:
       context: .
@@ -120,7 +132,7 @@ services:
   sonarqube:
     image: sonarqube:9.9-community
     container_name: seaj_sonarqube
-    mem_limit: 1g
+    mem_limit: 2g
     ports:
       - "8088:9000" 
     environment:
