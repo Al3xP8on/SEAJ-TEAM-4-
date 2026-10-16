@@ -17,10 +17,12 @@
                 <span class="symbol">{{ order.ticker }}</span> &#64;
                 {{ order.executionPrice ?? order.price | currency: 'USD' }}
               </span>
-              <time [attr.datetime]="order.createdAt">{{
+              {{ ' '
+              }}<time [attr.datetime]="order.createdAt">{{
                 order.createdAt | date: 'MMM d, HH:mm'
               }}</time>
-              <span class="badge" [attr.data-status]="order.status">{{ order.status }}</span>
+              {{ ' '
+              }}<span class="badge" [attr.data-status]="order.status">{{ order.status }}</span>
               <button
                 type="button"
                 class="details"
@@ -45,12 +47,13 @@
                     @for (step of state.steps; track $index) {
                       <li>
                         <span class="label">{{ step.label }}</span>
-                        <span class="when">
+                        {{ ' '
+                        }}<span class="when">
                           <time [attr.datetime]="step.time">{{
                             step.time | date: 'HH:mm:ss'
                           }}</time>
                           @if (step.elapsed) {
-                            <span class="elapsed">{{ step.elapsed }}</span>
+                            {{ ' ' }}<span class="elapsed">{{ step.elapsed }}</span>
                           }
                         </span>
                       </li>

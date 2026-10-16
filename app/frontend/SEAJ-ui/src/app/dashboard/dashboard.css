@@ -187,6 +187,11 @@ h2 {
   margin-top: 24px;
 }
 
+.movers {
+  display: block;
+  margin-top: 24px;
+}
+
 .activity-row {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);

@@ -9,7 +9,7 @@
       <li>
         <span class="swatch" [style.background]="slice.colour" aria-hidden="true"></span>
         <span class="label">{{ slice.label }}</span>
-        <span class="percent">{{ slice.percent | number: '1.0-1' }}%</span>
+        {{ ' ' }}<span class="percent">{{ slice.percent | number: '1.0-1' }}%</span>
       </li>
     }
   </ul>

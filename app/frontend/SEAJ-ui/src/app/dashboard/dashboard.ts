@@ -16,6 +16,7 @@ import { BriefingComponent } from './briefing/briefing';
 import { BriefingFacts } from './briefing/write-briefing';
 import { pollWhileVisible } from './poll-while-visible';
 import { MarketClockComponent } from './market-clock/market-clock';
+import { MarketMoversComponent } from './market-movers/market-movers';
 
 // The backend refreshes market prices every 10 seconds, so polling faster gains nothing
 const MARKET_REFRESH_MS = 10_000;
@@ -41,6 +42,7 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     PerformanceChartComponent,
     BriefingComponent,
     MarketClockComponent,
+    MarketMoversComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',

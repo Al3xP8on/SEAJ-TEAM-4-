@@ -103,7 +103,7 @@
                       <th hlmTh scope="row">
                         <span class="symbol">{{ holding.symbol }}</span>
                         @if (names().get(holding.symbol); as name) {
-                          <span class="company">{{ name }}</span>
+                          {{ ' ' }}<span class="company">{{ name }}</span>
                         }
                       </th>
                       <td hlmTd class="num">{{ holding.quantity | number }}</td>
@@ -172,6 +172,8 @@
         [reserved]="reservedCash()"
       />
     </div>
+
+    <app-market-movers class="movers" [snapshots]="market()?.snapshots ?? []" [names]="names()" />
   }
 </main>
 

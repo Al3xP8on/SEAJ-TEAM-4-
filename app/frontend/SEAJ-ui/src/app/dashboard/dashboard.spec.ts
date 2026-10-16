@@ -282,6 +282,10 @@ describe('DashboardComponent', () => {
       'MSFT',
     ]);
     expect(rows[1].querySelector('.company')?.textContent).toBe('Apple Inc.');
+    // Read as words, not "AAPLApple Inc."
+    expect(rows[1].querySelector('th')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'AAPL Apple Inc.',
+    );
     expect(rows[0].querySelector('.company')).toBeNull(); // no name known for NVDA
   });
 
@@ -318,6 +322,9 @@ describe('DashboardComponent', () => {
       'NVDA',
     ]);
     expect(rows[0].textContent).toContain('SELL');
+    expect(rows[0].querySelector('.row')?.textContent?.replace(/\s+/g, ' ')).toMatch(
+      /SELL 10 MSFT @ \$100\.00 Oct 6, 14:30 PENDING Details/,
+    );
     expect(rows[0].querySelector('.badge')?.textContent).toBe('PENDING');
     expect(rows[0].querySelector('time')?.getAttribute('datetime')).toBe('2026-10-06T14:30:00');
   });
@@ -367,6 +374,7 @@ describe('DashboardComponent', () => {
       li.textContent?.replace(/\s+/g, ' ').trim(),
     );
     expect(steps[0]).toContain('Order received');
+    expect(steps[1]).toMatch(/^Passed checks and sent to market \d\d:\d\d:\d\d \+50 ms$/);
     expect(steps[1]).toContain('Passed checks and sent to market');
     expect(steps[1]).toContain('+50 ms');
 
