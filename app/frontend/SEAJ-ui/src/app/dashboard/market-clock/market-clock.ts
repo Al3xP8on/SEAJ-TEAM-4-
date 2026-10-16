@@ -1,6 +1,6 @@
 import { Component, DOCUMENT, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { countdown, marketStatus, nextChange } from '../market-status';
+import { describeNextChange, marketStatus } from '../market-status';
 import { pollWhileVisible } from '../poll-while-visible';
 
 const NEW_YORK_CLOCK = new Intl.DateTimeFormat('en-GB', {
@@ -8,11 +8,6 @@ const NEW_YORK_CLOCK = new Intl.DateTimeFormat('en-GB', {
   hour: '2-digit',
   minute: '2-digit',
   second: '2-digit',
-});
-
-const NEW_YORK_DAY = new Intl.DateTimeFormat('en-US', {
-  timeZone: 'America/New_York',
-  weekday: 'short',
 });
 
 /**
@@ -34,6 +29,8 @@ const NEW_YORK_DAY = new Intl.DateTimeFormat('en-US', {
         @if (pricesAsOf(); as asOf) {
           · Prices as of
           <time class="as-of" [attr.datetime]="asOf">{{ asOfClock() }} ET</time>
+        } @else if (!latestTrade()) {
+          · Based on regular trading hours
         }
       </p>
     </div>
@@ -50,17 +47,7 @@ export class MarketClockComponent {
 
   readonly status = computed(() => marketStatus(this.now(), this.latestTrade()));
 
-  readonly change = computed(() => {
-    const now = this.now();
-    const next = nextChange(now, this.status());
-    const ms = next.getTime() - now.getTime();
-    if (this.status() === 'open') {
-      return `closes in ${countdown(ms)}`;
-    }
-    return ms < 24 * 3_600_000
-      ? `opens in ${countdown(ms)}`
-      : `opens ${NEW_YORK_DAY.format(next)} 09:30 ET`;
-  });
+  readonly change = computed(() => describeNextChange(this.now(), this.status()));
 
   readonly clock = computed(() => NEW_YORK_CLOCK.format(this.now()));
 
