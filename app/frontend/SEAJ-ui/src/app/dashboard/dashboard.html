@@ -22,7 +22,6 @@
       </div>
       <div class="actions">
         <button type="button" class="primary" (click)="goToOrderTicket()">Place Order</button>
-        <button type="button" class="quiet" (click)="goToBlotter()">Order History</button>
       </div>
     </div>
 
@@ -105,7 +104,7 @@
                           type="button"
                           class="symbol-link"
                           [attr.aria-label]="'View ' + holding.symbol + ' chart'"
-                          (click)="openChart(holding.symbol, $event)"
+                          (click)="openChart(holding.symbol)"
                         >
                           <span class="symbol">{{ holding.symbol }}</span>
                         </button>
@@ -149,10 +148,7 @@
               </table>
             </div>
           } @else {
-            <div class="empty">
-              <p>You don't hold any positions yet.</p>
-              <button type="button" class="primary" (click)="goToOrderTicket()">Place order</button>
-            </div>
+            <p class="empty">You don't hold any positions yet.</p>
           }
         </div>
       </section>
@@ -167,37 +163,42 @@
       </section>
     </div>
 
-    @if (chartSymbol(); as symbol) {
-      <app-candlestick-chart
-        class="candles"
-        [symbol]="symbol"
-        [name]="names().get(symbol) ?? null"
-        (closed)="closeChart()"
-      />
+    <!-- A centred pop-up for one symbol. The dialog traps focus, closes on Escape and returns
+         focus to the symbol that opened it. Loaded on first use to keep the initial download small. -->
+    @defer (when chartSymbol()) {
+      <hlm-dialog [state]="chartSymbol() ? 'open' : 'closed'" (closed)="closeChart()">
+        <hlm-dialog-content *hlmDialogPortal class="stock-dialog">
+          @if (chartSymbol(); as symbol) {
+            <hlm-dialog-header>
+              <h2 hlmDialogTitle class="dialog-title">
+                {{ symbol }}
+                @if (names().get(symbol); as name) {
+                  {{ ' ' }}<span class="company">{{ name }}</span>
+                }
+              </h2>
+              <p hlmDialogDescription>Prices, your position and the last 30 trading days.</p>
+            </hlm-dialog-header>
+            <app-stock-summary
+              [symbol]="symbol"
+              [snapshot]="snapshotFor(symbol)"
+              [position]="positionFor(symbol)"
+            />
+          }
+        </hlm-dialog-content>
+      </hlm-dialog>
     }
 
-    <app-performance-chart class="performance" [holdings]="holdings()" />
-
-    <div class="activity-row">
-      <app-recent-orders [orders]="orders()" />
-
-      <app-portfolio-check
-        [holdings]="holdings()"
-        [totalValue]="totalValue()"
-        [cash]="account.cashBalance"
-        [reserved]="reservedCash()"
-      />
-    </div>
-
-    <div class="market-row">
-      <app-market-movers [snapshots]="market()?.snapshots ?? []" [names]="names()" />
+    <div class="chart-row">
+      <app-performance-chart [holdings]="holdings()" />
       <app-watchlist
-        (chart)="openChart($event.symbol, $event.trigger)"
+        (chart)="openChart($event)"
         [accountId]="account.accountId"
         [snapshots]="market()?.snapshots ?? []"
         [names]="names()"
       />
     </div>
+
+    <app-recent-orders class="recent" [orders]="orders()" />
   }
 </main>
 

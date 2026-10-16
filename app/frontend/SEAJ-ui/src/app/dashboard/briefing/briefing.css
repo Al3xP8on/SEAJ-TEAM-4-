@@ -1,11 +1,14 @@
 :host {
   display: block;
   margin-bottom: 24px;
+  /* The theme has no warning colour, so the briefing defines its own for both themes */
+  --warning-bg: #fdf3e1;
+  --warning-text: #7a4f0a;
 }
 
-/* Marked out from the number cards by a brand stripe, not by colour of text */
-.briefing {
-  border-left: 4px solid var(--positive);
+:host-context(.dark) {
+  --warning-bg: #3a2e17;
+  --warning-text: #f3cf8e;
 }
 
 h2 {
@@ -14,10 +17,64 @@ h2 {
   margin: 0;
 }
 
-/* Comfortable reading: a readable line length and generous spacing */
-.sentences {
-  font-size: 0.9375rem;
-  line-height: 1.7;
-  max-width: 75ch;
+/* Facts side by side, wrapping onto more rows as space runs out */
+.items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  list-style: none;
   margin: 0;
+  padding: 0;
+}
+
+.item {
+  align-items: flex-start;
+}
+
+.icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 18px;
+}
+
+/* Tone tints the icon only; the title and detail say the same thing in words */
+[data-tone='good'] .icon {
+  color: var(--positive);
+}
+
+[data-tone='bad'] .icon {
+  color: var(--destructive);
+}
+
+[data-tone='warn'] .icon {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.detail {
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+[data-tone='good'] .detail {
+  color: var(--positive);
+}
+
+[data-tone='bad'] .detail {
+  color: var(--destructive);
+}
+
+.note {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin: 12px 0 0;
 }

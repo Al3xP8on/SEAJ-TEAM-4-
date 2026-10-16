@@ -182,9 +182,18 @@ h2 {
   font-weight: 600;
 }
 
-.candles {
-  display: block;
-  margin-top: 24px;
+/* Wider than the dialog default so the chart has room on a desktop screen */
+.stock-dialog {
+  width: min(880px, calc(100vw - 48px));
+  max-width: none;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.dialog-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  padding-right: 32px;
 }
 
 /* A symbol that opens its chart: looks like the symbol, behaves like a button */
@@ -200,12 +209,7 @@ h2 {
   text-underline-offset: 3px;
 }
 
-.performance {
-  display: block;
-  margin-top: 24px;
-}
-
-.market-row {
+.chart-row {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
   gap: 24px;
@@ -213,12 +217,9 @@ h2 {
   align-items: stretch;
 }
 
-.activity-row {
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
-  gap: 24px;
+.recent {
+  display: block;
   margin-top: 24px;
-  align-items: stretch;
 }
 
 /* The sign and arrow carry the direction; colour only reinforces it */
@@ -254,10 +255,6 @@ h2 {
   margin: 0;
 }
 
-.empty p {
-  margin: 0 0 16px;
-}
-
 .status {
   color: var(--foreground);
   font-size: 0.9375rem;
@@ -286,8 +283,7 @@ footer {
 @media (max-width: 800px) {
   .summary,
   .holdings-row,
-  .activity-row,
-  .market-row {
+  .chart-row {
     grid-template-columns: 1fr;
   }
 

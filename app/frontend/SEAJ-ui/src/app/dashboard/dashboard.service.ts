@@ -3,13 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { Account, Position } from './dashboard.models';
-import {
-  Instrument,
-  MarketChart,
-  MarketOverview,
-  Order,
-  OrderHistory,
-} from '../orders/orders.models';
+import { Instrument, MarketChart, MarketOverview, Order } from '../orders/orders.models';
 
 export interface DashboardData {
   account: Account;
@@ -52,13 +46,6 @@ export class DashboardService {
    */
   marketPrices(): Observable<MarketOverview | null> {
     return this.http.get<MarketOverview>(MARKET_URL).pipe(catchError(() => of(null)));
-  }
-
-  /** An order's status changes with timestamps; null if unavailable */
-  orderHistory(orderId: string): Observable<OrderHistory[] | null> {
-    return this.http
-      .get<OrderHistory[]>(`/api/v1/orders/${encodeURIComponent(orderId)}/history`)
-      .pipe(catchError(() => of(null)));
   }
 
   /** Company names by symbol, for labelling holdings; empty if unavailable */

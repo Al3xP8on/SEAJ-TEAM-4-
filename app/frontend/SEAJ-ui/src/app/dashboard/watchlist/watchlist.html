@@ -12,7 +12,7 @@
                 type="button"
                 class="symbol-link"
                 [attr.aria-label]="'View ' + row.symbol + ' chart'"
-                (click)="openChart(row.symbol, $event)"
+                (click)="chart.emit(row.symbol)"
               >
                 <span class="symbol">{{ row.symbol }}</span>
               </button>

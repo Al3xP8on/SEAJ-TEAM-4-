@@ -84,12 +84,6 @@ describe('DashboardComponent', () => {
     load: vi.fn<() => Observable<DashboardData>>(),
     marketPrices: vi.fn<() => Observable<MarketOverview | null>>(),
     bars: vi.fn(() => of(null)),
-    orderHistory: vi.fn((orderId: string) =>
-      of([
-        { orderId, status: 'NEW', timestamp: '2026-10-06T14:30:00.000', reason: null },
-        { orderId, status: 'PENDING', timestamp: '2026-10-06T14:30:00.050', reason: null },
-      ]),
-    ),
     instrumentNames: vi.fn(() =>
       of(
         new Map([
@@ -252,19 +246,23 @@ describe('DashboardComponent', () => {
   it('opens with a plain-English briefing of the account', async () => {
     dashboard.marketPrices.mockReturnValue(of(MARKET));
     const { page } = await render();
-    const briefing = page
-      .querySelector('app-briefing .sentences')
-      ?.textContent?.replace(/\s+/g, ' ')
-      .trim();
+    // Title and detail are separate paragraphs, so they're read as separate lines
+    const rows = Array.from(page.querySelectorAll('app-briefing .item')).map((li) =>
+      Array.from(li.querySelectorAll('.title, .detail'))
+        .map((p) => p.textContent?.trim())
+        .join(' | '),
+    );
 
     // AAPL 9,500 (32%) and MSFT 8,000 (27%) of 29,281.25; MSFT's open SELL holds back no cash
-    expect(briefing).toBe(
-      'Your portfolio is worth $29,281.25, up $50.00 (0.29%) today. ' +
-        'AAPL moved the most today, up $250.00. ' +
-        'AAPL and MSFT are each above the 25% guideline. ' +
-        'You have $10,000.00 available to trade. ' +
-        '1 order is waiting to fill.',
-    );
+    expect(rows).toEqual([
+      'Worth $29,281.25 | Up $50.00 (0.29%) today',
+      'AAPL moved the most | Up $250.00 today',
+      'AAPL and MSFT are each above 25% | Above the 25% guideline',
+      '$10,000.00 to trade',
+      '1 order waiting to fill',
+    ]);
+    // Icons are decoration; the words carry the meaning
+    expect(page.querySelector('app-briefing ng-icon')?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('sorts holdings by value and shows company names where known', async () => {
@@ -289,31 +287,34 @@ describe('DashboardComponent', () => {
     expect(rows[0].querySelector('.company')).toBeNull(); // no name known for NVDA
   });
 
-  it("opens a holding's candlestick chart and returns focus when it closes", async () => {
+  it("opens a holding's summary in a centred dialog and returns focus on close", async () => {
+    dashboard.marketPrices.mockReturnValue(of(MARKET));
     const { fixture, page } = await render();
     document.body.appendChild(page);
-    const open = page.querySelector('.positions-table .symbol-link') as HTMLButtonElement;
+    const open = Array.from(page.querySelectorAll('.positions-table .symbol-link')).find(
+      (b) => b.textContent?.trim() === 'AAPL',
+    ) as HTMLButtonElement;
     expect(open.getAttribute('aria-label')).toBe('View AAPL chart');
 
     open.focus();
     open.click();
     await fixture.whenStable();
-    expect(page.querySelector('app-candlestick-chart h2')?.textContent).toContain('AAPL');
+    // The dialog renders in an overlay on the body, outside the dashboard element
+    const dialog = document.querySelector('hlm-dialog-content') as HTMLElement;
+    expect(dialog.closest('[role="dialog"]')).not.toBeNull();
+    expect(dialog.querySelector('h2')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'AAPL Apple Inc.',
+    );
+    // The position matches the dashboard: 50 shares at 182.40, worth 9,500 at 190
+    expect(dialog.querySelector('app-stock-summary .pnl')?.textContent?.trim()).toBe('+$380.00');
     expect(dashboard.bars).toHaveBeenCalledWith('AAPL', '1Day');
 
-    (page.querySelector('app-candlestick-chart .close') as HTMLButtonElement).click();
+    (dialog.querySelector('button[hlmDialogClose]') as HTMLButtonElement).click();
+    await new Promise((resolve) => setTimeout(resolve, 300));
     await fixture.whenStable();
-    expect(page.querySelector('app-candlestick-chart')).toBeNull();
+    expect(document.querySelector('hlm-dialog-content app-stock-summary')).toBeNull();
     expect(document.activeElement).toBe(open);
-  });
-
-  it('offers to place an order when there are no holdings', async () => {
-    dashboard.load.mockReturnValue(of({ ...DATA, positions: [] }));
-    const { page } = await render();
-
-    button(page, 'Place order').click();
-
-    expect(router.navigate).toHaveBeenCalledWith(['/order']);
+    page.remove();
   });
 
   it('shows a message instead of the table when there are no holdings', async () => {
@@ -341,7 +342,7 @@ describe('DashboardComponent', () => {
     ]);
     expect(rows[0].textContent).toContain('SELL');
     expect(rows[0].querySelector('.row')?.textContent?.replace(/\s+/g, ' ')).toMatch(
-      /SELL 10 MSFT @ \$100\.00 Oct 6, 14:30 PENDING Details/,
+      /SELL 10 MSFT @ \$100\.00 Oct 6, 14:30 PENDING/,
     );
     expect(rows[0].querySelector('.badge')?.textContent).toBe('PENDING');
     expect(rows[0].querySelector('time')?.getAttribute('datetime')).toBe('2026-10-06T14:30:00');
@@ -367,38 +368,6 @@ describe('DashboardComponent', () => {
     const { page } = await render();
 
     expect(page.querySelector('.buying-power')?.textContent?.trim()).toBe('$7,500.00');
-  });
-
-  it('passes holdings, totals and reserved cash to the portfolio check', async () => {
-    const { page } = await render();
-
-    // AAPL is 31.2% of the $29,203.25 portfolio and MSFT 28.4%, both above 25%
-    const warnings = Array.from(page.querySelectorAll('app-portfolio-check .check.warning p'));
-    expect(warnings.map((p) => p.textContent?.trim().split(' ')[0])).toEqual(['AAPL', 'MSFT']);
-  });
-
-  it("opens an order's journey from its Details button", async () => {
-    const { fixture, page } = await render();
-    const details = page.querySelector('.order-list .order .details') as HTMLButtonElement;
-    expect(details.textContent?.replace(/\s+/g, ' ').trim()).toBe('Details for SELL 10 MSFT');
-    expect(details.getAttribute('aria-expanded')).toBe('false');
-
-    details.click();
-    await fixture.whenStable();
-
-    expect(details.getAttribute('aria-expanded')).toBe('true');
-    expect(dashboard.orderHistory).toHaveBeenCalledWith('o2');
-    const steps = Array.from(page.querySelectorAll('#journey-o2 .steps li')).map((li) =>
-      li.textContent?.replace(/\s+/g, ' ').trim(),
-    );
-    expect(steps[0]).toContain('Order received');
-    expect(steps[1]).toMatch(/^Passed checks and sent to market \d\d:\d\d:\d\d \+50 ms$/);
-    expect(steps[1]).toContain('Passed checks and sent to market');
-    expect(steps[1]).toContain('+50 ms');
-
-    details.click();
-    await fixture.whenStable();
-    expect(page.querySelector('#journey-o2')).toBeNull();
   });
 
   it('shows a message instead of the order list when there are no orders', async () => {
@@ -441,8 +410,7 @@ describe('DashboardComponent', () => {
 
   it.each([
     ['Place Order', '/order'],
-    ['Order History', '/blotter'],
-    ['View all in blotter', '/blotter'],
+    ['View all orders', '/order'],
   ])('%s button navigates to %s', async (label, path) => {
     const { page } = await render();
 
