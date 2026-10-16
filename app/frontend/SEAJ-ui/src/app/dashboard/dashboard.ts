@@ -1,7 +1,7 @@
 import { Component, DOCUMENT, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, catchError, exhaustMap } from 'rxjs';
-import { CurrencyPipe, DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
+import { CurrencyPipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmTableImports } from '@spartan-ng/helm/table';
 import { Router } from '@angular/router';
@@ -14,6 +14,12 @@ import { PerformanceChartComponent } from './performance-chart/performance-chart
 import { BriefingComponent } from './briefing/briefing';
 import { BriefingFacts, CONCENTRATION_LIMIT } from './briefing/write-briefing';
 import { pollWhileVisible } from './poll-while-visible';
+import { TrendIconComponent } from './trend/trend-icon';
+import { TickDirective } from './trend/tick';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmBadge } from '@spartan-ng/helm/badge';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideArrowDownToLine, lucideArrowUpFromLine, lucidePlus } from '@ng-icons/lucide';
 import { MarketClockComponent } from './market-clock/market-clock';
 import { WatchlistComponent } from './watchlist/watchlist';
 import { StockPosition, StockSummaryComponent } from './stock-summary/stock-summary';
@@ -39,7 +45,6 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
   selector: 'app-dashboard',
   imports: [
     CurrencyPipe,
-    DatePipe,
     DecimalPipe,
     PercentPipe,
     HlmCardImports,
@@ -51,6 +56,11 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     MarketClockComponent,
     WatchlistComponent,
     StockSummaryComponent,
+    TrendIconComponent,
+    TickDirective,
+    HlmButton,
+    HlmBadge,
+    NgIcon,
     // Listed one by one so @defer can move them, and the overlay code, out of the initial bundle
     HlmDialog,
     HlmDialogContent,
@@ -59,6 +69,7 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     HlmDialogPortal,
     HlmDialogTitle,
   ],
+  providers: [provideIcons({ lucideArrowDownToLine, lucideArrowUpFromLine, lucidePlus })],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -162,15 +173,12 @@ export class DashboardComponent implements OnInit {
 
   readonly briefing = computed<BriefingFacts>(() => ({
     totalValue: this.totalValue(),
-    dayChange: this.dayChange(),
-    atCost: this.holdings().length > 0 && this.holdings().every((h) => h.price === null),
     holdings: this.holdings().map((h) => ({
       symbol: h.symbol,
       value: h.value,
       dayChange: h.dayChange,
     })),
     cash: this.account()?.cashBalance ?? 0,
-    buyingPower: this.buyingPower(),
     reserved: this.reservedCash(),
     openOrders: this.orders().filter((o) => OPEN_STATUSES.includes(o.status)).length,
     concentrationLimit: CONCENTRATION_LIMIT,

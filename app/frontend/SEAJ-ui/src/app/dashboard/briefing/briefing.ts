@@ -1,8 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-  lucideActivity,
-  lucideChartLine,
   lucideChartPie,
   lucideClock,
   lucideTrendingDown,
@@ -33,8 +31,6 @@ import { BriefingFacts, writeBriefing } from './write-briefing';
   ],
   providers: [
     provideIcons({
-      lucideActivity,
-      lucideChartLine,
       lucideChartPie,
       lucideClock,
       lucideTrendingDown,

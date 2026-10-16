@@ -19,6 +19,17 @@ main {
   padding: 42px 32px;
 }
 
+.identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.identity h1 {
+  margin: 0;
+}
+
 .page-heading {
   display: flex;
   flex-wrap: wrap;
@@ -33,7 +44,7 @@ main {
   letter-spacing: 1.7px;
   font-weight: 700;
   color: var(--foreground);
-  margin: 0 0 10px;
+  margin: 0;
 }
 
 h1 {
@@ -62,44 +73,25 @@ h2 {
   gap: 10px;
 }
 
-.primary {
-  border: 1px solid var(--primary);
-  background: var(--primary);
-  color: #fff;
-  padding: 12px 18px;
-  border-radius: 6px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-
-.primary:hover {
-  background: var(--primary-hover);
-}
-
-.quiet {
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--foreground);
-  padding: 12px 18px;
-  border-radius: 6px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-
-.quiet:hover {
-  background: var(--muted);
-}
-
-.holdings-row {
+.columns {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
   gap: 24px;
-  align-items: stretch;
+  align-items: start;
+}
+
+.main-column,
+.side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
 }
 
 .summary {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  /* Cash leads: a little wider than the other two */
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 24px;
   margin-bottom: 24px;
 }
@@ -108,7 +100,7 @@ h2 {
   font-size: 1.625rem;
   letter-spacing: -0.6px;
   font-weight: 600;
-  margin: 8px 0 6px;
+  margin: 0 0 4px;
   font-variant-numeric: tabular-nums;
   word-break: break-word;
 }
@@ -126,23 +118,18 @@ h2 {
   letter-spacing: -1.2px;
   font-weight: 600;
   color: var(--foreground);
-  margin: 12px 0 8px;
+  margin: 0 0 4px;
   font-variant-numeric: tabular-nums;
   word-break: break-word;
-}
-
-.tag {
-  background: var(--muted);
-  border-radius: 5px;
-  padding: 5px 8px;
-  font-size: 0.6875rem;
-  color: var(--foreground);
 }
 
 /* Table layout and borders come from spartan's table; only dashboard-specific touches here */
 .data-table {
   width: 100%;
-  border-collapse: collapse;
+  /* Separate borders (with no gap) so the pinned header and total carry their own borders;
+     collapsed borders stay behind and let scrolled rows show through */
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.8125rem;
 }
 
@@ -177,6 +164,31 @@ h2 {
   color: var(--muted-foreground);
 }
 
+/* About five rows, then the table scrolls; the headers and total stay in view */
+.positions-scroll {
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.positions-scroll thead th,
+.positions-scroll tfoot th,
+.positions-scroll tfoot td {
+  position: sticky;
+  z-index: 1;
+  background: var(--card);
+}
+
+.positions-scroll thead th {
+  top: 0;
+}
+
+.positions-scroll tfoot th,
+.positions-scroll tfoot td {
+  bottom: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+
 .data-table tfoot th,
 .data-table tfoot td {
   font-weight: 600;
@@ -209,19 +221,6 @@ h2 {
   text-underline-offset: 3px;
 }
 
-.chart-row {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-  gap: 24px;
-  margin-top: 24px;
-  align-items: stretch;
-}
-
-.recent {
-  display: block;
-  margin-top: 24px;
-}
-
 /* The sign and arrow carry the direction; colour only reinforces it */
 .change {
   color: var(--positive);
@@ -240,7 +239,7 @@ h2 {
 }
 
 .cash-actions {
-  margin-top: 16px;
+  gap: 6px;
 }
 
 .buying-power {
@@ -282,8 +281,7 @@ footer {
 
 @media (max-width: 800px) {
   .summary,
-  .holdings-row,
-  .chart-row {
+  .columns {
     grid-template-columns: 1fr;
   }
 

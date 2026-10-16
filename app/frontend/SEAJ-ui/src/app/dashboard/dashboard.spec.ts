@@ -120,6 +120,14 @@ describe('DashboardComponent', () => {
     }).compileComponents();
   });
 
+  it('labels the account number for screen readers', async () => {
+    const { page } = await render();
+
+    expect(page.querySelector('.account-id')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'Account ACC-0001',
+    );
+  });
+
   it('welcomes the logged-in account holder by name', async () => {
     const { page } = await render();
 
@@ -193,8 +201,16 @@ describe('DashboardComponent', () => {
     const { page } = await render();
 
     expect(page.querySelector('.market-status')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
-      'NYSE open · closes in 5 h 30 min · 10:30:30 ET',
+      'NYSE open · closes in 5 h 30 min',
     );
+    expect(page.querySelector('.clock')?.textContent?.trim()).toBe('10:30:30 ET');
+    // Prices' time uses the same zone as the clock (MARKET.updatedAt is 14:30:05 UTC)
+    expect(page.querySelector('.as-of')?.textContent?.trim()).toBe('10:30:05 ET');
+    // The strip sits above the welcome
+    const strip = page.querySelector('app-market-clock')!;
+    expect(
+      strip.compareDocumentPosition(page.querySelector('h1')!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     vi.useRealTimers();
   });
 
@@ -227,7 +243,7 @@ describe('DashboardComponent', () => {
 
     // AAPL +5 x 50 and MSFT -10 x 20 = +50, on a 17,450 starting value
     expect(page.querySelector('.day-change')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
-      '▲ +$50.00 (+0.29%) today',
+      '+$50.00 (+0.29%) today',
     );
     expect(page.querySelector('.as-of')?.getAttribute('datetime')).toBe('2026-10-15T14:30:05Z');
   });
@@ -243,7 +259,7 @@ describe('DashboardComponent', () => {
     expect(percents).toEqual(['32.4%', '27.3%', '6.1%', '34.2%']);
   });
 
-  it('opens with a plain-English briefing of the account', async () => {
+  it('explains the numbers in plain language beside the positions', async () => {
     dashboard.marketPrices.mockReturnValue(of(MARKET));
     const { page } = await render();
     // Title and detail are separate paragraphs, so they're read as separate lines
@@ -255,12 +271,13 @@ describe('DashboardComponent', () => {
 
     // AAPL 9,500 (32%) and MSFT 8,000 (27%) of 29,281.25; MSFT's open SELL holds back no cash
     expect(rows).toEqual([
-      'Worth $29,281.25 | Up $50.00 (0.29%) today',
       'AAPL moved the most | Up $250.00 today',
       'AAPL and MSFT are each above 25% | Above the 25% guideline',
-      '$10,000.00 to trade',
       '1 order waiting to fill',
     ]);
+    expect(page.querySelector('app-briefing h2')?.textContent?.trim()).toBe('Insights');
+    // It sits in the side column with the allocation, after the summary cards
+    expect(page.querySelector('.side-column app-briefing')).not.toBeNull();
     // Icons are decoration; the words carry the meaning
     expect(page.querySelector('app-briefing ng-icon')?.getAttribute('aria-hidden')).toBe('true');
   });
@@ -328,23 +345,24 @@ describe('DashboardComponent', () => {
     expect(page.querySelector('.empty')?.textContent).toContain("don't hold any positions");
   });
 
-  it('lists the five most recent orders, newest first', async () => {
+  it('lists recent orders, newest first', async () => {
     const { page } = await render();
     const rows = Array.from(page.querySelectorAll('.order-list .order'));
 
-    // o1 (AAPL, the oldest) drops off
     expect(rows.map((r) => r.querySelector('.symbol')?.textContent)).toEqual([
       'MSFT',
       'META',
       'AMZN',
       'TSLA',
       'NVDA',
+      'AAPL',
     ]);
     expect(rows[0].textContent).toContain('SELL');
     expect(rows[0].querySelector('.row')?.textContent?.replace(/\s+/g, ' ')).toMatch(
       /SELL 10 MSFT @ \$100\.00 Oct 6, 14:30 PENDING/,
     );
-    expect(rows[0].querySelector('.badge')?.textContent).toBe('PENDING');
+    expect(rows[0].querySelector('[hlmBadge]')?.textContent).toBe('PENDING');
+    expect(rows[0].querySelector('[hlmBadge]')?.getAttribute('data-variant')).toBe('secondary');
     expect(rows[0].querySelector('time')?.getAttribute('datetime')).toBe('2026-10-06T14:30:00');
   });
 
@@ -368,6 +386,25 @@ describe('DashboardComponent', () => {
     const { page } = await render();
 
     expect(page.querySelector('.buying-power')?.textContent?.trim()).toBe('$7,500.00');
+  });
+
+  it('lists at most the 20 latest orders', async () => {
+    const many = Array.from({ length: 25 }, (_, i) =>
+      order(`m${i}`, 'AAPL', `2026-09-${String(i + 1).padStart(2, '0')}T09:00:00`),
+    );
+    dashboard.load.mockReturnValue(of({ ...DATA, orders: many }));
+    const { page } = await render();
+
+    expect(page.querySelectorAll('.order-list .order').length).toBe(20);
+  });
+
+  it('makes long lists scrollable from the keyboard', async () => {
+    const { page } = await render();
+
+    for (const label of ['Positions table', 'Recent orders list']) {
+      const region = page.querySelector(`[role="region"][aria-label="${label}"]`);
+      expect(region?.getAttribute('tabindex')).toBe('0');
+    }
   });
 
   it('shows a message instead of the order list when there are no orders', async () => {
