@@ -10,14 +10,20 @@
       <a href="#how-it-works" (click)="goToSection($event, 'how-it-works')">How it works</a>
     </nav>
     <nav class="account" aria-label="Account">
-      <a hlmBtn variant="ghost" routerLink="/login">Log in</a>
-      <a
-        hlmBtn
-        class="hover:bg-(--primary-hover)"
-        routerLink="/login"
-        [queryParams]="{ mode: 'register' }"
-        >Sign up</a
-      >
+      @if (signedIn) {
+        <a hlmBtn class="hover:bg-(--primary-hover)" routerLink="/dashboard">
+          Go to portfolio<ng-icon name="lucideArrowRight" aria-hidden="true" />
+        </a>
+      } @else {
+        <a hlmBtn variant="ghost" routerLink="/login">Log in</a>
+        <a
+          hlmBtn
+          class="hover:bg-(--primary-hover)"
+          routerLink="/login"
+          [queryParams]="{ mode: 'register' }"
+          >Sign up</a
+        >
+      }
     </nav>
   </div>
 </header>
@@ -35,10 +41,16 @@
           }
         </ul>
         <div class="hero-actions">
-          <a hlmBtn size="lg" class="cta" routerLink="/login" [queryParams]="{ mode: 'register' }">
-            Create an account<ng-icon name="lucideArrowRight" aria-hidden="true" />
-          </a>
-          <a hlmBtn size="lg" variant="outline" class="ghost" routerLink="/login">Log in</a>
+          @if (signedIn) {
+            <a hlmBtn size="lg" class="cta" routerLink="/dashboard">
+              Go to portfolio<ng-icon name="lucideArrowRight" aria-hidden="true" />
+            </a>
+          } @else {
+            <a hlmBtn size="lg" class="cta" routerLink="/login" [queryParams]="{ mode: 'register' }">
+              Create an account<ng-icon name="lucideArrowRight" aria-hidden="true" />
+            </a>
+            <a hlmBtn size="lg" variant="outline" class="ghost" routerLink="/login">Log in</a>
+          }
         </div>
       </div>
 

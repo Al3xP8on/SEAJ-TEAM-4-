@@ -3,12 +3,18 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { LandingComponent } from './landing';
+import { AuthService } from '../auth/auth.service';
 
 describe('LandingComponent', () => {
-  async function render() {
+  async function render({ signedIn = false } = {}) {
     TestBed.configureTestingModule({
       imports: [LandingComponent],
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthService, useValue: { isAuthenticated: () => signedIn } },
+      ],
     });
     const fixture = TestBed.createComponent(LandingComponent);
     await fixture.whenStable();
@@ -33,6 +39,13 @@ describe('LandingComponent', () => {
     expect(texts(page, 'a[href="/login"]')).toEqual(['Log in', 'Log in']);
     expect(texts(page, 'a[href="/login?mode=register"]')).toEqual(['Sign up', 'Create an account']);
     expect(page.querySelector('button')).toBeNull();
+  });
+
+  it('offers a signed-in visitor their portfolio instead of log in and sign up', async () => {
+    const page = await render({ signedIn: true });
+
+    expect(texts(page, 'a[href="/dashboard"]')).toEqual(['Go to portfolio', 'Go to portfolio']);
+    expect(page.querySelector('a[href^="/login"]')).toBeNull();
   });
 
   it('pairs the logo with the name as one link home', async () => {

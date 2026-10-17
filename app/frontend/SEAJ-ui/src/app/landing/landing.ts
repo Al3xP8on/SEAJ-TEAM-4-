@@ -19,6 +19,7 @@ import { ProductPreviewComponent } from './product-preview/product-preview';
 import { MarketTickerComponent } from './market-ticker/market-ticker';
 import { describeNextChange, marketStatus } from '../dashboard/market-status';
 import { pollWhileVisible } from '../dashboard/poll-while-visible';
+import { AuthService } from '../auth/auth.service';
 
 /**
  * The public landing page. Every claim here describes something the platform actually does;
@@ -58,6 +59,9 @@ export class LandingComponent {
   ];
 
   private readonly document = inject(DOCUMENT);
+
+  /** A signed-in visitor gets a link back to their portfolio instead of log in and sign up */
+  readonly signedIn = inject(AuthService).isAuthenticated();
 
   /** Without a login there's no trade data, so this works from the regular schedule */
   private readonly now = signal(new Date());
