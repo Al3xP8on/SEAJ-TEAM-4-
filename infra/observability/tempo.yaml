@@ -18,6 +18,13 @@ storage:
     local:
       path: /var/tempo/blocks
 
+# Cut blocks small and often so they're flushed to disk instead of held in memory.
+# The defaults (500 MB or 30 minutes) are larger than the container's 384 MB limit.
+ingester:
+  max_block_bytes: 52428800      # 50 MB
+  max_block_duration: 5m
+  trace_idle_period: 10s
+
 compactor:
   compaction:
     block_retention: 48h
@@ -32,10 +39,10 @@ metrics_generator:
     remote_write:
       - url: http://prometheus:9090/api/v1/write
         send_exemplars: true
-  traces_storage:
-    path: /var/tempo/generator/traces
 
 overrides:
   defaults:
     metrics_generator:
-      processors: [service-graphs, span-metrics, local-blocks]
+      # local-blocks (TraceQL metrics queries) is left out: it keeps a second in-memory copy of
+      # recent traces, and the dashboards use span-metrics in Prometheus instead
+      processors: [service-graphs, span-metrics]
