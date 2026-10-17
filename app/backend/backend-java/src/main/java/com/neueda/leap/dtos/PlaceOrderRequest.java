@@ -39,6 +39,13 @@ public class PlaceOrderRequest {
 
     @jakarta.validation.constraints.Size(max = 100)
     private String idempotencyKey;
+    @Schema(description = "Ids of compliance warnings the customer confirmed they understand, e.g. SINGLE_STOCK_LIMIT")
+    @jakarta.validation.constraints.Size(max = 20)
+    private java.util.List<@jakarta.validation.constraints.Size(max = 50) String> acknowledgedWarnings = new java.util.ArrayList<>();
+    public java.util.List<String> getAcknowledgedWarnings() { return acknowledgedWarnings; }
+    public void setAcknowledgedWarnings(java.util.List<String> warnings) {
+        acknowledgedWarnings = warnings == null ? new java.util.ArrayList<>() : warnings;
+    }
 
     public com.neueda.leap.enums.OrderType getOrderType() { return orderType; }
     public void setOrderType(com.neueda.leap.enums.OrderType type) { orderType = type; }
