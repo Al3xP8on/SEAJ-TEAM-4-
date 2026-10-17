@@ -7,7 +7,8 @@ import { classes } from '@spartan-ng/helm/utils';
   selector: '[hlmInput]',
   hostDirectives: [
     { directive: BrnInput, inputs: ['id', 'forceInvalid'] },
-    BrnFieldControlDescribedBy,
+    // Exposed so a message outside the field can still describe the input; merged with field hints
+    { directive: BrnFieldControlDescribedBy, inputs: ['aria-describedby'] },
   ],
   host: { 'data-slot': 'input' },
 })
