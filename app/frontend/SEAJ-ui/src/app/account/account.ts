@@ -1,6 +1,12 @@
 import { NotificationsService } from '../notifications/notifications.service';
 import { HlmSwitch } from '@spartan-ng/helm/switch';
 import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmField, HlmFieldDescription } from '@spartan-ng/helm/field';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideArrowDownLeft, lucideArrowUpRight, lucideCreditCard, lucidePalette, lucidePencil, lucideRotateCw, lucideTrash2, lucideUser, lucideWallet } from '@ng-icons/lucide';
 import { Component, DestroyRef, ElementRef, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +17,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { AppearanceService } from '../appearance/appearance.service';
 import { Account } from '../dashboard/dashboard.models';
-@Component({ selector: 'app-account', imports: [FormsModule, CurrencyPipe, DatePipe, HlmSwitch, HlmCardImports], templateUrl: './account.html', styleUrl: './account.css' })
+@Component({
+  selector: 'app-account',
+  imports: [FormsModule, CurrencyPipe, DatePipe, NgIcon, HlmSwitch, HlmCardImports, HlmButton, HlmInput, HlmLabel, HlmField, HlmFieldDescription],
+  providers: [provideIcons({ lucideArrowDownLeft, lucideArrowUpRight, lucideCreditCard, lucidePalette, lucidePencil, lucideRotateCw, lucideTrash2, lucideUser, lucideWallet })],
+  templateUrl: './account.html', styleUrl: './account.css',
+})
 export class AccountComponent {
   private readonly element: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly service = inject(AccountService);
