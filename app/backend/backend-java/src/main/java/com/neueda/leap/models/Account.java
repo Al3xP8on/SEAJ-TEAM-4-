@@ -9,6 +9,7 @@ import jakarta.persistence.*;
 import com.neueda.leap.interfaces.Closable;
 import com.neueda.leap.validators.AccountValidator;
 import com.neueda.leap.enums.AccountStatus;
+import com.neueda.leap.enums.RiskProfile;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Entity
@@ -46,6 +47,11 @@ public class Account implements Closable {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AccountStatus status;
+
+    // Set by an admin; sets the limits pre-trade compliance applies. Null on older rows means BALANCED.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "risk_profile", length = 20)
+    private RiskProfile riskProfile;
     
     @Column(nullable = false)
     private int version;
@@ -194,6 +200,8 @@ public class Account implements Closable {
     public String getHolderName() { return getName(); }  // Backward compatibility
     public BigDecimal getCashBalance() { return cashBalance; }
     public AccountStatus getStatus() { return status; }
+    public RiskProfile getRiskProfile() { return riskProfile == null ? RiskProfile.BALANCED : riskProfile; }
+    public void setRiskProfile(RiskProfile riskProfile) { this.riskProfile = riskProfile; }
     public int getVersion() { return version; }
     public LocalDateTime getLastUpdated() { return lastUpdated; }
     public LocalDateTime getCreatedOn() { return createdOn; }
