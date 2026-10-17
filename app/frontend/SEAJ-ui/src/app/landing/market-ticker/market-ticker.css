@@ -76,15 +76,25 @@ li {
   flex-shrink: 0;
 }
 
-/* Reduced motion: a still row you can scroll yourself, without the duplicate or the button */
+/* Reduced motion: nothing moves. The quotes wrap onto more lines, all visible, with no scroll bar,
+   and the duplicate copy and pause button aren't needed */
 @media (prefers-reduced-motion: reduce) {
   .viewport {
-    overflow-x: auto;
     mask-image: none;
   }
 
   .track {
     animation: none;
+    width: auto;
+  }
+
+  ul {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  li {
+    padding: 7px 18px;
   }
 
   .copy,
