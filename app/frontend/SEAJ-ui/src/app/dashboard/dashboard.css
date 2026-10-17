@@ -19,6 +19,17 @@ main {
   padding: 42px 32px;
 }
 
+.identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.identity h1 {
+  margin: 0;
+}
+
 .page-heading {
   display: flex;
   flex-wrap: wrap;
@@ -33,7 +44,7 @@ main {
   letter-spacing: 1.7px;
   font-weight: 700;
   color: var(--foreground);
-  margin: 0 0 10px;
+  margin: 0;
 }
 
 h1 {
@@ -62,51 +73,34 @@ h2 {
   gap: 10px;
 }
 
-.primary {
-  border: 1px solid var(--primary);
-  background: var(--primary);
-  color: #fff;
-  padding: 12px 18px;
-  border-radius: 6px;
-  font-size: 0.8125rem;
-  font-weight: 600;
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 24px;
+  align-items: start;
 }
 
-.primary:hover {
-  background: var(--primary-hover);
-}
-
-.quiet {
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--foreground);
-  padding: 12px 18px;
-  border-radius: 6px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-
-.quiet:hover {
-  background: var(--muted);
+.main-column,
+.side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
 }
 
 .summary {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  /* Cash leads: a little wider than the other two */
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 24px;
   margin-bottom: 24px;
-}
-
-/* Tinted like the Orders page balance panel */
-.cash-card {
-  background: var(--muted);
 }
 
 .figure {
   font-size: 1.625rem;
   letter-spacing: -0.6px;
   font-weight: 600;
-  margin: 8px 0 6px;
+  margin: 0 0 4px;
   font-variant-numeric: tabular-nums;
   word-break: break-word;
 }
@@ -124,65 +118,133 @@ h2 {
   letter-spacing: -1.2px;
   font-weight: 600;
   color: var(--foreground);
-  margin: 12px 0 8px;
+  margin: 0 0 4px;
   font-variant-numeric: tabular-nums;
   word-break: break-word;
 }
 
-.section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.tag {
-  background: var(--muted);
-  border-radius: 5px;
-  padding: 5px 8px;
-  font-size: 0.6875rem;
-  color: var(--foreground);
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-
-.positions-table {
+/* Table layout and borders come from spartan's table; only dashboard-specific touches here */
+.data-table {
   width: 100%;
-  border-collapse: collapse;
+  /* Separate borders (with no gap) so the pinned header and total carry their own borders;
+     collapsed borders stay behind and let scrolled rows show through */
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.8125rem;
 }
 
-.positions-table th,
-.positions-table td {
+.data-table th,
+.data-table td {
   padding: 13px 8px;
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
-.positions-table thead th {
+.data-table thead th {
   font-size: 0.6875rem;
   color: var(--foreground);
   font-weight: 500;
   white-space: nowrap;
 }
 
-.positions-table .num {
+.data-table .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.positions-table .symbol {
+.data-table .symbol {
   font-weight: 600;
   color: var(--foreground);
 }
 
-.positions-table tfoot th,
-.positions-table tfoot td {
-  border-bottom: none;
+.data-table .company {
+  margin-left: 6px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+
+/* About five rows, then the table scrolls; the headers and total stay in view */
+.positions-scroll {
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.positions-scroll thead th,
+.positions-scroll tfoot th,
+.positions-scroll tfoot td {
+  position: sticky;
+  z-index: 1;
+  background: var(--card);
+}
+
+.positions-scroll thead th {
+  top: 0;
+}
+
+.positions-scroll tfoot th,
+.positions-scroll tfoot td {
+  bottom: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+
+.data-table tfoot th,
+.data-table tfoot td {
   font-weight: 600;
+}
+
+/* Wider than the dialog default so the chart has room on a desktop screen */
+.stock-dialog {
+  width: min(880px, calc(100vw - 48px));
+  max-width: none;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.dialog-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  padding-right: 32px;
+}
+
+/* A symbol that opens its chart: looks like the symbol, behaves like a button */
+.symbol-link {
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+/* The sign and arrow carry the direction; colour only reinforces it */
+.change {
+  color: var(--positive);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.pnl {
+  color: var(--positive);
+}
+
+.change.loss,
+.pnl.loss {
+  color: var(--destructive);
+}
+
+.cash-actions {
+  gap: 6px;
+}
+
+.buying-power {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .empty {
@@ -218,7 +280,8 @@ footer {
 }
 
 @media (max-width: 800px) {
-  .summary {
+  .summary,
+  .columns {
     grid-template-columns: 1fr;
   }
 
@@ -227,5 +290,17 @@ footer {
   }
 }
 
-.card { min-width: 0; } .positions-scroll { overflow-x: auto; }
-@media (max-width: 520px) { main { padding: 1rem; } .card { padding: 1rem; } }
+.card {
+  min-width: 0;
+}
+.positions-scroll {
+  overflow-x: auto;
+}
+@media (max-width: 520px) {
+  main {
+    padding: 1rem;
+  }
+  .card {
+    padding: 1rem;
+  }
+}

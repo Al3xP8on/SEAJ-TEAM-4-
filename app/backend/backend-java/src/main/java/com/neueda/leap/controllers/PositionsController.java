@@ -25,12 +25,12 @@ public class PositionsController {
     private PositionsService positionsService;
     
     @GetMapping
-    public ResponseEntity<?> getRootPositions() {
+    public ResponseEntity<Object> getRootPositions() {
         return ResponseEntity.ok(Map.of("message", "Use /{accountId}/positions to get positions for an account"));
     }
     
     @GetMapping("/{accountId}/positions")
-    public ResponseEntity<?> getPositions(@PathVariable Long accountId) {
+    public ResponseEntity<Object> getPositions(@PathVariable Long accountId) {
         try {
             List<PositionResponse> positions = positionsService.getPositions(accountId);
             return ResponseEntity.ok(positions);
@@ -42,7 +42,7 @@ public class PositionsController {
     }
     
     @GetMapping("/{accountId}/positions/{positionId}")
-    public ResponseEntity<?> getPosition(@PathVariable Long accountId, @PathVariable Long positionId) {
+    public ResponseEntity<Object> getPosition(@PathVariable Long accountId, @PathVariable Long positionId) {
         try {
             PositionResponse position = positionsService.getPosition(accountId, positionId);
             return ResponseEntity.ok(position);
@@ -56,7 +56,7 @@ public class PositionsController {
     }
     
     @GetMapping("/{accountId}/positions/symbol/{symbol}")
-    public ResponseEntity<?> getPositionBySymbol(@PathVariable Long accountId, @PathVariable String symbol) {
+    public ResponseEntity<Object> getPositionBySymbol(@PathVariable Long accountId, @PathVariable String symbol) {
         try {
             Optional<PositionResponse> position = positionsService.getPositionBySymbol(accountId, symbol);
             if (position.isPresent()) {
@@ -72,7 +72,7 @@ public class PositionsController {
     }
     
     @PutMapping("/{accountId}/positions/close/{positionId}")
-    public ResponseEntity<?> closePosition(
+    public ResponseEntity<Object> closePosition(
             @PathVariable Long accountId,
             @PathVariable Long positionId,
             @RequestBody ClosePositionRequest request) {

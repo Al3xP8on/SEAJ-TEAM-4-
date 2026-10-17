@@ -19,10 +19,4 @@ public record OrderHistoryResponse(
     @Schema(description="Total number of status transitions")
     @PositiveOrZero(message="Total status changes must be zero or positive")
     Optional<Integer> totalStatusChanges
-){
-    public OrderHistoryResponse(String orderId, List<OrderHistoryEntry> history, Optional<Integer> totalStatusChanges){
-        this.orderId = orderId;
-        this.history = history;
-        this.totalStatusChanges = totalStatusChanges;
-    }
-}
+) {}

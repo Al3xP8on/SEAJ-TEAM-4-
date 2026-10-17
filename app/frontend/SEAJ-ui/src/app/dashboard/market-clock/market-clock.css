@@ -1,0 +1,46 @@
+:host {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--muted);
+  font-size: 0.8125rem;
+}
+
+p {
+  margin: 0;
+}
+
+.market-status {
+  font-weight: 600;
+}
+
+.times {
+  color: var(--muted-foreground);
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+  background: var(--muted-foreground);
+}
+
+[data-status='open'] .dot {
+  background: var(--positive);
+}
+
+/* Fixed-width digits so the ticking seconds don't make the line jitter */
+.clock {
+  font-variant-numeric: tabular-nums;
+}

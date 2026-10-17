@@ -15,7 +15,11 @@ describe('DashboardService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: AuthService, useValue: auth }],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthService, useValue: auth },
+      ],
     });
     service = TestBed.inject(DashboardService);
     http = TestBed.inject(HttpTestingController);
@@ -23,14 +27,20 @@ describe('DashboardService', () => {
 
   afterEach(() => http.verify());
 
-  it('loads the logged-in account and its positions using the id from the token', async () => {
+  it('loads the logged-in account, then its positions and orders', async () => {
     auth.getToken.mockReturnValue(tokenFor({ sub: '7', username: 'alice' }));
 
     const result = firstValueFrom(service.load());
-    http.expectOne('/api/v1/accounts/7').flush({ id: 7, holderName: 'Alice' });
+    http.expectOne('/api/v1/accounts/7').flush({ id: 7, accountId: 'ACC-0007' });
     http.expectOne('/api/v1/accounts/7/positions').flush([{ symbol: 'AAPL' }]);
+    // Orders are looked up by the ACC- id from the account, not the token's numeric id
+    http.expectOne('/api/v1/orders/account/ACC-0007').flush([{ orderId: 'o1' }]);
 
-    expect(await result).toEqual({ account: { id: 7, holderName: 'Alice' }, positions: [{ symbol: 'AAPL' }] });
+    expect(await result).toEqual({
+      account: { id: 7, accountId: 'ACC-0007' },
+      positions: [{ symbol: 'AAPL' }],
+      orders: [{ orderId: 'o1' }],
+    });
   });
 
   it('fails without calling the API when there is no session', async () => {
@@ -38,6 +48,18 @@ describe('DashboardService', () => {
 
     await expect(firstValueFrom(service.load())).rejects.toThrow('No active session');
     http.expectNone(() => true);
+  });
+
+  it('returns market prices, or null when they are unavailable', async () => {
+    const prices = firstValueFrom(service.marketPrices());
+    http.expectOne('/api/v1/market-data/overview').flush({ configured: true, snapshots: [] });
+    expect(await prices).toEqual({ configured: true, snapshots: [] });
+
+    const failed = firstValueFrom(service.marketPrices());
+    http
+      .expectOne('/api/v1/market-data/overview')
+      .flush('down', { status: 503, statusText: 'Unavailable' });
+    expect(await failed).toBeNull();
   });
 
   it('reads the subject from a token and rejects malformed ones', () => {

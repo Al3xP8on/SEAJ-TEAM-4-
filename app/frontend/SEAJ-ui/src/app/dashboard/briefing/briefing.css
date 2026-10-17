@@ -1,0 +1,78 @@
+:host {
+  display: block;
+  /* The theme has no warning colour, so the briefing defines its own for both themes */
+  --warning-bg: #fdf3e1;
+  --warning-text: #7a4f0a;
+}
+
+:host-context(.dark) {
+  --warning-bg: #3a2e17;
+  --warning-text: #f3cf8e;
+}
+
+h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Stacked in the side column */
+.items {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  align-items: flex-start;
+}
+
+.icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 18px;
+}
+
+/* Tone tints the icon only; the title and detail say the same thing in words */
+[data-tone='good'] .icon {
+  color: var(--positive);
+}
+
+[data-tone='bad'] .icon {
+  color: var(--destructive);
+}
+
+[data-tone='warn'] .icon {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.detail {
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+[data-tone='good'] .detail {
+  color: var(--positive);
+}
+
+[data-tone='bad'] .detail {
+  color: var(--destructive);
+}
+
+.note {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin: 12px 0 0;
+}

@@ -28,8 +28,11 @@
     <div class="workspace">
       <div class="ticket-column">
         <section class="panel ticket" aria-labelledby="ticket-title">
-          <div class="section-heading">
-            <h2 id="ticket-title">Order ticket</h2>
+          <div class="section-heading ticket-heading">
+            <div>
+              <p class="eyebrow">NEW TRADE</p>
+              <h2 id="ticket-title">Order ticket</h2>
+            </div>
             <span class="tag">{{ selectedInstrument()?.currency }}</span>
           </div>
           <form #ticket="ngForm" (ngSubmit)="submit(ticket)">
@@ -54,6 +57,10 @@
               }
               <label for="instrument">Instrument</label>
               <div class="instrument-picker" (focusout)="closeInstrumentPicker($event)">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="10.5" cy="10.5" r="6.5" />
+                  <path d="m16 16 4 4" />
+                </svg>
                 <input
                   id="instrument"
                   type="text"
@@ -106,17 +113,16 @@
                   </div>
                 }
               </div>
-              <div class="quote-strip">
+              <div class="quote-strip" [attr.data-side]="side">
                 @if (quote(); as q) {
-                  <div>
+                  <div [class.selected-quote]="side === 'SELL'">
                     <span>Bid</span><strong>{{ q.bidPrice | currency }}</strong>
                   </div>
-                  <div>
+                  <div [class.selected-quote]="side === 'BUY'">
                     <span>Ask</span><strong>{{ q.askPrice | currency }}</strong>
                   </div>
                   <div>
-                    <span>Quote time</span
-                    ><strong>{{ q.priceTimeStamp | date: 'HH:mm:ss' }}</strong>
+                    <span>As of</span><strong>{{ q.priceTimeStamp | date: 'HH:mm:ss' }}</strong>
                   </div>
                 } @else {
                   <p>No current quote. You can still place a limit order.</p>
@@ -124,11 +130,25 @@
               </div>
               <div class="form-row">
                 <div>
-                  <label for="side">Direction</label
-                  ><select id="side" name="side" [(ngModel)]="side" (ngModelChange)="edited()">
-                    <option value="BUY">Buy</option>
-                    <option value="SELL">Sell</option>
-                  </select>
+                  <span class="field-label" id="direction-label">Direction</span>
+                  <div class="side-switch" role="group" aria-labelledby="direction-label">
+                    <button
+                      type="button"
+                      class="buy-option"
+                      [attr.aria-pressed]="side === 'BUY'"
+                      (click)="side = 'BUY'; edited()"
+                    >
+                      Buy
+                    </button>
+                    <button
+                      type="button"
+                      class="sell-option"
+                      [attr.aria-pressed]="side === 'SELL'"
+                      (click)="side = 'SELL'; edited()"
+                    >
+                      Sell
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label for="type">Order type</label
@@ -138,9 +158,10 @@
                   </select>
                 </div>
               </div>
-              <div class="form-row">
+              <div class="form-row" [class.market-quantity]="orderType === 'MARKET'">
                 <div>
-                  <label for="quantity">Quantity</label
+                  <label for="quantity" class="quantity-label">
+                    Quantity <span>Whole units</span></label
                   ><input
                     id="quantity"
                     name="quantity"
@@ -179,21 +200,29 @@
                 }
               </p>
               <div class="estimate">
-                <div>
+                <div class="estimate-total">
                   <span>{{
                     orderType === 'MARKET' ? 'Estimated order value' : 'Value at limit price'
-                  }}</span
-                  ><strong>{{ estimatedTotal() | currency }}</strong>
+                  }}</span>
+                  <strong>{{ unitPrice() === null ? '—' : (estimatedTotal() | currency) }}</strong>
                 </div>
-                <p>
-                  {{ side === 'BUY' ? 'Available cash' : 'Available units' }}:
-                  @if (side === 'BUY') {
-                    {{ availableCash() | currency }}
-                  } @else {
-                    {{ availableHolding() | number }}
-                  }
-                  <span>After pending orders</span>
+                <p class="estimate-detail">
+                  {{ quantity ?? 0 | number }} {{ quantity === 1 ? 'unit' : 'units' }} ×
+                  {{ unitPrice() === null ? '—' : (unitPrice() | currency) }}
                 </p>
+                <div class="estimate-available">
+                  <span>
+                    {{ side === 'BUY' ? 'Available cash' : 'Available units' }}
+                    <small>After pending orders</small>
+                  </span>
+                  <strong>
+                    @if (side === 'BUY') {
+                      {{ availableCash() | currency }}
+                    } @else {
+                      {{ availableHolding() | number }}
+                    }
+                  </strong>
+                </div>
               </div>
               @if (review) {
                 <div class="review" role="status">
@@ -220,8 +249,11 @@
                     ? 'Submitting…'
                     : review
                       ? 'Confirm ' + side.toLowerCase() + ' order'
-                      : 'Review order'
+                      : 'Review ' + side.toLowerCase() + ' order'
                 }}
+                @if (!submitting()) {
+                  <span aria-hidden="true">→</span>
+                }
               </button>
               @if (review) {
                 <button class="quiet full" type="button" (click)="review = false">
