@@ -16,6 +16,7 @@ import {
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { ProductPreviewComponent } from './product-preview/product-preview';
+import { MarketTickerComponent } from './market-ticker/market-ticker';
 import { describeNextChange, marketStatus } from '../dashboard/market-status';
 import { pollWhileVisible } from '../dashboard/poll-while-visible';
 
@@ -25,7 +26,14 @@ import { pollWhileVisible } from '../dashboard/poll-while-visible';
  */
 @Component({
   selector: 'app-landing',
-  imports: [RouterLink, NgIcon, HlmButton, HlmCardImports, ProductPreviewComponent],
+  imports: [
+    RouterLink,
+    NgIcon,
+    HlmButton,
+    HlmCardImports,
+    ProductPreviewComponent,
+    MarketTickerComponent,
+  ],
   providers: [
     provideIcons({
       lucideAccessibility,

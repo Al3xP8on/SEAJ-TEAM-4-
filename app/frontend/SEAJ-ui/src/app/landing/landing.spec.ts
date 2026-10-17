@@ -1,10 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { LandingComponent } from './landing';
 
 describe('LandingComponent', () => {
   async function render() {
-    TestBed.configureTestingModule({ imports: [LandingComponent], providers: [provideRouter([])] });
+    TestBed.configureTestingModule({
+      imports: [LandingComponent],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+    });
     const fixture = TestBed.createComponent(LandingComponent);
     await fixture.whenStable();
     return fixture.nativeElement as HTMLElement;
