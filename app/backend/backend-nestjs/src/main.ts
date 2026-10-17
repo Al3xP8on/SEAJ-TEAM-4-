@@ -1,5 +1,7 @@
 // Starts the authentication HTTP server with validation, error handling and configured CORS.
 // Serves the login interface and exposes the canonical OpenAPI contract through Swagger.
+// Telemetry starts first so the libraries below are instrumented when they load.
+import './observability/telemetry';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import type { OpenAPIObject } from '@nestjs/swagger';
@@ -9,8 +11,11 @@ import { load } from 'js-yaml';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { configureHttp } from './http.config';
+import { OtelLogger } from './observability/otel-logger';
+import { requestLogging } from './observability/request-logging';
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: new OtelLogger() });
+  app.use(requestLogging);
   configureHttp(app);
   const publicPath = join(__dirname, 'public');
   if (existsSync(join(publicPath, 'index.html'))) {
