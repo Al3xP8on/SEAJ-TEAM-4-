@@ -2,6 +2,9 @@
 
 OpenTelemetry Collector → Tempo (traces), Prometheus (metrics), Loki (logs), all viewed in Grafana.
 
+For what each service sends, how the dashboard and its SLOs work, and known limitations, see
+[docs/observability.md](../../docs/observability.md). This README covers running the stack.
+
 ## Run
 
 The monitoring services live in the root `docker-compose.yml` behind the `observability` profile.
@@ -95,6 +98,38 @@ Point the service at the collector — it routes each signal to the right backen
 OTEL_SERVICE_NAME=<service-name>
 OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 ```
+
+## Dashboards
+
+Dashboards load automatically into the **SEAJ Trading** folder. **SEAJ Trading Platform**
+(`seaj-platform.json`) is the main one, built for a mixed audience. Read it from the top down:
+
+| Row | For | Shows |
+|---|---|---|
+| **Trading** | Everyone | Orders placed, % filled, rejected, value traded, average time to fill, orders over time |
+| **Is the platform healthy?** | Everyone | The golden signals in plain words: requests per second (traffic), requests failing (errors), response time (latency), services running |
+| **Reliability promise (last 30 days)** | Everyone | Availability against the SLO and SLA, allowed and used downtime (error budget), **Ship or stabilise?**, burn rate |
+| **Investigate** (collapsed) | Technical | Recent warnings and errors, each linking to its trace, and a map of how the services connect |
+
+How the numbers work (from the SRE module):
+
+- **SLI, SLO, SLA.** Availability is the SLI. The SLO is our internal target, 99.9% (a dropdown at the top).
+  The SLA line is the looser promise, 99.5%. Dipping below the SLO is the early warning, before the SLA is at risk.
+- **Error budget** = (100% − SLO) × the 43,200 minutes in 30 days. At 99.9% that's 43.2 minutes. The reliability
+  row always covers the last 30 days. Prometheus keeps 30 days of data for this.
+- **Ship or stabilise?** reads *Ship* while budget is left and *Stabilise* once it's spent, when reliability work
+  comes first.
+- **Only platform failures count** (HTTP 5xx). A wrong password or an invalid order is the user's mistake (4xx),
+  so it doesn't use up the budget.
+- The trading and health rows follow the time picker, which defaults to today.
+
+**Monitoring health** (`stack-health.json`, linked at the top right) checks the monitoring itself: scrape
+targets and spans received by the collector.
+
+To add panels, edit the JSON in `grafana/dashboards/`; Grafana picks the change up within a minute. Edits saved
+in the Grafana UI are overwritten the next time the JSON file changes. For detail that would crowd the main
+dashboard (JVM memory, database pool, Kafka lag, slowest endpoints), add a collapsed row at the bottom so the
+top stays simple.
 
 ## Layout
 

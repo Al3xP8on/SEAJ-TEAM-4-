@@ -195,10 +195,11 @@ services:
     profiles: ["observability"]
     image: grafana/tempo:2.6.0
     container_name: seaj_tempo
-    mem_limit: 384m
+    # 384m left it pinned at the limit under normal app traffic (the dashboard polls every 2 s)
+    mem_limit: 512m
     # Go doesn't see the container limit; this makes it collect garbage before hitting it
     environment:
-      GOMEMLIMIT: 320MiB
+      GOMEMLIMIT: 440MiB
     restart: on-failure
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
@@ -230,7 +231,7 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=7d
+      - --storage.tsdb.retention.time=30d   # matches the 30-day SLO window
       - --web.enable-remote-write-receiver   # Tempo pushes service-graph / span metrics here
       - --enable-feature=exemplar-storage    # metric -> trace jumps in Grafana
     volumes:
