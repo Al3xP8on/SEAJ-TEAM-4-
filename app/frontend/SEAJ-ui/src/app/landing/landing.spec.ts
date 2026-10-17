@@ -25,8 +25,8 @@ describe('LandingComponent', () => {
   it('uses links, not buttons, to reach the login page', async () => {
     const page = await render();
 
-    expect(texts(page, 'a[href="/login"]')).toEqual(['Log in', 'Create an account', 'Log in']);
-    expect(texts(page, 'a[href="/login?mode=register"]')).toEqual(['Sign up']);
+    expect(texts(page, 'a[href="/login"]')).toEqual(['Log in', 'Log in']);
+    expect(texts(page, 'a[href="/login?mode=register"]')).toEqual(['Sign up', 'Create an account']);
     expect(page.querySelector('button')).toBeNull();
   });
 
