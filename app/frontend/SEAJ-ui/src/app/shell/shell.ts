@@ -9,11 +9,15 @@ import { OrderNotificationsService } from '../notifications/order-notifications.
 import { NotificationsService } from '../notifications/notifications.service';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideArrowLeftRight, lucideLayoutDashboard, lucideLogOut, lucideSettings } from '@ng-icons/lucide';
+import { HlmButton } from '@spartan-ng/helm/button';
 
 /** Keeps navigation mounted while the authenticated page changes beneath it. */
 @Component({
   selector: 'app-shell',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, NgIcon, HlmButton],
+  providers: [provideIcons({ lucideArrowLeftRight, lucideLayoutDashboard, lucideLogOut, lucideSettings })],
   templateUrl: './shell.html',
   styleUrl: './shell.css',
 })
