@@ -22,6 +22,9 @@ exporters:
     endpoint: tempo:4317
     tls:
       insecure: true
+    # Keep a small backlog while Tempo is down (default 1000 batches), so it isn't flooded on restart
+    sending_queue:
+      queue_size: 100
   # Scraped by Prometheus at otel-collector:8889
   prometheus:
     endpoint: 0.0.0.0:8889

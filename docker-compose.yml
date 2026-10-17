@@ -196,6 +196,10 @@ services:
     image: grafana/tempo:2.6.0
     container_name: seaj_tempo
     mem_limit: 384m
+    # Go doesn't see the container limit; this makes it collect garbage before hitting it
+    environment:
+      GOMEMLIMIT: 320MiB
+    restart: on-failure
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ./infra/observability/tempo.yaml:/etc/tempo.yaml:ro
@@ -209,6 +213,8 @@ services:
     image: grafana/loki:3.2.0
     container_name: seaj_loki
     mem_limit: 256m
+    environment:
+      GOMEMLIMIT: 210MiB
     command: ["-config.file=/etc/loki/config.yaml"]
     volumes:
       - ./infra/observability/loki.yaml:/etc/loki/config.yaml:ro
@@ -219,6 +225,8 @@ services:
     image: prom/prometheus:v2.54.1
     container_name: seaj_prometheus
     mem_limit: 384m
+    environment:
+      GOMEMLIMIT: 320MiB
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
