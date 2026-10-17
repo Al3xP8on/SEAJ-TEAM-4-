@@ -12,8 +12,9 @@ The dashboard is for a mixed audience. Read it top to bottom:
 
 1. **Trading**: what customers are doing (orders, fills, value traded).
 2. **Is the platform healthy?**: the four golden signals, in plain words.
-3. **Reliability promise**: SLIs, SLOs, the SLA and the error budget, as taught in the SRE Principles module.
-4. **Investigate** (collapsed): logs and traces for the technical audience.
+3. **Investigate** (collapsed): logs and traces for the technical audience.
+
+SLIs and SLOs are deliberately **not on the dashboard yet**. See [SLOs: not yet](#slos-not-yet).
 
 ## How telemetry flows
 
@@ -45,7 +46,7 @@ flowchart LR
 | `app/backend/backend-nestjs/src/observability/` | Starts the Node SDK, sends Nest logs to the collector, logs one line per request |
 | `docker-compose.yml` | Turns the agent/SDK on, names each service, points it at the collector |
 | `infra/observability/otel-collector.yaml` | Receives everything; routes traces → Tempo, logs → Loki, metrics → Prometheus |
-| `infra/observability/tempo.yaml`, `loki.yaml`, `prometheus.yml` | Storage and retention (Tempo 48 h, Loki 7 days, Prometheus 30 days) |
+| `infra/observability/tempo.yaml`, `loki.yaml`, `prometheus.yml` | Storage and retention (Tempo 48 h, Loki 7 days, Prometheus 7 days) |
 | `infra/observability/grafana/provisioning/` | Data sources (pre-linked trace ↔ logs ↔ metrics) and dashboard loading |
 | `infra/observability/grafana/dashboards/seaj-platform.json` | The dashboard |
 
@@ -67,7 +68,7 @@ of telemetry.
 ## The dashboard
 
 **Grafana:** http://10.9.65.95:8084 → *SEAJ Trading* folder → *SEAJ Trading Platform*. Defaults: today, refresh
-every 30 s. The top bar has a **Service** filter and the **Availability SLO** dropdown.
+every 30 s. The top bar has a **Service** filter.
 
 ### 1. Trading
 
@@ -95,56 +96,36 @@ the engine fills against an Alpaca quote under 60 seconds old.
 Charts below show traffic and response time per service. Click a line to filter to that service. The dots on
 the response-time chart are sample requests; click one to open its trace.
 
-### 3. Reliability promise (last 30 days)
-
-This row always covers the last 30 days, whatever the time picker says.
-
-| Panel | Meaning |
-|---|---|
-| Availability | The SLI over 30 days |
-| Allowed downtime | The error budget in minutes |
-| Downtime used | Failed share of requests × 43,200 minutes |
-| Ship or stabilise? | *Ship* while budget is left; *Stabilise* once it's spent |
-| Burn rate (last hour) | How fast budget is going: 1 = lasts exactly 30 days |
-| Availability by service | Rolling-hour availability with the SLO (green) and SLA (red) lines |
-
-### 4. Investigate (collapsed)
+### 3. Investigate (collapsed)
 
 - **Recent warnings and errors** from all services, newest first. Expand a line and click **View trace**.
 - **How the services connect**: the service map Tempo builds from traces.
 
-## SLIs, SLOs and the SLA
+## SLOs: not yet
 
-Following the SRE Principles module:
+A first version had a 30-day SLO row: availability SLI, a 99.9% SLO, a 99.5% SLA, a 43.2-minute error budget
+and a "ship or stabilise?" indicator. We took it out until it has a clear purpose:
 
-| Term | Ours | Why |
-|---|---|---|
-| **SLI** (what we measure) | **Availability:** requests that did *not* return HTTP 5xx ÷ all requests | A 5xx means the platform failed. 4xx (wrong password, invalid order, expired session) is the user's mistake and doesn't count against us. |
-| **SLO** (internal target) | **99.9%** over a rolling 30 days | The module's worked example. Selectable at the top (99.5 / 99.9 / 99.99) to show how each extra nine shrinks the budget. |
-| **SLA** (external promise) | **99.5%** | Deliberately looser than the SLO, so we see slippage internally before the promise is at risk. **Illustrative**: SEAJ has no real contract. |
-| **Error budget** | (100% − 99.9%) × 43,200 min = **43.2 minutes** per 30 days | The module's calculation. 99.99% would leave 4.32 minutes. |
-| **Budget policy** | Budget left → ship features. Budget spent → reliability work first. | Shown as **Ship or stabilise?** |
-| **Burn rate alert level** | 14.4 over 1 hour | The Google SRE Workbook's fast-burn threshold: at this rate, 2% of the 30-day budget goes in one hour. |
+- **SLA:** SEAJ has no external party to promise anything to, so an SLA would be made up.
+- **SLO:** the SRE module says the target and the budget policy are set by the team's own prior agreement. We
+  haven't agreed on either; 99.9% was only the module's example.
+- **SLI:** platform-wide availability is dominated by background polling (the dashboard page refreshes every 2 s).
+  A service that's completely down also stops reporting, so it records no failures. The number would look
+  precise without meaning much.
 
-### Known limitations
+The health row still shows **Requests failing** (the errors golden signal), so failures remain visible.
 
-These are worth knowing before presenting the numbers:
+**When we come back to it,** start here:
 
-1. **A service that's completely down records no failures.** If app crashes, it stops sending metrics, so
-   availability stays at 100% instead of dropping. **Services running** (2 of 3, red) is what catches this. A fix
-   would be measuring from nginx or with a synthetic check (for example the Prometheus blackbox exporter).
-2. **Request-based, shown as minutes.** The module counts downtime minutes. We measure failed requests and
-   convert the share into minutes of the 30-day window. That's equivalent when traffic is steady, but only an
-   approximation when it isn't.
-3. **Low traffic makes the numbers jumpy.** With a handful of users, one failed request moves availability a
-   lot. Background polling (the dashboard page refreshes every 2 s) makes up most requests, so it dilutes
-   failures in important actions like placing an order.
-4. **One SLI for the whole platform.** A better next step is an SLI per critical user journey, for example
-   "orders placed successfully" (`POST /api/v1/orders`) and "logins that succeed".
-5. **No latency SLO.** Response time has thresholds but no target. The module's example SLI, "% of requests under
-   200 ms", could be added. The nearest histogram bucket is 250 ms.
-6. **Thresholds don't follow the SLO dropdown.** Panel colours are fixed at 99.9 / 99.5, so they're only exact
-   for the default SLO.
+1. **Pick SLIs for critical user journeys,** not the whole platform. For example:
+   - placing an order: share of `POST /api/v1/orders` that don't return 5xx
+   - logging in: share of `/auth/login/verify` that succeed
+   - order fills: share filled within N seconds during market hours
+2. **Agree a target and a budget policy as a team:** what the SLO is, and what we do when the budget is spent.
+3. **Cover the "service down" blind spot** with a check from outside the service. For example, the Prometheus
+   blackbox exporter calling each service's health endpoint.
+4. **Then** add the error budget in minutes (100% − SLO) × 43,200 and a burn-rate indicator. Raise Prometheus
+   retention to 30 days (`--storage.tsdb.retention.time` in `docker-compose.yml`) so the window has data.
 
 ## What was done
 
@@ -157,7 +138,6 @@ These are worth knowing before presenting the numbers:
 | 500 errors in auth-service now logged with their cause (users still get a generic message) | `backend-nestjs/src/http.config.ts` |
 | Order decision logging in the execution engine (it had none) | `execution-engine/.../OrderListener.java` |
 | Memory fixes: Tempo was killed for running out of memory. Smaller trace blocks, Go memory limits on Tempo, Loki and Prometheus, a smaller collector queue, and Tempo raised to 512 MB | `tempo.yaml`, `otel-collector.yaml`, `docker-compose.yml` |
-| Prometheus retention raised from 7 to 30 days for the SLO window | `docker-compose.yml` |
 | The **SEAJ Trading Platform** dashboard | `grafana/dashboards/seaj-platform.json` |
 | Low-memory start-up instructions | `infra/observability/README.md` |
 

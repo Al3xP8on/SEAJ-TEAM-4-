@@ -231,7 +231,7 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=30d   # matches the 30-day SLO window
+      - --storage.tsdb.retention.time=7d
       - --web.enable-remote-write-receiver   # Tempo pushes service-graph / span metrics here
       - --enable-feature=exemplar-storage    # metric -> trace jumps in Grafana
     volumes:

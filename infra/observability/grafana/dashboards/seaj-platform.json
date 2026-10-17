@@ -1,10 +1,9 @@
 {
   "uid": "seaj-platform",
   "title": "SEAJ Trading Platform",
-  "description": "Trading activity, platform health and the reliability promise (SLOs and error budget) in one place. Detail for investigating problems is in the collapsed row at the bottom.",
+  "description": "Trading activity and platform health in one place. Detail for investigating problems is in the collapsed row at the bottom.",
   "tags": [
-    "seaj",
-    "sre"
+    "seaj"
   ],
   "timezone": "browser",
   "schemaVersion": 39,
@@ -98,17 +97,6 @@
             "$__all"
           ]
         }
-      },
-      {
-        "name": "slo_availability",
-        "label": "Availability SLO (%)",
-        "type": "custom",
-        "query": "99.9,99.5,99.99",
-        "current": {
-          "text": "99.9",
-          "value": "99.9"
-        },
-        "description": "Our internal target, deliberately tighter than the 99.5% SLA"
       }
     ]
   },
@@ -922,449 +910,7 @@
       }
     },
     {
-      "id": 15,
-      "type": "row",
-      "title": "Reliability promise (last 30 days)",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 25
-      },
-      "panels": []
-    },
-    {
-      "id": 16,
-      "type": "stat",
-      "title": "Availability",
-      "description": "SLI: share of requests that didn't fail over the last 30 days. Green at or above the 99.9% SLO (our internal target), amber between it and the 99.5% SLA (the looser promise), red below the SLA.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 5,
-        "x": 0,
-        "y": 26
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "1 - (((sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\",http_response_status_code=~\"5..\"}[30d]))) or (sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[30d])) * 0)) / sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[30d])))",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 0.995
-              },
-              {
-                "color": "green",
-                "value": 0.999
-              }
-            ]
-          },
-          "noValue": "No data",
-          "decimals": 3
-        },
-        "overrides": []
-      }
-    },
-    {
       "id": 17,
-      "type": "stat",
-      "title": "Allowed downtime",
-      "description": "Error budget: the failure the SLO allows. (100% − $slo_availability%) of the 43,200 minutes in 30 days. At 99.9% that's 43.2 minutes; each extra nine cuts it tenfold.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 5,
-        "x": 5,
-        "y": 26
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "vector((1 - ($slo_availability / 100)) * 43200)",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "m",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
-          },
-          "noValue": "0",
-          "decimals": 1
-        },
-        "overrides": []
-      }
-    },
-    {
-      "id": 18,
-      "type": "stat",
-      "title": "Downtime used",
-      "description": "Failed requests as a share of all requests over 30 days, converted into minutes so it compares directly with the allowed downtime.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 5,
-        "x": 10,
-        "y": 26
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "(((sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\",http_response_status_code=~\"5..\"}[30d]))) or (sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[30d])) * 0)) / sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[30d]))) * 43200",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "m",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 21.6
-              },
-              {
-                "color": "red",
-                "value": 43.2
-              }
-            ]
-          },
-          "noValue": "No data",
-          "decimals": 1
-        },
-        "overrides": []
-      }
-    },
-    {
-      "id": 19,
-      "type": "stat",
-      "title": "Ship or stabilise?",
-      "description": "The team's agreed rule. Budget left: room to ship new features and take some risk. Budget spent: reliability work comes first until it's back in budget.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 5,
-        "x": 15,
-        "y": 26
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "1 - (((sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\",http_response_status_code=~\"5..\"}[30d]))) or (sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[30d])) * 0)) / sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[30d]))) / (1 - ($slo_availability / 100))",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1e-07
-              }
-            ]
-          },
-          "noValue": "No data",
-          "mappings": [
-            {
-              "type": "range",
-              "options": {
-                "from": 1e-07,
-                "to": 1,
-                "result": {
-                  "text": "Ship",
-                  "color": "green"
-                }
-              }
-            },
-            {
-              "type": "range",
-              "options": {
-                "from": -1000000000000.0,
-                "to": 0,
-                "result": {
-                  "text": "Stabilise",
-                  "color": "red"
-                }
-              }
-            }
-          ]
-        },
-        "overrides": []
-      }
-    },
-    {
-      "id": 20,
-      "type": "stat",
-      "title": "Burn rate (last hour)",
-      "description": "How fast the budget is being spent right now. 1 means it would last exactly 30 days; above 1 it runs out early. At 14.4 it would be gone in about 2 days.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 26
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "(((sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\",http_response_status_code=~\"5..\"}[1h]))) or (sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[1h])) * 0)) / sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[1h]))) / (1 - ($slo_availability / 100))",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 14.4
-              }
-            ]
-          },
-          "noValue": "No data",
-          "decimals": 2
-        },
-        "overrides": []
-      }
-    },
-    {
-      "id": 21,
-      "type": "timeseries",
-      "title": "Availability by service",
-      "description": "Share of requests that didn't fail, per service, over a rolling hour. The green dashed line is the 99.9% SLO and the red one the 99.5% SLA: dipping below the SLO is the early warning, long before the SLA is at risk.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 30
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "1 - (((sum by (service_name) (rate(http_server_request_duration_seconds_count{service_name=~\"$service\",http_response_status_code=~\"5..\"}[1h]))) or (sum by (service_name) (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[1h])) * 0)) / sum by (service_name) (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[1h])))",
-          "legendFormat": "{{service_name}}",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 10,
-            "spanNulls": true,
-            "showPoints": "never",
-            "thresholdsStyle": {
-              "mode": "dashed"
-            }
-          },
-          "noValue": "No data",
-          "max": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 0.995
-              },
-              {
-                "color": "green",
-                "value": 0.999
-              }
-            ]
-          },
-          "links": [
-            {
-              "title": "Show only ${__field.labels.service_name}",
-              "url": "/d/seaj-platform/seaj-platform?${__url_time_range}&var-service=${__field.labels.service_name}"
-            }
-          ]
-        },
-        "overrides": []
-      }
-    },
-    {
-      "id": 24,
       "type": "row",
       "title": "Investigate: logs and traces",
       "collapsed": true,
@@ -1372,11 +918,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 25
       },
       "panels": [
         {
-          "id": 22,
+          "id": 15,
           "type": "logs",
           "title": "Recent warnings and errors",
           "description": "Newest first, from all selected services. Expand a line and click View trace to follow that request through every service.",
@@ -1388,7 +934,7 @@
             "h": 12,
             "w": 14,
             "x": 0,
-            "y": 38
+            "y": 26
           },
           "targets": [
             {
@@ -1410,7 +956,7 @@
           }
         },
         {
-          "id": 23,
+          "id": 16,
           "type": "nodeGraph",
           "title": "How the services connect",
           "description": "Built from traces: each arrow is one service calling another, with its request rate and errors. Click a node for detail.",
@@ -1422,7 +968,7 @@
             "h": 12,
             "w": 10,
             "x": 14,
-            "y": 38
+            "y": 26
           },
           "targets": [
             {
