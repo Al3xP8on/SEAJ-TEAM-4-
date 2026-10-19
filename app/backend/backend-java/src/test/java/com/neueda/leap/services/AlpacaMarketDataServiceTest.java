@@ -113,7 +113,8 @@ class AlpacaMarketDataServiceTest {
         var unlisted = new AlpacaMarketDataClient.Snapshot("UST10", BigDecimal.ONE, now, null, null, null, null);
         assertEquals(List.of(
                 new AlpacaMarketDataService.TickerQuote("SPY", "S&P 500", new BigDecimal("512.40"), new BigDecimal("0.82")),
-                new AlpacaMarketDataService.TickerQuote("AAPL", "AAPL", BigDecimal.TEN, BigDecimal.TEN)),
+            new AlpacaMarketDataService.TickerQuote("AAPL", "AAPL", BigDecimal.TEN, BigDecimal.TEN),
+            new AlpacaMarketDataService.TickerQuote("UST10", "UST10", BigDecimal.ONE, null)),
                 AlpacaMarketDataService.tickerFrom(List.of(snapshot, unpriced, unlisted, spy)));
     }
     @Test void hasAnEmptyTickerWhenMarketDataIsNotConnected() {
