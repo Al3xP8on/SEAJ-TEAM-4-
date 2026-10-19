@@ -23,6 +23,7 @@ import { lucideArrowDownToLine, lucideArrowUpFromLine, lucidePlus } from '@ng-ic
 import { MarketClockComponent } from './market-clock/market-clock';
 import { WatchlistComponent } from './watchlist/watchlist';
 import { StockPosition, StockSummaryComponent } from './stock-summary/stock-summary';
+import { MarketTickerComponent } from '../landing/market-ticker/market-ticker';
 import {
   HlmDialog,
   HlmDialogContent,
@@ -56,6 +57,7 @@ const HELD_STATUSES: Position['status'][] = ['OPEN', 'PARTIALLY_CLOSED'];
     MarketClockComponent,
     WatchlistComponent,
     StockSummaryComponent,
+    MarketTickerComponent,
     TrendIconComponent,
     TickDirective,
     HlmButton,
