@@ -85,3 +85,20 @@ export function countdown(ms: number): string {
   const hours = Math.floor(minutes / 60);
   return minutes % 60 === 0 ? `${hours} h` : `${hours} h ${minutes % 60} min`;
 }
+
+const NEW_YORK_DAY = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  weekday: 'short',
+});
+
+/** "closes in 2 h 15 min", "opens in 45 min", or "opens Mon 09:30 ET" when over a day away */
+export function describeNextChange(now: Date, status: MarketStatus): string {
+  const next = nextChange(now, status);
+  const ms = next.getTime() - now.getTime();
+  if (status === 'open') {
+    return `closes in ${countdown(ms)}`;
+  }
+  return ms < 24 * 3_600_000
+    ? `opens in ${countdown(ms)}`
+    : `opens ${NEW_YORK_DAY.format(next)} 09:30 ET`;
+}

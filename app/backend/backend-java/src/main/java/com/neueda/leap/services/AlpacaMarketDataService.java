@@ -10,8 +10,12 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import static com.neueda.leap.services.AlpacaMarketDataClient.*;
 
@@ -35,6 +39,33 @@ public class AlpacaMarketDataService {
         this.clock = clock;
     }
     public boolean isConfigured() { return client.isConfigured(); }
+
+    /** Index funds first, then popular stocks; labels name the index the fund tracks */
+    private static final Map<String, String> TICKER = tickerSymbols();
+
+    private static Map<String, String> tickerSymbols() {
+        Map<String, String> symbols = new LinkedHashMap<>();
+        symbols.put("SPY", "S&P 500");
+        symbols.put("QQQ", "Nasdaq-100");
+        for (String stock : List.of("AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "JPM")) symbols.put(stock, stock);
+        return symbols;
+    }
+
+    /**
+     * Prices for the public landing page ticker, taken from the shared overview cache so it adds no
+     * Alpaca requests. Only symbols with a current price are included; nothing account-related.
+     */
+    public List<TickerQuote> ticker() { return tickerFrom(overview().snapshots()); }
+
+    static List<TickerQuote> tickerFrom(List<Snapshot> snapshots) {
+        Map<String, Snapshot> bySymbol = new LinkedHashMap<>();
+        snapshots.forEach(snapshot -> bySymbol.putIfAbsent(snapshot.symbol(), snapshot));
+        return TICKER.entrySet().stream().map(entry -> {
+            Snapshot snapshot = bySymbol.get(entry.getKey());
+            return snapshot == null || snapshot.price() == null ? null
+                    : new TickerQuote(entry.getKey(), entry.getValue(), snapshot.price(), snapshot.changePercent());
+        }).filter(Objects::nonNull).toList();
+    }
 
     public synchronized Overview overview() {
         if (!isConfigured()) return new Overview(false, client.feed(), null,
@@ -84,5 +115,6 @@ public class AlpacaMarketDataService {
     public record Overview(boolean configured, String feed, Instant updatedAt, String message,
             List<Snapshot> snapshots, List<String> unsupportedSymbols) { }
     public record Chart(String symbol, String feed, String timeframe, List<Bar> bars, String message) { }
+    public record TickerQuote(String symbol, String label, BigDecimal price, BigDecimal changePercent) { }
     private record CachedBars(Instant fetchedAt, List<Bar> bars) { }
 }

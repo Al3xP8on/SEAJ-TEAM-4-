@@ -327,10 +327,12 @@ describe('DashboardComponent', () => {
     expect(dashboard.bars).toHaveBeenCalledWith('AAPL', '1Day');
 
     (dialog.querySelector('button[hlmDialogClose]') as HTMLButtonElement).click();
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    await fixture.whenStable();
-    expect(document.querySelector('hlm-dialog-content app-stock-summary')).toBeNull();
-    expect(document.activeElement).toBe(open);
+    // The dialog closes asynchronously; wait for the outcome rather than a fixed delay
+    await vi.waitFor(async () => {
+      await fixture.whenStable();
+      expect(document.querySelector('hlm-dialog-content app-stock-summary')).toBeNull();
+      expect(document.activeElement).toBe(open);
+    });
     page.remove();
   });
 
