@@ -15,7 +15,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import static com.neueda.leap.services.AlpacaMarketDataClient.*;
 
@@ -40,14 +39,13 @@ public class AlpacaMarketDataService {
     }
     public boolean isConfigured() { return client.isConfigured(); }
 
-    /** Index funds first, then popular stocks; labels name the index the fund tracks */
-    private static final Map<String, String> TICKER = tickerSymbols();
+    /** Keep the two broad-market funds first and label them by the index they track. */
+    private static final Map<String, String> TICKER_LABELS = tickerLabels();
 
-    private static Map<String, String> tickerSymbols() {
+    private static Map<String, String> tickerLabels() {
         Map<String, String> symbols = new LinkedHashMap<>();
         symbols.put("SPY", "S&P 500");
         symbols.put("QQQ", "Nasdaq-100");
-        for (String stock : List.of("AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "JPM")) symbols.put(stock, stock);
         return symbols;
     }
 
@@ -58,13 +56,22 @@ public class AlpacaMarketDataService {
     public List<TickerQuote> ticker() { return tickerFrom(overview().snapshots()); }
 
     static List<TickerQuote> tickerFrom(List<Snapshot> snapshots) {
-        Map<String, Snapshot> bySymbol = new LinkedHashMap<>();
-        snapshots.forEach(snapshot -> bySymbol.putIfAbsent(snapshot.symbol(), snapshot));
-        return TICKER.entrySet().stream().map(entry -> {
-            Snapshot snapshot = bySymbol.get(entry.getKey());
-            return snapshot == null || snapshot.price() == null ? null
-                    : new TickerQuote(entry.getKey(), entry.getValue(), snapshot.price(), snapshot.changePercent());
-        }).filter(Objects::nonNull).toList();
+        return snapshots.stream()
+                .filter(snapshot -> snapshot.price() != null)
+                .sorted((left, right) -> Integer.compare(
+                        tickerPriority(left.symbol()), tickerPriority(right.symbol())))
+                .map(snapshot -> new TickerQuote(snapshot.symbol(),
+                        TICKER_LABELS.getOrDefault(snapshot.symbol(), snapshot.symbol()),
+                        snapshot.price(), snapshot.changePercent()))
+                .toList();
+    }
+
+    private static int tickerPriority(String symbol) {
+        return switch (symbol) {
+            case "SPY" -> 0;
+            case "QQQ" -> 1;
+            default -> 2;
+        };
     }
 
     public synchronized Overview overview() {
