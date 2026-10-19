@@ -29,4 +29,4 @@ INSERT INTO accounts (account_id, username, password_hash, roles, name, email, p
     ('ACC-0002', 'brian', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'USER', 'Brian Osei', 'brian.osei@email.com', '+44-1234-567891', 5000.00, 'ACTIVE'),
     ('ACC-0003', 'carla', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'USER', 'Carla Mendes', 'carla.mendes@email.com', '+44-1234-567892', 0.00, 'SUSPENDED'),
     ('ACC-0004', 'diane', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'ADMIN,USER', 'Diane Carter', 'diane.carter@email.com', '+44-1234-567893', 25000.00, 'ACTIVE'),
-    ('ACC-0005', 'ethan', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'USER', 'Ethan Brooks', 'ethan.brooks@email.com', '+44-1234-567894', 8000.00, 'ACTIVE');
+    ('ACC-0005', 'ethan', '$2b$10$FMPKHpY4pIHkK9WkBYOfLOAPIpakQc9eneb8juCGCAVS28gYFTocy', 'USER', 'Ethan Brooks', 'jalam12305@gmail.com', '+44-1234-567894', 80000.00, 'ACTIVE');

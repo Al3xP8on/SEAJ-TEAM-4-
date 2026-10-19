@@ -54,10 +54,12 @@ export interface MarketOverview {
   snapshots: MarketSnapshot[];
   unsupportedSymbols: string[];
 }
+export type MarketTimeframe = '1Min' | '6Hour' | '1Day';
+
 export interface MarketChart {
   symbol: string;
   feed: string;
-  timeframe: '1Min' | '1Day';
+  timeframe: MarketTimeframe;
   bars: MarketBar[];
   message: string;
 }

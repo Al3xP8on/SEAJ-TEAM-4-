@@ -15,6 +15,37 @@ info:
     defaults to 1800 seconds; refresh tokens rotate. Java resource servers
     validate JWTs locally.
 paths:
+  /auth/admin/register:
+    post:
+      operationId: registerAdmin
+      summary: Start an administrator-created registration
+      tags:
+        - auth
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminRegisterRequest'
+      responses:
+        '202':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChallengeResponse'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '503':
+          $ref: '#/components/responses/Error503'
   /auth/register:
     post:
       operationId: register
@@ -489,6 +520,17 @@ components:
           pattern: '^(?=.{7,20}$)\+?[0-9 ()-]+$'
           example: '+353-85-456-7891'
           description: Optional contact number stored on the account; must be unique. Not used for verification.
+    AdminRegisterRequest:
+      allOf:
+        - $ref: '#/components/schemas/RegisterRequest'
+        - type: object
+          required:
+            - role
+          properties:
+            role:
+              type: string
+              enum: [USER, ADMIN]
+              description: Role assigned after email verification. Only an administrator can submit this request.
     LoginRequest:
       type: object
       additionalProperties: false

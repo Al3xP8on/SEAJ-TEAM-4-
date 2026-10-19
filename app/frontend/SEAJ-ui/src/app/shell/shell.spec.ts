@@ -16,15 +16,22 @@ const testRoutes = routes.map((route) => ({
   ...route,
   ...(route.path === 'login' ? { component: TestLogin } : {}),
   ...(route.children
-    ? { children: route.children.map((child) => ({ ...child, component: TestPage })) }
+    ? {
+        children: route.children.map((child) => ({
+          ...child,
+          loadComponent: undefined,
+          component: TestPage,
+        })),
+      }
     : {}),
 }));
 
 describe('Shared navigation', () => {
-  const auth = { isAuthenticated: vi.fn(), logout: vi.fn() };
+  const auth = { isAuthenticated: vi.fn(), getToken: vi.fn(), logout: vi.fn() };
 
   beforeEach(async () => {
     auth.isAuthenticated.mockReset().mockReturnValue(true);
+    auth.getToken.mockReset().mockReturnValue(null);
     auth.logout.mockReset().mockImplementation(() => auth.isAuthenticated.mockReturnValue(false));
     await TestBed.configureTestingModule({
       imports: [App],
@@ -93,5 +100,27 @@ describe('Shared navigation', () => {
     const { router, page } = await render('/order');
     expect(router.url).toBe('/login');
     expect(page.querySelector('header')).toBeNull();
+  });
+
+  it('sends admins to their management dashboard and keeps a personal portfolio link', async () => {
+    auth.getToken.mockReturnValue(
+      `header.${btoa(JSON.stringify({ sub: '1', roles: ['ADMIN', 'USER'] }))}.signature`,
+    );
+    const { router, page } = await render('/dashboard');
+    expect(router.url).toBe('/admin');
+    expect(page.querySelector('nav [aria-current="page"]')?.textContent).toContain(
+      'Admin dashboard',
+    );
+    expect(page.querySelector('a[href="/portfolio"]')?.textContent).toContain('My portfolio');
+  });
+
+  it('hides administration from normal users and refuses direct admin navigation', async () => {
+    auth.getToken.mockReturnValue(
+      `header.${btoa(JSON.stringify({ sub: '2', roles: ['USER'] }))}.signature`,
+    );
+    const { router, page } = await render('/admin');
+    expect(router.url).toBe('/dashboard');
+    expect(page.querySelector('a[href="/admin"]')).toBeNull();
+    expect(page.querySelector('nav [aria-current="page"]')?.textContent).toContain('Portfolio');
   });
 });

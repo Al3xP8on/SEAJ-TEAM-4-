@@ -2,28 +2,48 @@ import { HttpClient } from '@angular/common/http';
 import { DOCUMENT } from '@angular/common';
 import { Component, DestroyRef, computed, inject } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { EMPTY, catchError, exhaustMap, fromEvent, startWith, switchMap, timer, tap, filter, map } from 'rxjs';
+import {
+  EMPTY,
+  catchError,
+  exhaustMap,
+  fromEvent,
+  startWith,
+  switchMap,
+  timer,
+  tap,
+  filter,
+  map,
+} from 'rxjs';
 import { accountIdFromToken } from '../dashboard/dashboard.service';
 import { Order, TradingAccount } from '../orders/orders.models';
 import { OrderNotificationsService } from '../notifications/order-notifications.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
+import { hasAdminRole } from '../auth/auth.guard';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArrowLeftRight, lucideLayoutDashboard, lucideLogOut, lucideSettings } from '@ng-icons/lucide';
+import {
+  lucideArrowLeftRight,
+  lucideLayoutDashboard,
+  lucideLogOut,
+  lucideSettings,
+} from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 
 /** Keeps navigation mounted while the authenticated page changes beneath it. */
 @Component({
   selector: 'app-shell',
   imports: [RouterLink, RouterLinkActive, RouterOutlet, NgIcon, HlmButton],
-  providers: [provideIcons({ lucideArrowLeftRight, lucideLayoutDashboard, lucideLogOut, lucideSettings })],
+  providers: [
+    provideIcons({ lucideArrowLeftRight, lucideLayoutDashboard, lucideLogOut, lucideSettings }),
+  ],
   templateUrl: './shell.html',
   styleUrl: './shell.css',
 })
 export class ShellComponent {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  readonly isAdmin = hasAdminRole(this.auth.getToken());
   private readonly path = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -43,28 +63,41 @@ export class ShellComponent {
     const http = this.http;
     const ownId = this.auth.getToken ? accountIdFromToken(this.auth.getToken()) : null;
     if (http && ownId) this.monitorOrders(http, ownId);
-    this.destroy.onDestroy(() => { this.orderNotifications.reset(); this.notifications.clear(); });
+    this.destroy.onDestroy(() => {
+      this.orderNotifications.reset();
+      this.notifications.clear();
+    });
   }
 
   private monitorOrders(http: HttpClient, ownId: string) {
-    fromEvent(this.document, 'visibilitychange').pipe(
-      startWith(null),
-      switchMap(() => this.document.hidden ? EMPTY : timer(0, 10000).pipe(
-        exhaustMap(() => this.fetchOrderUpdates(http, ownId)),
-      )),
-      takeUntilDestroyed(this.destroy),
-    ).subscribe();
+    fromEvent(this.document, 'visibilitychange')
+      .pipe(
+        startWith(null),
+        switchMap(() =>
+          this.document.hidden
+            ? EMPTY
+            : timer(0, 10000).pipe(exhaustMap(() => this.fetchOrderUpdates(http, ownId))),
+        ),
+        takeUntilDestroyed(this.destroy),
+      )
+      .subscribe();
   }
 
   private fetchOrderUpdates(http: HttpClient, ownId: string) {
     if (!this.auth.isAuthenticated()) return EMPTY;
     return http.get<TradingAccount[]>('/api/v1/accounts').pipe(
-      switchMap(accounts => {
-        const account = accounts.find(account => String(account.id) === ownId);
+      switchMap((accounts) => {
+        const account = accounts.find((account) => String(account.id) === ownId);
         if (!account) return EMPTY;
-        return http.get<Order[]>('/api/v1/orders').pipe(
-          tap(orders => this.orderNotifications.observe(orders.filter(order => order.accountId === account.accountId))),
-        );
+        return http
+          .get<Order[]>('/api/v1/orders')
+          .pipe(
+            tap((orders) =>
+              this.orderNotifications.observe(
+                orders.filter((order) => order.accountId === account.accountId),
+              ),
+            ),
+          );
       }),
       catchError(() => EMPTY),
     );
