@@ -125,7 +125,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
+        "w": 4,
         "x": 0,
         "y": 1
       },
@@ -183,8 +183,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
-        "x": 5,
+        "w": 4,
+        "x": 4,
         "y": 1
       },
       "targets": [
@@ -242,8 +242,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
-        "x": 10,
+        "w": 4,
+        "x": 8,
         "y": 1
       },
       "targets": [
@@ -300,8 +300,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
-        "x": 15,
+        "w": 4,
+        "x": 12,
         "y": 1
       },
       "targets": [
@@ -360,7 +360,7 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 20,
+        "x": 16,
         "y": 1
       },
       "targets": [
@@ -408,10 +408,68 @@
       }
     },
     {
+      "id": 18,
+      "type": "stat",
+      "title": "Blocked by compliance",
+      "description": "Orders the pre-trade checks stopped before they were placed, for example a restricted stock or too much of the portfolio in one company. They never become orders, so they aren't counted in Orders rejected.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "round(sum(increase(seaj_compliance_decisions_total{compliance_decision=\"BLOCKED\"}[$__range])) or vector(0))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      }
+    },
+    {
       "id": 7,
       "type": "timeseries",
       "title": "Orders over time",
-      "description": "Orders placed, and how they finished: filled, rejected or cancelled.",
+      "description": "Orders placed, and how they finished: filled, rejected or cancelled, plus orders blocked by pre-trade compliance before they were placed.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -442,6 +500,17 @@
           },
           "expr": "sum by (order_status) (increase(seaj_orders_completed_total[$__interval]))",
           "legendFormat": "{{order_status}}",
+          "range": true,
+          "instant": false
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(seaj_compliance_decisions_total{compliance_decision=\"BLOCKED\"}[$__interval]))",
+          "legendFormat": "Blocked by compliance",
           "range": true,
           "instant": false
         }

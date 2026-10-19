@@ -19,6 +19,13 @@ public record ComplianceReport(UUID checkGroupId, List<RuleResult> results) {
         return results.stream().filter(r -> r.outcome() == ComplianceOutcome.WARN).toList();
     }
 
+    /** What happened to the order: blocked, held for acknowledgement, or allowed through */
+    public ComplianceDecision decision(Collection<String> acknowledgedRuleIds) {
+        if (!blocks().isEmpty()) return ComplianceDecision.BLOCKED;
+        if (!unacknowledged(acknowledgedRuleIds).isEmpty()) return ComplianceDecision.NEEDS_ACKNOWLEDGEMENT;
+        return ComplianceDecision.ALLOWED;
+    }
+
     /** Warnings the customer has not confirmed they understand */
     public List<RuleResult> unacknowledged(Collection<String> acknowledgedRuleIds) {
         return warnings().stream().filter(r -> !acknowledgedRuleIds.contains(r.ruleId())).toList();

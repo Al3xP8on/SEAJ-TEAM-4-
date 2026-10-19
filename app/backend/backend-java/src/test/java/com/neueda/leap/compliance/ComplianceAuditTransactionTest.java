@@ -1,12 +1,15 @@
 package com.neueda.leap.compliance;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.neueda.leap.enums.AccountStatus;
 import com.neueda.leap.enums.OrderSide;
 import com.neueda.leap.models.Account;
 import com.neueda.leap.models.ComplianceCheck;
 import com.neueda.leap.models.Instrument;
+import com.neueda.leap.models.OrderOutboxEvent;
 import com.neueda.leap.repositories.ComplianceCheckRepository;
+import com.neueda.leap.repositories.OrderOutboxRepository;
 import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,23 +48,31 @@ class ComplianceAuditTransactionTest {
     @Configuration
     @EnableTransactionManagement
     @EnableJpaRepositories(basePackageClasses = ComplianceCheckRepository.class,
-            includeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = ComplianceCheckRepository.class))
+            includeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
+                    classes = {ComplianceCheckRepository.class, OrderOutboxRepository.class}))
     static class Config {
         @Bean LocalContainerEntityManagerFactoryBean entityManagerFactory() {
             var factory = new LocalContainerEntityManagerFactoryBean();
             factory.setDataSource(new DriverManagerDataSource("jdbc:h2:mem:compliance;DB_CLOSE_DELAY=-1", "sa", ""));
-            factory.setManagedTypes(PersistenceManagedTypes.of(ComplianceCheck.class.getName()));
+            factory.setManagedTypes(PersistenceManagedTypes.of(ComplianceCheck.class.getName(), OrderOutboxEvent.class.getName()));
             factory.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
             factory.setJpaPropertyMap(Map.of("hibernate.hbm2ddl.auto", "create-drop"));
             return factory;
         }
         @Bean PlatformTransactionManager transactionManager(EntityManagerFactory emf) { return new JpaTransactionManager(emf); }
         @Bean TransactionTemplate transactionTemplate(PlatformTransactionManager tm) { return new TransactionTemplate(tm); }
-        @Bean ComplianceAuditRecorder recorder(ComplianceCheckRepository checks) { return new ComplianceAuditRecorder(checks, new ObjectMapper()); }
+        @Bean ObjectMapper mapper() { return new ObjectMapper().registerModule(new JavaTimeModule()); }
+        @Bean ComplianceAuditPublisher publisher(OrderOutboxRepository outbox, ObjectMapper mapper) {
+            return new ComplianceAuditPublisher(outbox, mapper, "compliance-audit");
+        }
+        @Bean ComplianceAuditRecorder recorder(ComplianceCheckRepository checks, ObjectMapper mapper, ComplianceAuditPublisher publisher) {
+            return new ComplianceAuditRecorder(checks, mapper, publisher);
+        }
     }
 
     @Autowired ComplianceAuditRecorder recorder;
     @Autowired ComplianceCheckRepository checks;
+    @Autowired OrderOutboxRepository outbox;
     @Autowired TransactionTemplate tx;
 
     final OrderContext order = new OrderContext(
@@ -76,7 +87,10 @@ class ComplianceAuditTransactionTest {
             RuleResult.warn("SINGLE_STOCK_LIMIT", "Concentrated", Map.of())));
 
     @BeforeEach void reset() {
-        tx.executeWithoutResult(status -> checks.deleteAll());
+        tx.executeWithoutResult(status -> {
+            checks.deleteAll();
+            outbox.deleteAll();
+        });
     }
 
     @Test void blockedOrderKeepsItsAuditRowsAfterTheOrderTransactionRollsBack() {
@@ -97,6 +111,14 @@ class ComplianceAuditTransactionTest {
         assertNull(block.getOrderId());
         assertTrue(rows.get(2).isAcknowledged(), "the acknowledged warning is marked");
         assertFalse(rows.get(1).isAcknowledged(), "passes are never marked acknowledged");
+
+        // The Kafka audit event was queued in the same surviving transaction
+        List<OrderOutboxEvent> events = tx.execute(status -> outbox.findAll());
+        assertEquals(1, events.size());
+        assertEquals("compliance-audit", events.get(0).getTopic());
+        assertEquals("ACC-0002", events.get(0).getMessageKey());
+        assertTrue(events.get(0).getPayload().contains("\"eventType\":\"COMPLIANCE_CHECKED\""));
+        assertTrue(events.get(0).getPayload().contains("\"decision\":\"BLOCKED\""));
     }
 
     @Test void acceptedOrderIsLinkedToItsChecks() {

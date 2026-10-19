@@ -111,6 +111,32 @@ FROM compliance_checks WHERE account_id = 'ACC-0002' ORDER BY checked_at DESC, i
 3. Read only from the `OrderContext`. Rules must not query the database or change anything.
 4. Add tests next to `ComplianceRulesTest`.
 
+## Audit events and metrics
+
+Each submission also produces, in the same transaction as its audit rows (so blocked orders are included):
+
+- **A Kafka event** on the `compliance-audit` topic, keyed by account ID, sent by the existing outbox relay:
+
+  ```json
+  {
+    "eventId": "…", "eventType": "COMPLIANCE_CHECKED", "timestamp": "2026-10-19T12:00:00Z", "version": 1,
+    "payload": {
+      "checkGroupId": "…", "accountId": "ACC-0002", "symbol": "TSLA", "side": "BUY", "quantity": 1, "price": 200.00,
+      "decision": "BLOCKED",
+      "results": [ { "rule": "RESTRICTED_LIST", "outcome": "BLOCK", "reason": "You can't buy TSLA…", "acknowledged": false }, … ]
+    }
+  }
+  ```
+
+  `decision` is `BLOCKED`, `NEEDS_ACKNOWLEDGEMENT` or `ALLOWED`. View it in Kafka UI under the `compliance-audit` topic.
+
+- **Metrics** (`ComplianceTelemetry`), recorded once the audit commits:
+  - `seaj_compliance_decisions_total{compliance_decision}`: submissions by decision
+  - `seaj_compliance_rule_results_total{compliance_rule, compliance_outcome}`: each rule's results
+
+  The Grafana dashboard shows **Blocked by compliance** in its Trading row, and blocked submissions on
+  **Orders over time**.
+
 ## On the order ticket
 
 When the server stops an order, the ticket shows why, inside the ticket, after **Confirm**:
@@ -129,7 +155,6 @@ Code: `orders.ts` (`compliance`, `complianceStop()`), `orders.html`, `order-tick
 
 ## Still to come
 
-- **Kafka audit events** (`COMPLIANCE_CHECKED` through the outbox) and a metric for the Grafana dashboard
 - **Preview at the review step,** so warnings show before Confirm rather than after (a dry-run endpoint)
 - **The checks on the order timeline,** and an **admin compliance page** (the admin dashboard at `/admin` is
   the natural home)

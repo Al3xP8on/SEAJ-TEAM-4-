@@ -13,7 +13,8 @@ public enum EventType {
     ORDER_FILLED("Event for filled orders"),
     ORDER_REJECTED("Event for rejected orders"),
     ORDER_CANCELLED("Event for cancelled orders"),
-    PRICE_UPDATE("Event for price updates");
+    PRICE_UPDATE("Event for price updates"),
+    COMPLIANCE_CHECKED("Pre-trade compliance checked an order submission");
 
     private final String description;
 

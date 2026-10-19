@@ -79,7 +79,8 @@ every 30 s. The top bar has a **Service** filter.
 | Orders rejected | Orders the platform turned down, for example for insufficient cash |
 | Value traded | Quantity × price of filled orders |
 | Average time to fill | Placed → filled. Limit orders wait for their price, so they pull this up. |
-| Orders over time | Placed, filled, rejected and cancelled per interval |
+| Blocked by compliance | Orders the pre-trade checks stopped before they were placed (see [compliance.md](compliance.md)). They never become orders, so they aren't in Orders rejected. |
+| Orders over time | Placed, filled, rejected and cancelled per interval, plus orders blocked by compliance |
 
 These come from the business metrics in `OrderTelemetry.java` in app. Fills only happen in market hours, because
 the engine fills against an Alpaca quote under 60 seconds old.
