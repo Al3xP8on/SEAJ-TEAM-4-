@@ -17,6 +17,7 @@ import { pollWhileVisible } from '../dashboard/poll-while-visible';
 import { DailyPrice, Instrument, MarketOverview } from '../orders/orders.models';
 import { OrdersService } from '../orders/orders.service';
 import { MarketDataComponent } from '../orders/market-data';
+import { MarketTickerComponent } from '../landing/market-ticker/market-ticker';
 import { MarketClockComponent } from '../dashboard/market-clock/market-clock';
 
 type Ranking = 'gainers' | 'losers' | 'active' | 'performance' | 'trending';
@@ -30,6 +31,7 @@ type Ranking = 'gainers' | 'losers' | 'active' | 'performance' | 'trending';
     MarketDataComponent,
     NgTemplateOutlet,
     MarketClockComponent,
+    MarketTickerComponent,
   ],
   templateUrl: './market.html',
   styleUrl: './market.css',
