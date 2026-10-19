@@ -102,6 +102,24 @@ class AlpacaMarketDataServiceTest {
         service.bars("AAPL", "1Day");
         verify(client, times(2)).bars(eq("AAPL"), eq("1Day"), any());
     }
+    @Test void buildsTheTickerFromTheCachedOverviewWithoutExtraRequests() {
+        service.overview();
+        assertEquals(List.of(new AlpacaMarketDataService.TickerQuote("AAPL", "AAPL", BigDecimal.TEN, BigDecimal.TEN)), service.ticker());
+        verify(client, times(1)).snapshots(List.of("AAPL"));
+    }
+    @Test void ordersTheTickerIndexFirstAndSkipsSymbolsWithoutAPrice() {
+        var spy = new AlpacaMarketDataClient.Snapshot("SPY", new BigDecimal("512.40"), now, null, new BigDecimal("0.82"), null, null);
+        var unpriced = new AlpacaMarketDataClient.Snapshot("MSFT", null, now, null, null, null, null);
+        var unlisted = new AlpacaMarketDataClient.Snapshot("UST10", BigDecimal.ONE, now, null, null, null, null);
+        assertEquals(List.of(
+                new AlpacaMarketDataService.TickerQuote("SPY", "S&P 500", new BigDecimal("512.40"), new BigDecimal("0.82")),
+                new AlpacaMarketDataService.TickerQuote("AAPL", "AAPL", BigDecimal.TEN, BigDecimal.TEN)),
+                AlpacaMarketDataService.tickerFrom(List.of(snapshot, unpriced, unlisted, spy)));
+    }
+    @Test void hasAnEmptyTickerWhenMarketDataIsNotConnected() {
+        when(client.isConfigured()).thenReturn(false);
+        assertEquals(List.of(), service.ticker());
+    }
     @Test void returnsAnUnavailableResponseForFailedCharts() {
         when(client.bars(any(), any(), any())).thenThrow(new AlpacaMarketDataClient.DataUnavailable("Alpaca offline"));
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, assertThrows(ResponseStatusException.class, () -> service.bars("AAPL", "1Min")).getStatusCode());

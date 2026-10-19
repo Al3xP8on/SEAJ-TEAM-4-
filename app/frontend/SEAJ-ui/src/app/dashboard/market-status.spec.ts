@@ -1,4 +1,4 @@
-import { countdown, marketStatus, nextChange } from './market-status';
+import { countdown, describeNextChange, marketStatus, nextChange } from './market-status';
 
 // October 2026: the 15th is a Thursday and the 17th a Saturday; New York is UTC-4
 describe('marketStatus', () => {
@@ -63,5 +63,18 @@ describe('nextChange and countdown', () => {
   it('opens at 09:30 New York time across the daylight-saving change', () => {
     // Clocks go back on Sunday 1 November 2026: New York moves from UTC-4 to UTC-5
     expect(after('2026-10-30T21:00:00Z', 'closed').at).toBe('2026-11-02T14:30:00.000Z');
+  });
+});
+
+describe('describeNextChange', () => {
+  it('words the countdown for open, soon-to-open and far-off opens', () => {
+    expect(describeNextChange(new Date('2026-10-15T14:45:00Z'), 'open')).toBe(
+      'closes in 5 h 15 min',
+    );
+    expect(describeNextChange(new Date('2026-10-15T13:00:00Z'), 'closed')).toBe('opens in 30 min');
+    // Friday 17:00 New York: Monday is more than a day away
+    expect(describeNextChange(new Date('2026-10-16T21:00:00Z'), 'closed')).toBe(
+      'opens Mon 09:30 ET',
+    );
   });
 });
