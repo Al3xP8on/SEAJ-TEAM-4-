@@ -21,5 +21,12 @@ COPY tables/index.sql /docker-entrypoint-initdb.d/11-indexes.sql
 COPY migrations/02-order-event-outbox.sql /docker-entrypoint-initdb.d/12-order-event-outbox.sql
 COPY migrations/03-account-status-history.sql /docker-entrypoint-initdb.d/13-account-status-history.sql
 
+COPY migrations/04-market-catalogue.sql /docker-entrypoint-initdb.d/14-market-catalogue.sql
+
+COPY migrations/05-bond-cash-market-catalogue.sql /docker-entrypoint-initdb.d/15-bond-cash-market-catalogue.sql
+
+COPY migrations/06-actual-cash-catalogue.sql /docker-entrypoint-initdb.d/16-actual-cash-catalogue.sql
+
+COPY migrations/07-expand-commodities.sql /docker-entrypoint-initdb.d/17-expand-commodities.sql
 
 EXPOSE 5432

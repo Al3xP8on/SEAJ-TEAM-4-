@@ -6,7 +6,8 @@ CREATE TABLE instruments (
     name            VARCHAR(255) NOT NULL,
     asset_class     VARCHAR(50) NOT NULL,
     currency        CHAR(3) NOT NULL,
-    tradable        BOOLEAN NOT NULL DEFAULT TRUE
+    tradable        BOOLEAN NOT NULL DEFAULT TRUE,
+    catalog_visible BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 -- Indexes
@@ -14,7 +15,7 @@ CREATE INDEX idx_instruments_tradable ON instruments(tradable) WHERE tradable = 
 CREATE INDEX idx_instruments_asset_class ON instruments(asset_class);
 CREATE INDEX idx_instruments_currency ON instruments(currency);
 
--- Seed data - 120 instruments across multiple asset classes
+-- Seed data - 132 instruments across multiple asset classes
 INSERT INTO instruments (symbol, name, asset_class, currency, tradable) VALUES
     -- Original instruments
     ('GLBEQ1', 'Global Equity Index Fund', 'Equity', 'GBP', TRUE),
@@ -152,4 +153,18 @@ INSERT INTO instruments (symbol, name, asset_class, currency, tradable) VALUES
     ('HYG', 'iShares iBoxx High Yield Corporate Bond ETF', 'ETF', 'USD', TRUE),
     ('TIP', 'iShares TIPS Bond ETF', 'ETF', 'USD', TRUE),
     ('VNQ', 'Vanguard Real Estate ETF', 'ETF', 'USD', TRUE),
-    ('XLK', 'Technology Select Sector SPDR Fund', 'ETF', 'USD', TRUE);
+    ('XLK', 'Technology Select Sector SPDR Fund', 'ETF', 'USD', TRUE),
+
+    -- Additional commodity funds and trusts (Alpaca market-data connected)
+    ('SLV', 'iShares Silver Trust', 'Commodity', 'USD', TRUE),
+    ('IAU', 'iShares Gold Trust', 'Commodity', 'USD', TRUE),
+    ('PPLT', 'abrdn Physical Platinum Shares ETF', 'Commodity', 'USD', TRUE),
+    ('PALL', 'abrdn Physical Palladium Shares ETF', 'Commodity', 'USD', TRUE),
+    ('CPER', 'United States Copper Index Fund', 'Commodity', 'USD', TRUE),
+    ('UNG', 'United States Natural Gas Fund, LP Unit', 'Commodity', 'USD', TRUE),
+    ('BNO', 'United States Brent Oil Fund, LP', 'Commodity', 'USD', TRUE),
+    ('DBA', 'Invesco DB Agriculture Fund', 'Commodity', 'USD', TRUE),
+    ('PDBC', 'Invesco Optimum Yield Diversified Commodity Strategy No K-1 ETF', 'Commodity', 'USD', TRUE),
+    ('COMT', 'iShares GSCI Commodity Dynamic Roll Strategy ETF', 'Commodity', 'USD', TRUE),
+    ('GSG', 'iShares S&P GSCI Commodity-Indexed Trust', 'Commodity', 'USD', TRUE),
+    ('USCI', 'United States Commodity Index Fund', 'Commodity', 'USD', TRUE);
