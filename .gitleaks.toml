@@ -9,7 +9,7 @@ useDefault = true
 [[rules]]
 id = "hardcoded-config-password"
 description = "Hardcoded password or secret in an application config file"
-regex = '''(?i)(?:password|passwd|pwd|secret)[a-z0-9._-]*[ \t]*[=:][ \t]*["']?([^\s"'$][^\s"']{3,})'''
+regex = '''(?i)(?:password|passwd|pwd|secret)[a-z0-9._-]*[ \t]*(?:=[ \t]*|:[ \t]+|:["'])["']?([^\s"'$][^\s"']{3,})'''
 secretGroup = 1
 path = '''(?i)\.(properties|ya?ml|conf|ini)$'''
 keywords = ["password", "passwd", "pwd", "secret"]
