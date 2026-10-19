@@ -1,0 +1,40 @@
+@if (quotes().length > 0) {
+  <section class="ticker" aria-labelledby="ticker-title" [class.paused]="paused()">
+    <h2 id="ticker-title" class="sr-only">Market prices</h2>
+    <div class="viewport">
+      <div class="track" [style.--duration]="quotes().length * 8 + 's'">
+        <!-- Listed twice so the scroll loops without a gap; screen readers get the first copy only -->
+        @for (copy of [0, 1]; track copy) {
+          <ul [attr.aria-hidden]="copy === 1 ? 'true' : null" [class.copy]="copy === 1">
+            @for (quote of quotes(); track quote.symbol) {
+              <li>
+                <span class="label">{{ quote.label }}</span>
+                {{ ' ' }}<span class="price">{{ quote.price | currency: 'USD' }}</span>
+                @if (quote.changePercent !== null) {
+                  {{ ' '
+                  }}<span class="change" [class.loss]="quote.changePercent < 0">
+                    <app-trend-icon [value]="quote.changePercent" />{{
+                      quote.changePercent > 0 ? '+' : ''
+                    }}{{ quote.changePercent.toFixed(2) }}%
+                  </span>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+    <button
+      type="button"
+      hlmBtn
+      variant="ghost"
+      size="icon-sm"
+      class="toggle"
+      [attr.aria-pressed]="paused()"
+      (click)="paused.set(!paused())"
+    >
+      <ng-icon [name]="paused() ? 'lucidePlay' : 'lucidePause'" aria-hidden="true" />
+      <span class="sr-only">Pause scrolling prices</span>
+    </button>
+  </section>
+}

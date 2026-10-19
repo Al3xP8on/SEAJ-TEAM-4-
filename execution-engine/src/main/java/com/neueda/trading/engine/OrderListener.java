@@ -2,70 +2,158 @@ package com.neueda.trading.engine;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.neueda.trading.enums.EventType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
-
-import java.util.concurrent.ExecutionException;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
-/**
- * Step 2 of the event flow: reads each order from the {@code orders} topic,
- * works it on the {@link SimulatedMarket}, and writes the fill to the
- * {@code executions} topic keyed by account.
- *
- * <p>The fill is sent and acknowledged by Kafka before this method returns,
- * so the order's offset is only committed once its fill is safely on the
- * executions topic: at-least-once. If the engine dies mid-order it works the
- * order again on restart, and the trade API ignores the duplicate fill.
- */
+/** Single local engine: Kafka commands and quotes are serialised against the resting book. */
 @Component
 public class OrderListener {
-
-    private static final Logger log = LoggerFactory.getLogger(OrderListener.class);
-
-    private final SimulatedMarket market;
-    private final Pauser pauser;
-    private final KafkaTemplate<String, String> kafkaTemplate;
-    private final ObjectMapper objectMapper;
+    private final LiveMarket market;
+    private final KafkaTemplate<String, String> kafka;
+    private final ObjectMapper mapper;
     private final String executionsTopic;
-    private final TradesEventPublisher tradesEventPublisher;
+    private final String lifecycleTopic;
+    private final Map<UUID, OrderEvent> pending = new HashMap<>();
+    private final Map<String, Set<UUID>> bySymbol = new HashMap<>();
+    private final Map<UUID, String> waitingReasons = new HashMap<>();
+    // Bounded replay cache. Settlement also enforces durable order-level idempotency.
+    private final Map<UUID, ExecutionEvent> completed = new LinkedHashMap<>() {
+        @Override protected boolean removeEldestEntry(Map.Entry<UUID, ExecutionEvent> entry) {
+            return size() > 10_000;
+        }
+    };
 
-    public OrderListener(SimulatedMarket market, Pauser pauser, KafkaTemplate<String, String> kafkaTemplate,
-                         ObjectMapper objectMapper, @Value("${engine.topics.executions}") String executionsTopic,
-                         TradesEventPublisher tradesEventPublisher) {
+    public OrderListener(LiveMarket market, KafkaTemplate<String, String> kafka, ObjectMapper mapper,
+            @Value("${engine.topics.executions}") String executionsTopic,
+            @Value("${engine.topics.order-lifecycle:order-lifecycle}") String lifecycleTopic) {
         this.market = market;
-        this.pauser = pauser;
-        this.kafkaTemplate = kafkaTemplate;
-        this.objectMapper = objectMapper;
+        this.kafka = kafka;
+        this.mapper = mapper;
         this.executionsTopic = executionsTopic;
-        this.tradesEventPublisher = tradesEventPublisher;
+        this.lifecycleTopic = lifecycleTopic;
     }
 
     @KafkaListener(topics = "${engine.topics.orders}", groupId = "${spring.kafka.consumer.group-id}",
             concurrency = "${engine.topics.partitions}")
-    public void onOrder(String message) throws InterruptedException, ExecutionException, TimeoutException,
-            JsonProcessingException {
-        OrderEvent order;
-        try {
-            order = objectMapper.readValue(message, OrderEvent.class);
-        } catch (JsonProcessingException e) {
-            log.error("Skipping unreadable order message: {}", message, e);
+    public synchronized void onOrder(String message) throws JsonProcessingException {
+        OrderEvent order = mapper.readValue(message, OrderEvent.class);
+        if (!order.action().equals("SUBMIT")) {
+            remove(order);
+            completed.put(order.orderId(), null);
             return;
         }
+        if (completed.containsKey(order.orderId())) {
+            var fill = completed.get(order.orderId());
+            if (fill != null) report(order, fill);
+            return;
+        }
+        if (!pending.containsKey(order.orderId())) {
+            emit(order, EventType.ORDER_RECEIVED, null, Map.of(), UUID.randomUUID());
+            pending.put(order.orderId(), order);
+            bySymbol.computeIfAbsent(order.symbol(), ignored -> new LinkedHashSet<>()).add(order.orderId());
+        }
+        work(order);
+    }
 
-        log.info("Working order {}: {} {} {} limit {}", order.orderId(), order.side(), order.quantity(),
-                order.symbol(), order.price());
-        pauser.pause(market.nextDelay());
-        ExecutionEvent fill = market.execute(order);
+    @KafkaListener(topics = "${engine.topics.market-data:market-data}",
+            groupId = "${spring.kafka.consumer.group-id}-quotes")
+    public synchronized void onMarketData(String message) throws JsonProcessingException {
+        var event = mapper.readTree(message);
+        if (!"PRICE_UPDATE".equals(event.path("eventType").asText())) return;
+        var data = event.path("payload");
+        String source = data.path("source").asText();
+        if (!Set.of("ALPACA_IEX", "ALPACA_SIP").contains(source)) return;
+        String symbol = data.path("symbol").asText();
+        market.update(new LiveMarket.Quote(UUID.fromString(event.path("eventId").asText()), source, symbol,
+                decimal(data.path("bidPrice")), decimal(data.path("askPrice")),
+                Instant.parse(data.path("priceTimeStamp").asText())));
+        for (UUID id : new ArrayList<>(bySymbol.getOrDefault(symbol, Set.of()))) {
+            OrderEvent order = pending.get(id);
+            if (order != null) work(order);
+        }
+    }
 
-        kafkaTemplate.send(executionsTopic, fill.accountId(), objectMapper.writeValueAsString(fill))
-                .get(10, TimeUnit.SECONDS);
-        tradesEventPublisher.publishExecutionEvent(fill);
-        log.info("Filled order {} at {} on {}", fill.orderId(), fill.price(), fill.venue());
+    private void work(OrderEvent order) {
+        ExecutionEvent cached = completed.get(order.orderId());
+        if (cached != null) { report(order, cached); return; }
+        LiveMarket.Decision decision = market.evaluate(order);
+        if (decision.fill() == null) {
+            if (!Objects.equals(waitingReasons.get(order.orderId()), decision.reason())) {
+                Map<String, Object> details = new LinkedHashMap<>();
+                if (decision.quote() != null) {
+                    details.put("quoteTimestamp", decision.quote().timestamp());
+                    details.put("bidPrice", decision.quote().bid());
+                    details.put("askPrice", decision.quote().ask());
+                }
+                emit(order, EventType.ORDER_WAITING, decision.reason(), details, UUID.randomUUID());
+                waitingReasons.put(order.orderId(), decision.reason());
+            }
+            return;
+        }
+        completed.put(order.orderId(), decision.fill());
+        report(order, decision.fill());
+    }
+
+    private void report(OrderEvent order, ExecutionEvent fill) {
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("executionId", fill.executionId());
+        details.put("executionPrice", fill.price());
+        details.put("quoteEventId", fill.quoteEventId());
+        details.put("quoteTimestamp", fill.quoteTimestamp());
+        details.put("bidPrice", fill.bidPrice());
+        details.put("askPrice", fill.askPrice());
+        details.put("venue", fill.venue());
+        details.put("executedOn", fill.executedOn());
+        details.put("executionMode", "LOCAL_MATCHING");
+        // Publish the match before the report, so ORDER_FILLED can never overtake it in the audit topic.
+        emit(order, EventType.TRADE_EXECUTED, null, details, fill.executionId());
+        send(executionsTopic, fill.accountId(), fill);
+        remove(order);
+    }
+
+    private void remove(OrderEvent order) {
+        pending.remove(order.orderId());
+        waitingReasons.remove(order.orderId());
+        Set<UUID> ids = bySymbol.get(order.symbol());
+        if (ids != null) {
+            ids.remove(order.orderId());
+            if (ids.isEmpty()) bySymbol.remove(order.symbol());
+        }
+    }
+
+    private void emit(OrderEvent order, EventType type, String reason, Map<String, Object> details, UUID id) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("orderId", order.orderId());
+        payload.put("accountId", order.accountId());
+        payload.put("symbol", order.symbol());
+        payload.put("side", order.side());
+        payload.put("quantity", order.quantity());
+        payload.put("orderType", order.orderType());
+        payload.put("price", order.price());
+        payload.put("reason", reason);
+        payload.putAll(details);
+        Instant timestamp = details.get("executedOn") instanceof Instant time ? time : Instant.now();
+        send(lifecycleTopic, order.orderId().toString(), new EventEnvelope(id, type, timestamp, 1, payload));
+    }
+
+    private void send(String topic, String key, Object value) {
+        try {
+            kafka.send(topic, key, mapper.writeValueAsString(value)).get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Kafka delivery interrupted", error);
+        } catch (Exception error) {
+            throw new IllegalStateException("Kafka delivery failed; order will retry", error);
+        }
+    }
+    private BigDecimal decimal(com.fasterxml.jackson.databind.JsonNode value) {
+        return value.isNumber() || value.isTextual() ? new BigDecimal(value.asText()) : null;
     }
 }

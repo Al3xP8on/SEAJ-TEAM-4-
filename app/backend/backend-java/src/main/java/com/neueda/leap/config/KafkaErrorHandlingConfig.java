@@ -36,6 +36,7 @@ public class KafkaErrorHandlingConfig {
             @Value("${trading.kafka.topics.market-data}") String marketData) {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplateString,
                 (record, ex) -> new TopicPartition(record.topic() + DLT_SUFFIX, KEY_BASED_PARTITION));
+        recoverer.setFailIfSendResultIsError(true);
 
         ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(MAX_RETRIES);
         backOff.setInitialInterval(INITIAL_BACKOFF.toMillis());

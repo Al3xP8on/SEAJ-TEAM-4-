@@ -17,9 +17,9 @@
 
     <name>Execution Engine</name>
     <description>
-        Simulated execution engine for the Enterprise Trading Platform: reads
-        accepted orders from the orders topic, works them against a simulated
-        market, and reports fills on the executions topic.
+        Live-price execution engine for the Enterprise Trading Platform: matches
+        accepted orders against Alpaca quotes delivered through Kafka and reports
+        fills and lifecycle events through Kafka.
     </description>
 
     <properties>

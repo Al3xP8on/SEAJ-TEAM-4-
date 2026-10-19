@@ -227,6 +227,30 @@ describe('OrdersComponent', () => {
       expect.objectContaining({ price: 98, orderType: 'LIMIT' }),
     );
   });
+  it('requires a fresh review and submits a sell after changing direction with the ticket buttons', async () => {
+    service.place.mockReturnValue(of({ ...order, side: 'SELL', quantity: 1, orderType: 'MARKET' }));
+    const { fixture, component, page } = await render();
+    const submit = page.querySelector<HTMLButtonElement>('.ticket button[type="submit"]')!;
+    submit.click();
+    await fixture.whenStable();
+    expect(submit.textContent).toContain('Confirm buy order');
+
+    page.querySelector<HTMLButtonElement>('.sell-option')!.click();
+    await fixture.whenStable();
+    expect(component.review).toBe(false);
+    expect(submit.textContent).toContain('Review sell order');
+    expect(page.querySelector('.selected-quote')?.textContent).toContain('Bid');
+    expect(service.place).not.toHaveBeenCalled();
+
+    submit.click();
+    await fixture.whenStable();
+    submit.click();
+    await fixture.whenStable();
+    expect(service.place).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ side: 'SELL', quantity: 1, orderType: 'MARKET' }),
+    );
+    expect(page.querySelector('.notice')?.textContent).toContain('Sell order submitted');
+  });
   it('reserves cash for pending buy orders', async () => {
     service.orders.mockReturnValue(of([{ ...order, quantity: 9 }]));
     const { component, form } = await render();
@@ -364,21 +388,28 @@ describe('OrdersComponent', () => {
     const { fixture, component, page } = await render();
     const input = page.querySelector<HTMLInputElement>('#instrument')!;
     expect(page.querySelector('.instrument-detail')).toBeNull();
+    expect(page.querySelector('.portfolio .market-overview')).not.toBeNull();
+    expect(page.querySelector('.ticket-column .market-overview')).toBeNull();
     input.focus();
     input.value = ' MICRO ';
     input.dispatchEvent(new Event('input'));
     await fixture.whenStable();
     expect(page.querySelectorAll('[role="option"]')).toHaveLength(1);
     expect(page.querySelector('[role="option"]')?.textContent).toContain('MSFT');
+    expect(page.querySelector('.portfolio .market-overview')).not.toBeNull();
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await fixture.whenStable();
     expect(component.symbol).toBe('MSFT');
     expect(service.quote).toHaveBeenLastCalledWith('MSFT');
     expect(input.getAttribute('aria-expanded')).toBe('false');
     expect(page.querySelector('.instrument-detail')?.textContent).toContain('MSFT');
-    const cards = Array.from(page.querySelector('app-market-data')!.children);
-    expect(cards[0].classList.contains('instrument-detail')).toBe(true);
-    expect(cards[1].classList.contains('market-overview')).toBe(true);
+    const ticketColumn = page.querySelector('.ticket-column')!;
+    expect(ticketColumn.children[0].classList.contains('ticket')).toBe(true);
+    expect(ticketColumn.children[1].classList.contains('market-overview')).toBe(true);
+    expect(page.querySelector('.portfolio .instrument-detail')?.textContent).toContain('MSFT');
+    expect(page.querySelector('.portfolio .market-overview')).toBeNull();
+    expect(page.querySelectorAll('.market-overview')).toHaveLength(1);
+    expect(page.querySelectorAll('app-market-data')).toHaveLength(1);
     input.focus();
     component.openInstrumentPicker();
     input.value = 'aapl';

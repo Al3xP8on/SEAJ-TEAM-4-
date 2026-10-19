@@ -57,13 +57,20 @@ describe('Shared navigation', () => {
   it('marks overview and both order routes correctly in the navigation', async () => {
     const { fixture, router, page } = await render('/dashboard');
     const active = () => page.querySelector('nav [aria-current="page"]')?.textContent?.trim();
-    expect(active()).toBe('Overview');
+    expect(active()).toBe('Portfolio');
     await router.navigateByUrl('/order');
     await fixture.whenStable();
     expect(active()).toBe('Orders');
     await router.navigateByUrl('/blotter');
     await fixture.whenStable();
     expect(active()).toBe('Orders');
+  });
+
+  it('takes the logo back to the portfolio while signed in', async () => {
+    const { page } = await render('/order');
+    const brand = page.querySelector('header a.brand')!;
+    expect(brand.getAttribute('href')).toBe('/dashboard');
+    expect(brand.getAttribute('aria-label')).toBe('SEAJ Capital, portfolio');
   });
 
   it('logs out through the shared header and returns to login', async () => {

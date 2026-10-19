@@ -18,6 +18,13 @@ public record OrderEvent(
         OrderSide side,
         int quantity,
         BigDecimal price,
-        Instant createdOn
+        Instant createdOn,
+        com.neueda.leap.enums.OrderType orderType,
+        String action
 ) {
+    public OrderEvent(UUID orderId, String accountId, String symbol, OrderSide side,
+            int quantity, BigDecimal price, Instant createdOn) {
+        this(orderId, accountId, symbol, side, quantity, price, createdOn,
+                com.neueda.leap.enums.OrderType.LIMIT, "SUBMIT");
+    }
 }

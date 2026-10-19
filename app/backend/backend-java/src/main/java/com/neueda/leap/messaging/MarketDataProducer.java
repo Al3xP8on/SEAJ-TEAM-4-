@@ -36,9 +36,8 @@ public class MarketDataProducer {
             logger.debug("Published market data event {} for symbol {} to topic {}", 
                 eventEnvelope.eventId(), key, MARKET_DATA_TOPIC);
                 
-        } catch (Exception e) {
-            logger.error("Error publishing market data event to Kafka", e);
-            throw new RuntimeException("Failed to publish market data event", e);
+        } catch (RuntimeException e) {
+            throw new MarketDataException("Failed to publish market data event", e);
         }
     }
     

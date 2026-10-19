@@ -1,67 +1,98 @@
 <header>
-  <div class="brand-lockup">
-    <img class="site-logo" src="seaj-capital-logo.png" alt="" />
+  <div class="header-inner">
+    <a class="brand" routerLink="/" aria-label="SEAJ Capital, home">
+      <img class="site-logo logo-light" src="seaj-capital-logo.png" alt="" />
+      <img class="site-logo logo-dark" src="seaj-capital-logo-white.png" alt="" />
+      <span class="brand-name" aria-hidden="true">SEAJ Capital</span>
+    </a>
+    <nav class="sections" aria-label="On this page">
+      <a href="#features" (click)="goToSection($event, 'features')">Features</a>
+      <a href="#how-it-works" (click)="goToSection($event, 'how-it-works')">How it works</a>
+    </nav>
+    <nav class="account" aria-label="Account">
+      @if (signedIn) {
+        <a hlmBtn class="hover:bg-(--primary-hover)" routerLink="/dashboard">
+          Go to portfolio<ng-icon name="lucideArrowRight" aria-hidden="true" />
+        </a>
+      } @else {
+        <a hlmBtn variant="ghost" routerLink="/login">Log in</a>
+        <a
+          hlmBtn
+          class="hover:bg-(--primary-hover)"
+          routerLink="/login"
+          [queryParams]="{ mode: 'register' }"
+          >Sign up</a
+        >
+      }
+    </nav>
   </div>
-  <span class="brand-title">SEAJ Capital</span>
-  <nav>
-    <button class="nav-btn" (click)="goToLogin()">Login / Register</button>
-  </nav>
 </header>
 
+<app-market-ticker />
+
 <main>
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="hero-content">
-      <h2>Enterprise Trading, Simplified</h2>
-      <p>Real-time order execution, portfolio management, and market insights — all in one platform.</p>
-      <button class="cta-btn" (click)="goToLogin()">Get Started</button>
-    </div>
-    <div class="hero-image-placeholder">
-      <img
-        src="market-board.svg"
-        alt="Live market board with financial quotes and green and red trend lines"
-      />
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <h1 id="hero-title">Trade stocks and ETFs in one place</h1>
+        <ul class="benefits">
+          @for (benefit of benefits; track benefit) {
+            <li><ng-icon name="lucideCircleCheck" aria-hidden="true" />{{ benefit }}</li>
+          }
+        </ul>
+        <div class="hero-actions">
+          @if (signedIn) {
+            <a hlmBtn size="lg" class="cta" routerLink="/dashboard">
+              Go to portfolio<ng-icon name="lucideArrowRight" aria-hidden="true" />
+            </a>
+          } @else {
+            <a hlmBtn size="lg" class="cta" routerLink="/login" [queryParams]="{ mode: 'register' }">
+              Create an account<ng-icon name="lucideArrowRight" aria-hidden="true" />
+            </a>
+            <a hlmBtn size="lg" variant="outline" class="ghost" routerLink="/login">Log in</a>
+          }
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <app-product-preview />
+        <p class="chip market-chip" [attr.data-status]="market().status">
+          <span class="dot" aria-hidden="true"></span>NYSE {{ market().status }} ·
+          {{ market().change }} <span class="hours">(regular hours)</span>
+        </p>
+      </div>
     </div>
   </section>
 
-  <!-- Features Section -->
-  <section class="features">
-    <div class="feature-card">
-      <div class="feature-image-placeholder">
-        <img
-          src="https://images.unsplash.com/photo-1559526324-593bc073d938?auto=format&fit=crop&w=800&q=85"
-          alt="Trader reviewing market data"
-        />
-      </div>
-      <h3>Fast Order Execution</h3>
-      <p>Submit market and limit orders with real-time status updates powered by Apache Kafka.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-image-placeholder">
-        <img
-          src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=85"
-          alt="Portfolio analytics dashboard"
-        />
-      </div>
-      <h3>Portfolio Tracking</h3>
-      <p>Monitor your positions and account performance across all instruments in one view.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-image-placeholder">
-        <img
-          src="https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=800&q=85"
-          alt="Financial market chart and analysis"
-        />
-      </div>
-      <h3>Market Insights</h3>
-      <p>Access risk vs return analysis, drawdowns, and diversification metrics from our data pipeline.</p>
+  <section id="features" class="features" aria-labelledby="features-title">
+    <h2 id="features-title" tabindex="-1">What you get</h2>
+    <div class="feature-grid">
+      @for (feature of features; track feature.id) {
+        <article hlmCard class="feature-card" [attr.aria-labelledby]="feature.id">
+          <div hlmCardContent>
+            <div class="feature-icon">
+              <ng-icon [name]="feature.icon" aria-hidden="true" />
+            </div>
+            <h3 [id]="feature.id">{{ feature.title }}</h3>
+            <p>{{ feature.text }}</p>
+          </div>
+        </article>
+      }
     </div>
   </section>
 
-  <!-- CTA Banner -->
-  <section class="cta-banner">
-    <h2>Ready to start trading?</h2>
-    <button class="cta-btn" (click)="goToLogin()">Create an Account</button>
+  <section id="how-it-works" class="steps" aria-labelledby="steps-title">
+    <h2 id="steps-title" tabindex="-1">How it works</h2>
+    <ol>
+      @for (step of steps; track step.title; let i = $index) {
+        <li>
+          <span class="step-icon"><ng-icon [name]="step.icon" aria-hidden="true" /></span>
+          <span class="step-number" aria-hidden="true">{{ i + 1 }}</span>
+          <h3>{{ step.title }}</h3>
+          <p>{{ step.text }}</p>
+        </li>
+      }
+    </ol>
   </section>
 </main>
 

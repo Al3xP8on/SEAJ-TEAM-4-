@@ -36,7 +36,8 @@ public class LatestPriceStore {
         }
         
         String symbol = marketPrice.symbol();
-        priceStore.put(symbol, marketPrice);
+        priceStore.compute(symbol, (key, previous) -> previous == null
+            || marketPrice.priceTimeStamp().isAfter(previous.priceTimeStamp()) ? marketPrice : previous);
         logger.debug("Updated price for symbol: {}, bid: {}, ask: {}", 
             symbol, marketPrice.bidPrice(), marketPrice.askPrice());
     }
@@ -79,12 +80,9 @@ public class LatestPriceStore {
             return true;
         }
         
-        long secondsSinceUpdate = ChronoUnit.SECONDS.between(
-            marketPrice.priceTimeStamp(), 
-            Instant.now()
-        );
-        
-        return secondsSinceUpdate > PRICE_STALENESS_THRESHOLD_SECONDS;
+        var age = java.time.Duration.between(marketPrice.priceTimeStamp(), Instant.now());
+        return age.compareTo(java.time.Duration.ofSeconds(PRICE_STALENESS_THRESHOLD_SECONDS)) > 0
+            || age.compareTo(java.time.Duration.ofSeconds(-5)) < 0;
     }
     
     /**

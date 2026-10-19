@@ -35,6 +35,7 @@ public class OrderServiceTest {
     @Mock private OrderSettlementService settlement;
 
     @Mock jakarta.persistence.EntityManager entityManager;
+    @org.mockito.Mock com.neueda.leap.messaging.OrderEventOutbox outbox;
     @InjectMocks
     private OrderService orderService;
 
@@ -98,10 +99,9 @@ public class OrderServiceTest {
         UUID id = UUID.randomUUID();
         Order order = new Order(id, account, instrument, 10, new BigDecimal("150.50"), OrderSide.BUY, "manual", OrderStatus.PENDING, LocalDateTime.now());
         when(orderRepository.findByIdForUpdate(id)).thenReturn(Optional.of(order));
-        when(prices.getLatestPrice("AAPL")).thenReturn(Optional.of(new com.neueda.leap.messaging.MarketPrice("AAPL", new BigDecimal("150.00"), new BigDecimal("150.50"), new BigDecimal("150.25"), java.time.Instant.now())));
-        when(settlement.settle(any())).thenAnswer(call -> { order.setStatus(OrderStatus.FILLED); return true; });
-        assertEquals(OrderStatus.FILLED, orderService.executeOrder(id).getStatus());
-        verify(settlement).settle(any());
+        assertEquals(OrderStatus.PENDING, orderService.executeOrder(id).getStatus());
+        verify(outbox).command(order, "SUBMIT");
+        verifyNoInteractions(settlement, prices);
     }
 
     @Test

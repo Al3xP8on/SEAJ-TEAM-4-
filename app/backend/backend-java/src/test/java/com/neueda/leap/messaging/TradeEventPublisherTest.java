@@ -49,7 +49,7 @@ class TradeEventPublisherTest {
         RuntimeException failure = new IllegalStateException("offline");
         when(kafka.send(eq("trade-events"), eq("ACC-001"), any(EventEnvelope.class))).thenThrow(failure);
         RuntimeException exception = assertThrows(RuntimeException.class, () -> publisher.publishTradeEvent(event("INITIATED")));
-        assertEquals("Failed to publish trade event", exception.getMessage());
+        assertEquals("Failed to publish trade event for account ACC-001", exception.getMessage());
         assertSame(failure, exception.getCause());
     }
 }

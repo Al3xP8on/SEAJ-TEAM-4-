@@ -135,10 +135,17 @@ class SecurityConfigTest {
 
     @Test
     void permitsAnonymousPublicAndApiDocumentationRequests() throws Exception {
-        for (String path : List.of("/public", "/swagger-ui/index.html", "/v3/api-docs")) {
+        for (String path : List.of("/public", "/swagger-ui/index.html", "/v3/api-docs", "/v1/market-data/ticker")) {
             mockMvc.perform(get(path))
                     .andExpect(status().isOk())
                     .andExpect(content().string("public"));
+        }
+    }
+
+    @Test
+    void keepsFullMarketDataBehindLoginWhileTheTickerIsPublic() throws Exception {
+        for (String path : List.of("/v1/market-data/overview", "/v1/market-data/AAPL/bars")) {
+            mockMvc.perform(get(path)).andExpect(status().isUnauthorized());
         }
     }
 
@@ -343,7 +350,7 @@ class SecurityConfigTest {
 
     @RestController
     static class TestEndpoints {
-        @GetMapping({"/public", "/swagger-ui/index.html", "/v3/api-docs"})
+        @GetMapping({"/public", "/swagger-ui/index.html", "/v3/api-docs", "/v1/market-data/ticker"})
         String publicEndpoint() {
             return "public";
         }
@@ -353,7 +360,7 @@ class SecurityConfigTest {
             return "public";
         }
 
-        @GetMapping({"/v1/orders", "/v1/accounts"})
+        @GetMapping({"/v1/orders", "/v1/accounts", "/v1/market-data/overview", "/v1/market-data/AAPL/bars"})
         String protectedEndpoint(Authentication authentication) {
             String roles = authentication.getAuthorities().stream()
                     .map(authority -> authority.getAuthority())

@@ -1,115 +1,131 @@
 :host {
-  --app-nav-height: 5rem;
+  --app-nav-height: 4.25rem;
   display: block;
   min-height: 100dvh;
-  font-family: Arial, sans-serif;
 }
+
+/* Header, matching the landing page: stays at the top while the page scrolls */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 10;
-  height: auto;
-  min-height: 5rem;
-  flex-wrap: wrap;
-  display: flex;
-  align-items: center;
-  gap: 48px;
-  padding: 12px 5%;
   background: var(--surface);
   color: var(--foreground);
   border-bottom: 1px solid var(--border);
-  box-shadow: 0 2px 8px #243d2e08;
 }
-a {
-  text-decoration: none;
-  color: inherit;
-}
-a,
-button {
-  outline-offset: 4px;
-}
-.brand {
+
+.topbar-inner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  white-space: nowrap;
+  gap: 8px 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.75rem 32px;
 }
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
 .brand-logo {
   display: block;
-  width: 146px;
+  width: 44px;
   height: auto;
-  background: #ffffff;
-  border-radius: 4px;
-  padding: 4px;
 }
+.brand-logo.logo-dark {
+  display: none;
+}
+:host-context(:root.dark) .brand-logo.logo-light {
+  display: none;
+}
+:host-context(:root.dark) .brand-logo.logo-dark {
+  display: block;
+}
+
+.brand-name {
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+
 nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 28px;
-  font-size: 0.875rem;
+  gap: 4px;
 }
+
 nav a {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  padding: 10px 12px;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
   border-radius: 6px;
-  font-size: .9375rem;
-  font-weight: 600;
-  color: var(--foreground);
-  transition: background-color .15s ease;
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
-nav a:hover { background: var(--muted); }
-nav .active {
-  color: var(--foreground);
+
+nav a:hover {
   background: var(--muted);
-  border-bottom: 3px solid var(--positive);
+  color: var(--foreground);
 }
-.logout {
-  margin-left: 0;
-  border: 1px solid var(--border);
+
+/* The current page is marked by colour, weight and an underline, not colour alone */
+nav a.active {
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: 600;
+  box-shadow: inset 0 -2px var(--positive);
+}
+
+nav a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.account-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 12px;
+  z-index: 20;
+  padding: 12px;
+  border-radius: 6px;
   background: var(--surface);
   color: var(--foreground);
-  padding: 9px 15px;
-  border-radius: 6px;
-  font: inherit;
-  font-size: .875rem;
-  cursor: pointer;
 }
-.logout:hover {
-  background: var(--surface-soft);
+.skip-link:focus {
+  top: 8px;
 }
-@media (max-width: 900px) {
-  .topbar {
-    gap: 12px 20px;
-  }
-}
-@media (max-width: 520px) {
-  .topbar {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-  .brand-logo {
-    width: 112px;
-  }
-  nav {
-    gap: 14px;
-    font-size: 0.75rem;
-  }
-  .logout {
-    padding: 7px 8px;
+
+@media (prefers-reduced-motion: reduce) {
+  nav a {
+    transition: none;
   }
 }
 
-.skip-link { position: fixed; top: -100px; left: 12px; z-index: 20; padding: 12px; background: var(--surface); color: var(--foreground); }
-.skip-link:focus { top: 8px; }
-@media (max-width: 600px) {
-  .topbar { padding: 12px; }
-  nav { order: 3; width: 100%; gap: 24px; }
-  nav a, .logout { min-height: 44px; display: inline-flex; align-items: center; }
-}
-
-.account-nav { margin-left: auto; }
-@media (max-width: 600px) {
-  .account-nav { order: 0; width: auto; margin-left: auto; }
-  .brand > span:last-child { display: none; }
+/* Reflow at high zoom: the main links drop onto their own row */
+@media (max-width: 760px) {
+  .topbar-inner {
+    padding: 0.75rem 16px;
+  }
+  .main-nav {
+    order: 3;
+    width: 100%;
+  }
 }

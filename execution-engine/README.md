@@ -1,91 +1,32 @@
-# Execution Engine
+# Live-price execution engine
 
-A small Spring Boot service that stands in for a real exchange. It is step
-2 of the order flow (see [`../docs/event-flow.md`](../docs/event-flow.md)):
+SEAJ's engine matches orders against actual Alpaca bid/ask quotes received on Kafka. It does not call a brokerage trading API. Random delays and random price improvement have been removed.
 
-1. Read an accepted order from the `orders` topic.
-2. "Send it to the market": wait a random delay, then fill the whole order
-   at a price at or better than its limit.
-3. Write the fill to the `executions` topic, keyed by account.
+1. Consume SUBMIT, CANCEL and REJECT commands from `orders`.
+2. Consume sourced/timestamped quotes from `market-data` in its own consumer group.
+3. Hold orders until a fresh quote is available and their original market/limit rules allow execution.
+4. Publish receipt, waiting and matching stages to `order-lifecycle`, keyed by order ID.
+5. Publish the full fill report to `executions`, keyed by account. Reports include the quote event ID, quote timestamp, bid, ask and source used.
+6. Let the API settle cash, positions and order status atomically, then publish the final lifecycle events from its durable outbox.
 
-It has no database and no REST API of its own, only an actuator health
-endpoint used by the Docker health check.
+See [the event-flow guide](../docs/event-flow.md) for correlation fields, the database migration, Kafka inspection and recovery behavior.
 
-## What's here
+## Matching
 
-```
-execution-engine/
-├── Dockerfile                        # multi-stage: Maven build, then JRE 21 runtime
-├── pom.xml                           # Spring Boot 3.5, Spring Kafka
-└── src/
-    ├── main/java/com/neueda/trading/engine/
-    │   ├── ExecutionEngineApplication.java
-    │   ├── OrderListener.java         # @KafkaListener on orders, publishes to executions
-    │   ├── SimulatedMarket.java       # fill delay and fill price
-    │   ├── EngineProperties.java      # engine.* settings, validated on startup
-    │   ├── EngineConfig.java          # beans + topic declarations
-    │   ├── Pauser.java                # the wait, as an interface tests can skip
-    │   ├── OrderEvent.java            # message contract: orders topic
-    │   ├── ExecutionEvent.java        # message contract: executions topic
-    │   └── Side.java
-    ├── main/resources/application.yml
-    └── test/java/com/neueda/trading/engine/
-        ├── SimulatedMarketTest.java   # price never worse than limit, delays in range
-        ├── EnginePropertiesTest.java
-        ├── OrderListenerTest.java     # listener logic with a mocked KafkaTemplate
-        └── ExecutionEngineKafkaTest.java  # whole service against an in-process Kafka
-```
+Market buys use the ask and sells use the bid. Limit buys never exceed their submitted limit; limit sells never fall below it. Prices round to cents (buy up/sell down). Only ALPACA_IEX and ALPACA_SIP quotes are eligible. Quotes over 60 seconds old or over five seconds in the future cannot fill an order. Missing, crossed or zero quotes leave it waiting. The engine does not refresh a quote's original exchange timestamp.
 
-## The simulated market
+The book is indexed by symbol, so a quote only visits that symbol's waiting orders. A bounded cache retains the last 10,000 completed/cancelled IDs. Duplicate submissions reuse the exact execution report. Durable settlement also ignores duplicates. Kafka delivery is acknowledged before listener completion; malformed messages go to dead-letter topics. Database PENDING orders are periodically requeued after an engine restart.
 
-Every order is treated as a limit order and filled in full:
+Run one local engine instance. Horizontal scaling needs shared or partition-aligned quote and order state. Whole-unit full fills are supported; partial fills, liquidity/queue position, fees and exchange session rules are not modelled.
 
-- **Delay:** uniformly random between `engine.min-delay` and
-  `engine.max-delay` (default 500 ms to 2 s), so fills visibly lag orders.
-- **Price:** a random improvement of 0 to `engine.max-price-improvement-bps`
-  basis points (default 50, i.e. 0.5%). A BUY fills at or below its limit
-  and a SELL at or above it, so a trader never pays more, or receives less,
-  than they asked for. Prices are rounded to 2 decimal places.
-
-`SimulatedMarket` takes its random generator and clock through the
-constructor, so tests pin both and assert exact results.
-
-## Reliability
-
-The listener sends the fill and waits for Kafka to acknowledge it before
-returning, so the order's offset is only committed once its fill is safely
-on `executions`. If the engine stops mid-order, it works that order again
-on restart. That can produce a duplicate fill, which the order service
-ignores. Unreadable messages are logged and skipped.
-
-The listener runs one consumer thread per partition (3), so up to three
-accounts' orders are worked at once.
-
-## Configuration
-
-| Property | Env var | Default |
-|----------|---------|---------|
-| `spring.kafka.bootstrap-servers` | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9094` |
-| `engine.min-delay` | `ENGINE_MIN_DELAY` | `500ms` |
-| `engine.max-delay` | `ENGINE_MAX_DELAY` | `2000ms` |
-| `engine.max-price-improvement-bps` | `ENGINE_MAX_PRICE_IMPROVEMENT_BPS` | `50` |
-| `server.port` | `SERVER_PORT` | `8082` |
-
-In `docker-compose.yml` the engine talks to `kafka:9092`, and the three
-`ENGINE_*` values come from `.env`. Set both delays to `0ms` for instant
-fills, or both to `10s` to have time to watch orders sit at `NEW`.
-
-## Building and running
+## Run and verify
 
 ```bash
 cd execution-engine
-mvn test               # unit tests + an in-process Kafka test; no Docker needed
-mvn spring-boot:run    # against Kafka on localhost:9094 (docker-compose up -d kafka)
+mvn test
+mvn spring-boot:run
 ```
 
-Through Docker, it runs as the `execution-engine` service:
+Tests include actual Kafka command/quote/fill traffic on an isolated embedded broker and deterministic matching, cancellation and retry cases. Production Kafka defaults to `localhost:9094`; Compose uses `kafka:9092`.
 
-```bash
-docker-compose up --build -d execution-engine
-docker-compose logs -f execution-engine
-```
+For an existing platform, follow [the coordinated migration/rebuild](../docs/event-flow.md#apply-locally). Rebuild both the API and engine; the old random-price engine is incompatible with the new quote-proof validation.

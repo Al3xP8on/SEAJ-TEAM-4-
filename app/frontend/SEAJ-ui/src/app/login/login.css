@@ -2,181 +2,178 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background: var(--background);
   color: var(--foreground);
 }
 
+/* Header, matching the landing page */
 header {
-  position: relative;
-  background-color: #245234;
-  padding: 1.5rem 2rem;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-inner {
   display: flex;
   align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.75rem 3rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--foreground);
+  text-decoration: none;
 }
 
 .site-logo {
   display: block;
-  width: 112px;
+  width: 44px;
   height: auto;
-  padding: 4px 6px;
-  background: #ffffff;
-  border-radius: 4px;
 }
-
-.brand-lockup {
-  display: flex;
-  align-items: center;
+.site-logo.logo-dark {
+  display: none;
 }
-
-.logo-link {
+:host-context(:root.dark) .site-logo.logo-light {
+  display: none;
+}
+:host-context(:root.dark) .site-logo.logo-dark {
   display: block;
-  width: fit-content;
-  margin: 0;
 }
 
-.brand-title {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  color: white;
-  font-family: Arial, sans-serif;
-  font-size: 2.4rem;
-  font-weight: 400;
-  letter-spacing: 1px;
-  white-space: nowrap;
+.brand-name {
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: -0.3px;
 }
 
-header nav {
+.home-link {
   margin-left: auto;
 }
 
-.nav-btn {
-  display: inline-block;
-  padding: 0.5rem 1.25rem;
-  background: var(--card);
-  color: var(--foreground);
-  border-radius: 4px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
+/* The form, centred */
 main {
   flex: 1;
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 2rem;
+  align-items: flex-start;
+  padding: 4rem 1.5rem;
 }
 
-.login-container {
-  background: var(--surface);
-  padding: 2.5rem;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+.auth-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
 }
 
-.login-container h2 {
-  color: var(--text);
-  margin-bottom: 1.5rem;
-  text-align: center;
+h1 {
   font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.4px;
+  margin: 0;
 }
 
-.form-group {
-  margin-bottom: 1.5rem;
+/* Focus moves here when switching between log in, sign up and verify; no ring for that */
+h1:focus {
+  outline: none;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: var(--text);
-  font-weight: 500;
+form {
+  display: grid;
+  gap: 16px;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid var(--input);
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
-  box-sizing: border-box;
+.field {
+  display: grid;
+  gap: 6px;
 }
 
-.form-group input:focus {
-  outline: 3px solid var(--ring);
-  outline-offset: 3px;
-  border-color: var(--input);
-  box-shadow: 0 0 0 3px rgba(49, 100, 66, 0.1);
+/* Field outlines need 3:1 against the card to be found; the theme's input colour is paler */
+.field input {
+  border-color: color-mix(in srgb, var(--muted-foreground) 70%, var(--card));
 }
 
-.submit-btn {
-  width: 100%;
-  padding: 0.75rem;
-  background: linear-gradient(135deg, #316442 0%, #316442 100%);
-  color: var(--on-brand);
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.password {
+  position: relative;
 }
 
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(49, 100, 66, 0.4);
+.password input {
+  padding-right: 40px;
 }
 
-.submit-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.reveal {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.toggle-btn {
-  background: none;
-  border: none;
-  color: var(--foreground);
-  cursor: pointer;
-  font-size: 0.9rem;
-  margin-top: 1rem;
-  text-decoration: underline;
-  padding: 0;
-  width: 100%;
+.code {
+  font-size: 1.25rem;
+  letter-spacing: 0.4em;
+  font-variant-numeric: tabular-nums;
 }
 
-.toggle-btn:hover {
-  color: var(--foreground);
+.hint,
+.optional {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  font-weight: 400;
+  margin: 0;
 }
 
+/* Keeps its space when empty so the form doesn't jump */
 .message {
-  font-size: 0.9rem;
-  margin-bottom: 0.75rem;
-  min-height: 1.2em;
+  min-height: 1.25rem;
+  margin: 0;
+  font-size: 0.875rem;
 }
 
-.message.error { color: var(--error); }
-.message.success { color: var(--foreground); }
+.message.error {
+  color: var(--destructive);
+}
+
+.message.success {
+  color: var(--positive);
+}
+
+.submit {
+  width: 100%;
+}
+
+.switch {
+  margin: 16px 0 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.switch-link {
+  height: auto;
+  padding: 0 2px;
+  color: var(--positive);
+}
 
 footer {
-  background-color: #245234;
+  background-color: var(--surface);
   padding: 1.5rem;
   text-align: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border);
 }
 
 footer p {
-  color: var(--on-brand);
-  font-size: 0.9rem;
-  font-style: italic;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  margin: 0;
 }
 
 @media (max-width: 768px) {
-  .brand-title {
-    font-size: 1.4rem;
+  .header-inner {
+    padding: 0.75rem 1.5rem;
+  }
+
+  main {
+    padding: 2rem 1rem;
   }
 }

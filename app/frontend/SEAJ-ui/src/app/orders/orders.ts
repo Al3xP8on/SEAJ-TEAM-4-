@@ -8,7 +8,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CurrencyPipe, DatePipe, DecimalPipe, DOCUMENT } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe, DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -39,9 +39,16 @@ import { MarketDataComponent } from './market-data';
 
 @Component({
   selector: 'app-orders',
-  imports: [FormsModule, CurrencyPipe, DecimalPipe, DatePipe, MarketDataComponent],
+  imports: [
+    FormsModule,
+    CurrencyPipe,
+    DecimalPipe,
+    DatePipe,
+    MarketDataComponent,
+    NgTemplateOutlet,
+  ],
   templateUrl: './orders.html',
-  styleUrl: './orders.css',
+  styleUrls: ['./orders.css', './order-ticket.css'],
 })
 export class OrdersComponent {
   private readonly document = inject(DOCUMENT);
@@ -338,7 +345,9 @@ export class OrdersComponent {
   }
   unitPrice(): number | null {
     if (this.orderType === 'LIMIT') return this.limitPrice;
-    return this.side === 'BUY' ? (this.quote()?.askPrice ?? null) : (this.quote()?.bidPrice ?? null);
+    return this.side === 'BUY'
+      ? (this.quote()?.askPrice ?? null)
+      : (this.quote()?.bidPrice ?? null);
   }
   estimatedTotal(): number {
     return (this.unitPrice() ?? 0) * (this.quantity ?? 0);

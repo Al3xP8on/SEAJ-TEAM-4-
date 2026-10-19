@@ -1,0 +1,45 @@
+<section hlmCard class="performance-card" aria-labelledby="performance-title">
+  <div hlmCardHeader>
+    <h2 hlmCardTitle id="performance-title">Portfolio performance</h2>
+    <div hlmCardAction>
+      <div class="periods" role="group" aria-label="Chart period">
+        @for (option of periods; track option) {
+          <button type="button" [attr.aria-pressed]="period() === option" (click)="select(option)">
+            {{ option }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+  <div hlmCardContent>
+    <p class="muted scope">
+      Value of your current holdings at past prices. Trades and cash are not included.
+    </p>
+
+    @if (series() === null) {
+      <p class="muted" role="status">Loading price history…</p>
+    } @else if (holdings().length === 0) {
+      <p class="empty">You don't hold any positions yet, so there's nothing to chart.</p>
+    } @else if (summary(); as s) {
+      <p class="change" [class.loss]="s.change < 0">
+        <app-trend-icon [value]="s.change" />
+        {{ s.change > 0 ? '+' : '' }}{{ s.change | currency: 'USD' }} ({{ s.change > 0 ? '+' : ''
+        }}{{ s.percent | percent: '1.2-2' }}) over {{ period() }}
+      </p>
+
+      <app-line-chart
+        [points]="points()"
+        [description]="description()"
+        [dateFormat]="dateFormat()"
+        [loss]="s.change < 0"
+        [showTable]="false"
+      />
+    } @else {
+      <p class="empty">No price history is available for your holdings right now.</p>
+    }
+
+    @if (series()?.missing?.length) {
+      <p class="muted note">Not included (no price history): {{ series()!.missing.join(', ') }}</p>
+    }
+  </div>
+</section>

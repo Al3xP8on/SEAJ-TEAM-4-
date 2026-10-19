@@ -32,7 +32,7 @@ class LatestPriceStoreTest {
         assertFalse(store.isNotStale(null));
         assertTrue(store.isStale(price(Instant.now().minusSeconds(120))));
         assertTrue(store.isNotStale(price(Instant.now())));
-        assertTrue(store.isNotStale(price(Instant.now().plusSeconds(120))));
+        assertTrue(store.isStale(price(Instant.now().plusSeconds(120))));
     }
     @Test void reportsAgeAndRemovesPrices() {
         store.updatePrice(price(Instant.now().minusSeconds(120)));
