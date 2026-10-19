@@ -15,14 +15,28 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Subscription, finalize } from 'rxjs';
 import { AccountRole, AuthService } from '../auth/auth.service';
+import { AdminObservabilityComponent } from './observability';
 import { accountIdFromToken } from '../dashboard/dashboard.service';
-import { AccountDetails, AccountStatus, AccountStatusHistory, AdminAccount, AdminService } from './admin.service';
+import {
+  AccountDetails,
+  AccountStatus,
+  AccountStatusHistory,
+  AdminAccount,
+  AdminService,
+} from './admin.service';
 
 @Component({
   selector: 'app-admin',
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, FormsModule, RouterLink],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    DecimalPipe,
+    FormsModule,
+    RouterLink,
+    AdminObservabilityComponent,
+  ],
   templateUrl: './admin.html',
-  styleUrl: './admin.css',
+  styleUrls: ['./admin.css', './admin-overview.css'],
 })
 export class AdminComponent {
   private readonly service = inject(AdminService);
@@ -31,6 +45,43 @@ export class AdminComponent {
   private readonly injector = inject(Injector);
   @ViewChild('confirmation') private confirmation!: ElementRef<HTMLDialogElement>;
   private detailRequest?: Subscription;
+  private historyRequest?: Subscription;
+  readonly activeSection = signal<'overview' | 'accounts' | 'observability'>('overview');
+  readonly lastLoaded = signal<string | null>(null);
+  readonly historyError = signal('');
+  readonly closedCount = computed(
+    () => this.accounts().filter((account) => account.status === 'CLOSED').length,
+  );
+  readonly recentAccounts = computed(() =>
+    [...this.accounts()].sort((a, b) => b.lastUpdated.localeCompare(a.lastUpdated)).slice(0, 5),
+  );
+  readonly suspendedAccounts = computed(() =>
+    this.accounts()
+      .filter((account) => account.status === 'SUSPENDED')
+      .slice(0, 4),
+  );
+  readonly activePercent = computed(() =>
+    this.accounts().length ? (this.activeCount() / this.accounts().length) * 100 : 0,
+  );
+  readonly suspendedPercent = computed(() =>
+    this.accounts().length ? (this.suspendedCount() / this.accounts().length) * 100 : 0,
+  );
+
+  showAccounts(status = 'ALL'): void {
+    this.status.set(status);
+    this.search.set('');
+    this.activeSection.set('accounts');
+  }
+
+  openAccount(account: AdminAccount): void {
+    this.activeSection.set('accounts');
+    this.select(account);
+  }
+
+  startCreate(): void {
+    this.activeSection.set('accounts');
+    this.showCreate.set(true);
+  }
   readonly ownId = accountIdFromToken(this.auth.getToken());
   readonly accounts = signal<AdminAccount[]>([]);
   readonly loading = signal(false);
@@ -115,6 +166,7 @@ export class AdminComponent {
       .subscribe({
         next: (accounts) => {
           this.accounts.set(accounts);
+          this.lastLoaded.set(new Date().toISOString());
           const selected = this.selected();
           if (selected) this.select(selected);
           else this.selectedId.set(null);
@@ -131,7 +183,6 @@ export class AdminComponent {
     this.statusHistory.set([]);
     this.detailsError.set('');
     this.detailsLoading.set(true);
-    this.historyLoading.set(true);
     this.detailRequest = this.service
       .details(account.accountId)
       .pipe(
@@ -143,10 +194,28 @@ export class AdminComponent {
         error: (error) =>
           this.detailsError.set(message(error, 'Account details could not be loaded.')),
       });
-    this.service.history(account.id).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.historyLoading.set(false))).subscribe({
-      next: (history) => this.statusHistory.set(history),
-      error: () => this.statusHistory.set([]),
-    });
+    this.loadHistory(account.id);
+  }
+
+  loadHistory(id: number): void {
+    this.historyRequest?.unsubscribe();
+    this.historyError.set('');
+    this.historyLoading.set(true);
+    this.historyRequest = this.service
+      .history(id)
+      .pipe(
+        takeUntilDestroyed(this.destroy),
+        finalize(() => this.historyLoading.set(false)),
+      )
+      .subscribe({
+        next: (history) => {
+          if (this.selectedId() === id) this.statusHistory.set(history);
+        },
+        error: () => {
+          if (this.selectedId() === id)
+            this.historyError.set('Account history could not be loaded.');
+        },
+      });
   }
 
   askStatus(account: AdminAccount, status: AccountStatus): void {
@@ -198,6 +267,7 @@ export class AdminComponent {
           );
           this.confirmation.nativeElement.close();
           this.pendingAction.set(null);
+          if (this.selectedId() === updated.id) this.loadHistory(updated.id);
         },
         error: (error) =>
           this.actionError.set(message(error, 'The account status could not be changed.')),

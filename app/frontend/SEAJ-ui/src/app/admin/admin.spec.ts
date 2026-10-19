@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { AdminComponent } from './admin';
+import { ObservabilityService } from './observability.service';
 import { AccountDetails, AdminAccount, AdminService } from './admin.service';
 
 const ACCOUNTS: AdminAccount[] = [
@@ -62,15 +63,16 @@ const DETAILS: AccountDetails = {
 };
 
 describe('Admin account management', () => {
-  const service = { accounts: vi.fn(), details: vi.fn(), changeStatus: vi.fn() };
-  const auth = { getToken: vi.fn(), register: vi.fn(), verifyRegistration: vi.fn() };
+  const service = { accounts: vi.fn(), details: vi.fn(), changeStatus: vi.fn(), history: vi.fn() };
+  const auth = { getToken: vi.fn(), registerAdmin: vi.fn(), verifyRegistration: vi.fn() };
 
   beforeEach(async () => {
     vi.resetAllMocks();
     service.accounts.mockReturnValue(of(ACCOUNTS.map((account) => ({ ...account }))));
     service.details.mockReturnValue(of(DETAILS));
+    service.history.mockReturnValue(of([]));
     auth.getToken.mockReturnValue(`h.${btoa('{"sub":"1","roles":["ADMIN"]}')}.s`);
-    auth.register.mockReturnValue(of({ challenge_id: 'test-challenge', expires_in: 600 }));
+    auth.registerAdmin.mockReturnValue(of({ challenge_id: 'test-challenge', expires_in: 600 }));
     auth.verifyRegistration.mockReturnValue(
       of({ username: 'newuser', account_id: 'ACC-NEW', email_verified: true }),
     );
@@ -92,6 +94,23 @@ describe('Admin account management', () => {
       providers: [
         provideRouter([]),
         { provide: AdminService, useValue: service },
+        {
+          provide: ObservabilityService,
+          useValue: {
+            snapshot: () =>
+              of({
+                status: 'UNAVAILABLE',
+                message: 'Monitoring off',
+                observedAt: new Date().toISOString(),
+                grafanaUrl: '',
+                services: [],
+                monitors: [],
+                consumerLag: [],
+                traffic: [],
+                trading: {},
+              }),
+          },
+        },
         { provide: AuthService, useValue: auth },
       ],
     }).compileComponents();
@@ -101,6 +120,7 @@ describe('Admin account management', () => {
 
   async function render() {
     const fixture = TestBed.createComponent(AdminComponent);
+    fixture.componentInstance.activeSection.set('accounts');
     await fixture.whenStable();
     return {
       fixture,
@@ -122,7 +142,7 @@ describe('Admin account management', () => {
 
   it('loads account summaries without fetching every account portfolio', async () => {
     const { page } = await render();
-    expect(page.querySelector('h1')?.textContent).toContain('Account management');
+    expect(page.querySelector('h1')?.textContent).toContain('Admin dashboard');
     expect(page.querySelector('.stats')?.textContent).toContain('$1,250.00');
     expect(page.querySelectorAll('.accounts-panel tbody tr')).toHaveLength(3);
     expect(service.details).not.toHaveBeenCalled();
@@ -176,9 +196,10 @@ describe('Admin account management', () => {
     await fixture.whenStable();
     expect(service.changeStatus).not.toHaveBeenCalled();
     expect(page.querySelector('dialog')?.open).toBe(true);
+    component.reason = 'Account review';
     page.querySelector<HTMLButtonElement>('dialog button.danger')!.click();
     await fixture.whenStable();
-    expect(service.changeStatus).toHaveBeenCalledWith(2, 'SUSPENDED');
+    expect(service.changeStatus).toHaveBeenCalledWith(2, 'SUSPENDED', 'Account review');
     expect(component.suspendedCount()).toBe(2);
     expect(page.querySelector('[role="status"]')?.textContent).toContain('now suspended');
     expect(page.querySelector('dialog')?.open).toBe(false);
@@ -202,6 +223,7 @@ describe('Admin account management', () => {
     );
     const { fixture, component, page } = await render();
     component.askStatus(ACCOUNTS[1], 'CLOSED');
+    component.reason = 'Account review';
     component.saveStatus();
     await fixture.whenStable();
     expect(page.querySelector('dialog [role="alert"]')?.textContent).toContain('remaining cash');
@@ -213,7 +235,9 @@ describe('Admin account management', () => {
     service.changeStatus.mockReturnValue(new Subject());
     const { component } = await render();
     component.askStatus(ACCOUNTS[1], 'SUSPENDED');
+    component.reason = 'Account review';
     component.saveStatus();
+    component.reason = 'Account review';
     component.saveStatus();
     component.closeConfirmation();
     expect(service.changeStatus).toHaveBeenCalledTimes(1);
@@ -238,12 +262,15 @@ describe('Admin account management', () => {
     await fill(fixture, page, 'password', 'valid-password');
     button(page, 'Send verification code').click();
     await fixture.whenStable();
-    expect(auth.register).toHaveBeenCalledWith({
-      name: 'New User',
-      username: 'newuser',
-      email: 'new@example.com',
-      password: 'valid-password',
-    });
+    expect(auth.registerAdmin).toHaveBeenCalledWith(
+      {
+        name: 'New User',
+        username: 'newuser',
+        email: 'new@example.com',
+        password: 'valid-password',
+      },
+      'USER',
+    );
     expect(auth.verifyRegistration).not.toHaveBeenCalled();
     expect(component.credentials.password).toBe('');
     expect(page.textContent).toContain('A code was sent to');
@@ -257,7 +284,9 @@ describe('Admin account management', () => {
   });
 
   it('explains duplicate registration errors without losing the form', async () => {
-    auth.register.mockReturnValue(throwError(() => new Error('Email or username already exists')));
+    auth.registerAdmin.mockReturnValue(
+      throwError(() => new Error('Email or username already exists')),
+    );
     const { fixture, component, page } = await render();
     component.showCreate.set(true);
     await fixture.whenStable();
@@ -271,5 +300,68 @@ describe('Admin account management', () => {
       'already exists',
     );
     expect(component.challengeId()).toBe('');
+  });
+
+  it('opens with an operational overview instead of the full account table', async () => {
+    const fixture = TestBed.createComponent(AdminComponent);
+    await fixture.whenStable();
+    const page = fixture.nativeElement as HTMLElement;
+    expect(fixture.componentInstance.activeSection()).toBe('overview');
+    expect(page.textContent).toContain('Access across the platform');
+    expect(page.textContent).toContain('Recently updated accounts');
+    expect(page.querySelector('app-admin-observability')).not.toBeNull();
+    expect(page.querySelector('.accounts-panel')).toBeNull();
+    expect(service.details).not.toHaveBeenCalled();
+  });
+
+  it('switches between account management and observability without losing account filters', async () => {
+    const { fixture, component, page } = await render();
+    component.search.set('brian');
+    button(page, 'Observability').click();
+    await fixture.whenStable();
+    expect(page.querySelector('.accounts-panel')).toBeNull();
+    expect(page.querySelector('app-admin-observability')).not.toBeNull();
+    component.activeSection.set('accounts');
+    await fixture.whenStable();
+    expect(component.visibleAccounts()).toHaveLength(1);
+    expect(page.querySelector('.accounts-panel')?.textContent).toContain('Brian');
+  });
+
+  it('opens a suspended account directly from the overview', async () => {
+    const fixture = TestBed.createComponent(AdminComponent);
+    await fixture.whenStable();
+    const page = fixture.nativeElement as HTMLElement;
+    page.querySelector<HTMLButtonElement>('.review-account')!.click();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.activeSection()).toBe('accounts');
+    expect(fixture.componentInstance.selected()?.id).toBe(3);
+    expect(service.history).toHaveBeenCalledWith(3);
+    expect(page.querySelector('.detail-panel')?.textContent).toContain('Carla');
+  });
+
+  it('does not display another account’s history after a quick selection change', async () => {
+    const oldHistory = new Subject<unknown[]>();
+    service.history.mockReturnValueOnce(oldHistory).mockReturnValueOnce(of([]));
+    const { component } = await render();
+    component.select(ACCOUNTS[1]);
+    component.select(ACCOUNTS[2]);
+    oldHistory.next([{ id: 1, reason: 'History for Brian' }]);
+    expect(component.selectedId()).toBe(3);
+    expect(component.statusHistory()).toEqual([]);
+    expect(component.historyLoading()).toBe(false);
+  });
+
+  it('distinguishes failed audit loading from an empty audit trail', async () => {
+    service.history
+      .mockReturnValueOnce(throwError(() => new Error('Offline')))
+      .mockReturnValueOnce(of([]));
+    const { fixture, component, page } = await render();
+    component.select(ACCOUNTS[1]);
+    await fixture.whenStable();
+    expect(page.textContent).toContain('Account history could not be loaded');
+    expect(page.textContent).not.toContain('No admin status changes recorded');
+    button(page, 'Retry history').click();
+    await fixture.whenStable();
+    expect(page.textContent).toContain('No admin status changes recorded');
   });
 });
