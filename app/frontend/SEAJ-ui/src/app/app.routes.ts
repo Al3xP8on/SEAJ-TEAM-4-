@@ -28,6 +28,11 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         title: 'Account management | SEAJ Capital',
       },
+      {
+        path: 'market',
+        loadComponent: () => import('./market/market').then((m) => m.MarketComponent),
+        title: 'Market | SEAJ Capital',
+      },
       { path: 'order', component: OrdersComponent },
       { path: 'blotter', component: OrdersComponent },
     ],
