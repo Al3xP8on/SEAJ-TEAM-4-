@@ -1,8 +1,15 @@
 // Connects Angular forms to username/password authentication and both email verification steps.
 // Preserves validation, password clearing, retry feedback and cancellation of late UI responses.
-import { Component, effect, signal, OnDestroy } from '@angular/core';
+import { Component, Injector, afterNextRender, effect, inject, signal, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideArrowLeft, lucideEye, lucideEyeOff } from '@ng-icons/lucide';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmField, HlmFieldDescription } from '@spartan-ng/helm/field';
 import { AuthService } from '../auth/auth.service';
 import type { Challenge } from '../auth/session-client.mjs';
 
@@ -11,7 +18,8 @@ type MessageType = 'success' | 'error' | '';
 export const PHONE_PATTERN = /^(?=.{7,20}$)\+?[0-9 ()-]+$/;
 
 @Component({
-  selector: 'app-login', imports: [FormsModule, RouterLink], templateUrl: './login.html', styleUrl: './login.css',
+  selector: 'app-login', imports: [FormsModule, RouterLink, NgIcon, HlmButton, HlmCardImports, HlmInput, HlmLabel, HlmField, HlmFieldDescription],
+  providers: [provideIcons({ lucideArrowLeft, lucideEye, lucideEyeOff })], templateUrl: './login.html', styleUrl: './login.css',
 })
 export class LoginComponent implements OnDestroy {
   view = signal<'login' | 'register' | 'verify'>('login');
@@ -19,9 +27,13 @@ export class LoginComponent implements OnDestroy {
   loginMessage = signal(''); loginMessageType = signal<MessageType>(''); loginLoading = signal(false);
   registerMessage = signal(''); registerMessageType = signal<MessageType>(''); registerLoading = signal(false);
   verificationMessage = signal(''); verificationLoading = signal(false);
+  showLoginPassword = signal(false); showRegisterPassword = signal(false);
+  private readonly injector = inject(Injector);
   private verification: { purpose: 'LOGIN' | 'REGISTER'; id: string } | null = null;
   private generation = 0;
   constructor(private auth: AuthService, private router: Router) {
+    // "Sign up" on the landing page links here with ?mode=register
+    if (inject(ActivatedRoute, { optional: true })?.snapshot.queryParamMap.get('mode') === 'register') this.view.set('register');
     effect(() => {
       if (this.auth.sessionExpired()) {
         this.showView('login');
@@ -34,14 +46,19 @@ export class LoginComponent implements OnDestroy {
     this.generation++;
     this.verification = null;
     this.code = ''; this.password = ''; this.regPassword = '';
-    this.view.set(view);
+    this.showLoginPassword.set(false); this.showRegisterPassword.set(false);
+    this.view.set(view); this.focusTitle();
+  }
+  // After switching between log in, sign up and verify, start keyboard and screen-reader users at the new heading
+  private focusTitle() {
+    afterNextRender(() => document.getElementById('auth-title')?.focus(), { injector: this.injector });
   }
   cancelVerification() { this.auth.logout(); this.showView('login'); }
   private showVerification(purpose: 'LOGIN' | 'REGISTER', challenge: Challenge) {
     this.verification = { purpose, id: challenge.challenge_id };
     this.code = '';
     this.verificationMessage.set(challenge.message || 'Enter the six-digit code from your email.');
-    this.view.set('verify');
+    this.view.set('verify'); this.focusTitle();
   }
   private message(error: unknown) {
     return error instanceof Error ? error.message : 'Authentication failed. Please try again.';
