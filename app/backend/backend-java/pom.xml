@@ -127,6 +127,19 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.8.17</version>
         </dependency>
+
+        <!-- Business metrics and span attributes. The OpenTelemetry agent in the Docker image
+             supplies the implementation; without it (tests, local runs) the API is a no-op. -->
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-sdk-testing</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -7,6 +7,7 @@ import {
   DailyPrice,
   MarketOverview,
   MarketChart,
+  MarketTimeframe,
   Instrument,
   Order,
   OrderHistory,
@@ -46,7 +47,7 @@ export class OrdersService {
   priceHistory(symbol: string) {
     return this.http.get<DailyPrice[]>(`/api/v1/price-history/${encodeURIComponent(symbol)}`);
   }
-  marketBars(symbol: string, timeframe: '1Min' | '1Day') {
+  marketBars(symbol: string, timeframe: MarketTimeframe) {
     return this.http.get<MarketChart>(`/api/v1/market-data/${encodeURIComponent(symbol)}/bars`, {
       params: { timeframe },
     });

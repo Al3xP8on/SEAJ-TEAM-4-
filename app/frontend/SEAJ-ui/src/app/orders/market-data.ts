@@ -23,8 +23,16 @@ import {
 import { Instrument, MarketBar, MarketOverview, MarketSnapshot } from './orders.models';
 import { OrdersService } from './orders.service';
 
-interface HistoryPoint { timestamp: string; value: number; time: number; session: string; }
-interface ChartPoint extends HistoryPoint { x: number; y: number; }
+interface HistoryPoint {
+  timestamp: string;
+  value: number;
+  time: number;
+  session: string;
+}
+interface ChartPoint extends HistoryPoint {
+  x: number;
+  y: number;
+}
 
 @Component({
   selector: 'app-market-data',
@@ -50,7 +58,10 @@ export class MarketDataComponent {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly chartPeriod = signal<'1D' | '1W' | '1M'>('1D');
-  readonly timeframe = computed(() => (this.chartPeriod() === '1D' ? '1Min' : '1Day'));
+  readonly timeframe = computed(() =>
+    this.chartPeriod() === '1D' ? '1Min' : this.chartPeriod() === '1W' ? '6Hour' : '1Day',
+  );
+  readonly intraday = computed(() => this.timeframe() !== '1Day');
   readonly bars = signal<MarketBar[]>([]);
   readonly chartLoading = signal(false);
   readonly chartError = signal('');
@@ -96,8 +107,7 @@ export class MarketDataComponent {
       .filter((entry) => !!entry.instrument)
       .sort(
         (a, b) =>
-          b.changePercent - a.changePercent ||
-          a.snapshot.symbol.localeCompare(b.snapshot.symbol),
+          b.changePercent - a.changePercent || a.snapshot.symbol.localeCompare(b.snapshot.symbol),
       )
       .slice(0, 5);
   });
@@ -125,6 +135,7 @@ export class MarketDataComponent {
     return {
       points,
       line: points.map((point) => `${point.x},${point.y}`).join(' '),
+      curve: this.chartPeriod() === '1W' ? this.smoothPath(points) : null,
       first: prices[0].timestamp,
       last: prices.at(-1)!.timestamp,
       low,
@@ -136,22 +147,29 @@ export class MarketDataComponent {
   });
   private chartPrices(snapshot: MarketSnapshot | undefined): HistoryPoint[] {
     let prices = this.historyPoints();
-    if (this.timeframe() !== '1Min') return prices.slice(this.chartPeriod() === '1W' ? -5 : -30);
+    if (!this.intraday()) return prices.slice(-30);
     if (snapshot) {
       const session = this.sessionDate(snapshot.timestamp);
       const time = Date.parse(snapshot.timestamp);
       if (!prices.length || time > prices.at(-1)!.time) {
-        prices = [...prices, { timestamp: snapshot.timestamp, value: snapshot.price, time, session }];
+        prices = [
+          ...prices,
+          { timestamp: snapshot.timestamp, value: snapshot.price, time, session },
+        ];
       }
     }
-    const sessions = [...new Set(prices.map(point => point.session))].slice(-2);
-    return prices.filter(point => sessions.includes(point.session));
+    const sessions = [...new Set(prices.map((point) => point.session))].slice(
+      this.chartPeriod() === '1W' ? -5 : -2,
+    );
+    return prices.filter((point) => sessions.includes(point.session));
   }
 
   private chartPreviousClose(snapshot: MarketSnapshot | undefined, prices: HistoryPoint[]) {
     if (this.timeframe() !== '1Min' || !snapshot || snapshot.previousClose === null) return null;
     if (this.sessionDate(snapshot.timestamp) !== prices.at(-1)!.session) return null;
-    return Number.isFinite(snapshot.previousClose) && snapshot.previousClose > 0 ? snapshot.previousClose : null;
+    return Number.isFinite(snapshot.previousClose) && snapshot.previousClose > 0
+      ? snapshot.previousClose
+      : null;
   }
 
   private chartPoints(prices: HistoryPoint[], y: (value: number) => number): ChartPoint[] {
@@ -160,8 +178,11 @@ export class MarketDataComponent {
     const offsets = prices.map((point, index) => {
       if (index) {
         const previous = prices[index - 1];
-        elapsed += this.timeframe() === '1Min' && point.session !== previous.session
-          ? 15 * 60_000 : point.time - previous.time;
+        const sessionGap = this.timeframe() === '6Hour' ? 6 * 60 * 60_000 : 15 * 60_000;
+        elapsed +=
+          this.intraday() && point.session !== previous.session
+            ? sessionGap
+            : point.time - previous.time;
       }
       return elapsed;
     });
@@ -173,19 +194,25 @@ export class MarketDataComponent {
   }
 
   private sessionBoundaries(points: ChartPoint[]) {
-    if (this.timeframe() !== '1Min') return [];
+    if (!this.intraday()) return [];
     return points.flatMap((point, index) => {
       if (!index || point.session === points[index - 1].session) return [];
-      return [{ x: (points[index - 1].x + point.x) / 2, previous: points[index - 1].session, next: point.session }];
+      return [
+        {
+          x: (points[index - 1].x + point.x) / 2,
+          previous: points[index - 1].session,
+          next: point.session,
+        },
+      ];
     });
   }
 
   private sessionLabels(points: ChartPoint[]) {
-    if (this.timeframe() !== '1Min') return [];
-    const sessions = [...new Set(points.map(point => point.session))];
-    return sessions.map(session => {
-      const first = points.find(point => point.session === session)!;
-      const last = points.filter(point => point.session === session).at(-1)!;
+    if (!this.intraday()) return [];
+    const sessions = [...new Set(points.map((point) => point.session))];
+    return sessions.map((session) => {
+      const first = points.find((point) => point.session === session)!;
+      const last = points.filter((point) => point.session === session).at(-1)!;
       return { date: session, x: Math.max(45, Math.min(455, (first.x + last.x) / 2)) };
     });
   }
@@ -273,8 +300,12 @@ export class MarketDataComponent {
     const current = this.inspectIndex() ?? points.length - 1;
     let next: number;
     switch (event.key) {
-      case 'Home': next = 0; break;
-      case 'End': next = points.length - 1; break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = points.length - 1;
+        break;
       default: {
         const direction = event.key === 'ArrowLeft' ? -1 : 1;
         next = Math.max(0, Math.min(points.length - 1, current + direction));
@@ -292,6 +323,37 @@ export class MarketDataComponent {
   }
   private sessionDate(timestamp: string): string {
     return timestamp ? this.dateFormatter.format(new Date(timestamp)) : '';
+  }
+  private smoothPath(points: { x: number; y: number }[]): string | null {
+    if (points.length < 2) return null;
+    const widths = points.slice(1).map((point, index) => point.x - points[index].x);
+    if (widths.some((width) => width <= 0)) return null;
+    const slopes = widths.map((width, index) => (points[index + 1].y - points[index].y) / width);
+    // Monotone interpolation: curves pass through samples without overshooting their prices.
+    const tangents = points.map((_, index) => {
+      if (index === 0) return slopes[0];
+      if (index === points.length - 1) return slopes[index - 1];
+      const before = slopes[index - 1],
+        after = slopes[index];
+      if (before * after <= 0) return 0;
+      const leftWeight = 2 * widths[index] + widths[index - 1];
+      const rightWeight = widths[index] + 2 * widths[index - 1];
+      return (leftWeight + rightWeight) / (leftWeight / before + rightWeight / after);
+    });
+    return (
+      `M${points[0].x},${points[0].y}` +
+      points
+        .slice(1)
+        .map((point, index) => {
+          const previous = points[index],
+            third = widths[index] / 3;
+          return (
+            ` C${previous.x + third},${previous.y + tangents[index] * third}` +
+            ` ${point.x - third},${point.y - tangents[index + 1] * third} ${point.x},${point.y}`
+          );
+        })
+        .join('')
+    );
   }
   private message(error: { error?: { message?: string } }, fallback: string): string {
     return typeof error.error?.message === 'string' ? error.error.message : fallback;

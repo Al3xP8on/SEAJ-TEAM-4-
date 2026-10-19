@@ -192,6 +192,7 @@ export class UsersService {
       name: dto.name ?? dto.username,
       passwordHash: await this.passwords.hash(dto.password),
       phone,
+      role: dto.role === 'ADMIN' ? 'ADMIN' : 'USER',
     };
   }
   async registerVerified(
@@ -214,8 +215,8 @@ export class UsersService {
           version: 0,
           createdOn: createdAt,
           lastUpdated: createdAt,
-          roles: 'USER',
-          role: 'USER',
+          roles: payload.role,
+          role: payload.role,
           status: 'ACTIVE',
           emailVerified: true,
         }),

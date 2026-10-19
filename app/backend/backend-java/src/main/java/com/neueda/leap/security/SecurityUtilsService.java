@@ -94,6 +94,15 @@ public class SecurityUtilsService {
             );
         }
     }
+
+    /** Checks routes that identify accounts by their database ID rather than ACC- identifier. */
+    public void validateAccountOwnershipById(Long targetAccountId) {
+        if (isAdmin()) return;
+        Account userAccount = getAuthenticatedUserAccount();
+        if (targetAccountId == null || !targetAccountId.equals(userAccount.getId())) {
+            throw new AuthorizationException("User does not have permission to access this account");
+        }
+    }
     
     /**
      * Validates that the authenticated user owns the account associated with the given order ID.

@@ -6,6 +6,7 @@ import {
   MaxLength,
   ValidateIf,
   Validate,
+  IsIn,
 } from 'class-validator';
 import { PasswordBytes } from './login.dto';
 export class RegisterDto {
@@ -25,4 +26,7 @@ export class RegisterDto {
     message: 'phone must be 7-20 characters: digits, spaces, dashes or brackets, with an optional leading +',
   })
   phone?: string;
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsIn(['USER', 'ADMIN'])
+  role?: 'USER' | 'ADMIN';
 }
