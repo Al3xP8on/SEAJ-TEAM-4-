@@ -114,7 +114,7 @@ FROM compliance_checks WHERE account_id = 'ACC-0002' ORDER BY checked_at DESC, i
 
 ## Admin compliance page
 
-Admins have a **Compliance** link in the header (`/admin/compliance`):
+Admins open **Admin dashboard** in the header, then the **Compliance** tab (`/admin/compliance`):
 
 - **Recent checks:** one row per order submission, newest first: when, account, the order, the decision
   (Blocked, Needs acknowledgement or Allowed), the reasons from the rules that flagged it (marked

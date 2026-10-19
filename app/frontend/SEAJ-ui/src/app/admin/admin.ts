@@ -15,12 +15,13 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Subscription, finalize } from 'rxjs';
 import { AccountRole, AuthService } from '../auth/auth.service';
+import { AdminTabsComponent } from './admin-tabs/admin-tabs';
 import { accountIdFromToken } from '../dashboard/dashboard.service';
 import { AccountDetails, AccountStatus, AccountStatusHistory, AdminAccount, AdminService } from './admin.service';
 
 @Component({
   selector: 'app-admin',
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, FormsModule, RouterLink],
+  imports: [AdminTabsComponent, CurrencyPipe, DatePipe, DecimalPipe, FormsModule, RouterLink],
   templateUrl: './admin.html',
   styleUrl: './admin.css',
 })

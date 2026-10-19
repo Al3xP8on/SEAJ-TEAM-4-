@@ -3,6 +3,7 @@ import { Component, DestroyRef, ElementRef, inject, signal } from '@angular/core
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule, NgForm } from '@angular/forms';
 import { finalize } from 'rxjs';
+import { AdminTabsComponent } from '../admin-tabs/admin-tabs';
 import {
   AccountRiskProfile,
   ComplianceAdminService,
@@ -54,7 +55,7 @@ export const RISK_PROFILES: { value: RiskProfile; label: string; limits: string 
  */
 @Component({
   selector: 'app-compliance-admin',
-  imports: [CurrencyPipe, DatePipe, FormsModule],
+  imports: [AdminTabsComponent, CurrencyPipe, DatePipe, FormsModule],
   templateUrl: './compliance-admin.html',
   styleUrls: ['../admin.css', './compliance-admin.css'],
 })

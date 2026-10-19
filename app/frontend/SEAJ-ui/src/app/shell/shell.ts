@@ -27,7 +27,6 @@ import {
   lucideLayoutDashboard,
   lucideLogOut,
   lucideSettings,
-  lucideShieldCheck,
 } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 
@@ -36,7 +35,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
   selector: 'app-shell',
   imports: [RouterLink, RouterLinkActive, RouterOutlet, NgIcon, HlmButton],
   providers: [
-    provideIcons({ lucideArrowLeftRight, lucideLayoutDashboard, lucideLogOut, lucideSettings, lucideShieldCheck }),
+    provideIcons({ lucideArrowLeftRight, lucideLayoutDashboard, lucideLogOut, lucideSettings }),
   ],
   templateUrl: './shell.html',
   styleUrl: './shell.css',

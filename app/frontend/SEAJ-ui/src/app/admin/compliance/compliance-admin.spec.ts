@@ -2,6 +2,7 @@
 // removing restricted instruments, including the two-step removal and where focus goes.
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { ComplianceAdminComponent } from './compliance-admin';
 import {
@@ -89,7 +90,7 @@ describe('Compliance admin page', () => {
     service.riskProfiles.mockReturnValue(of([brian, carla]));
     await TestBed.configureTestingModule({
       imports: [ComplianceAdminComponent],
-      providers: [{ provide: ComplianceAdminService, useValue: service }],
+      providers: [provideRouter([]), { provide: ComplianceAdminService, useValue: service }],
     }).compileComponents();
   });
 
