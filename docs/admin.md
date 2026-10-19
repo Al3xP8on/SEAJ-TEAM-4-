@@ -1,5 +1,7 @@
 # Admin account management
 
+Admins also have a **Compliance** page (`/admin/compliance`) for the pre-trade compliance audit trail and the restricted list. See [compliance.md](compliance.md).
+
 After login, admins land on `/admin`; regular users keep the personal overview at `/dashboard`. The shared navigation gives admins an **Admin dashboard**, **My portfolio**, and **Orders**. Normal users do not see administration, and cannot open the admin route or call its API.
 
 The dashboard supports searching by account holder, username, email or account ID, filtering account status, and viewing cash balances, holdings at cost and the selected account's complete order list. Account details load only when selected. Refreshing is manual; the page does not poll every account's portfolio.

@@ -28,6 +28,13 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         title: 'Account management | SEAJ Capital',
       },
+      {
+        path: 'admin/compliance',
+        loadComponent: () =>
+          import('./admin/compliance/compliance-admin').then((module) => module.ComplianceAdminComponent),
+        canActivate: [adminGuard],
+        title: 'Compliance | SEAJ Capital',
+      },
       { path: 'order', component: OrdersComponent },
       { path: 'blotter', component: OrdersComponent },
     ],

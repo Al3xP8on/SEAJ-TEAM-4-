@@ -90,7 +90,7 @@ docker exec -i seaj_postgres_db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < inf
 
 It's safe to run more than once.
 
-Until there are admin screens, manage the list and profiles in SQL:
+Manage the restricted list on the admin **Compliance** page (below). Risk profiles are still set in SQL:
 
 ```sql
 INSERT INTO restricted_instruments (symbol, reason, added_by) VALUES ('META', 'pending corporate action', 'jay');
@@ -110,6 +110,29 @@ FROM compliance_checks WHERE account_id = 'ACC-0002' ORDER BY checked_at DESC, i
    behind the decision in `details`.
 3. Read only from the `OrderContext`. Rules must not query the database or change anything.
 4. Add tests next to `ComplianceRulesTest`.
+
+## Admin compliance page
+
+Admins have a **Compliance** link in the header (`/admin/compliance`):
+
+- **Recent checks:** one row per order submission, newest first: when, account, the order, the decision
+  (Blocked, Needs acknowledgement or Allowed), the reasons from the rules that flagged it (marked
+  *acknowledged* where the customer confirmed a warning), and whether an order was placed. Filter by decision,
+  account ID or symbol.
+- **Restricted list:** every restricted instrument with the reason customers see, and who added it and when.
+  Add one (symbol and reason), or remove one (asks for confirmation first). Changes take effect on the next order.
+
+This is the brief's showcase: try to buy TSLA as a customer, then open **Compliance** as an admin and show the
+blocked row with its reason.
+
+API, admin only (`ROLE_ADMIN`; customers get 403):
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/v1/admin/compliance/checks?decision=&accountId=&symbol=&limit=` | Newest submissions with every rule's result (`limit` up to 200, default 50) |
+| `GET /api/v1/admin/compliance/restricted` | The restricted list, with instrument names |
+| `POST /api/v1/admin/compliance/restricted` | `{"symbol":"META","reason":"…"}`. 404 if the instrument doesn't exist, 409 if already restricted. Recorded in the admin's name. |
+| `DELETE /api/v1/admin/compliance/restricted/{symbol}` | Remove a restriction (404 if it isn't restricted) |
 
 ## Audit events and metrics
 
@@ -156,7 +179,6 @@ Code: `orders.ts` (`compliance`, `complianceStop()`), `orders.html`, `order-tick
 ## Still to come
 
 - **Preview at the review step,** so warnings show before Confirm rather than after (a dry-run endpoint)
-- **The checks on the order timeline,** and an **admin compliance page** (the admin dashboard at `/admin` is
-  the natural home)
+- **The checks on the order timeline,** so customers can see why an order of theirs was stopped
 - **Admin override** of a block, recorded in `overridden_by` and `override_reason`
-- **Admin endpoints** for the restricted list and risk profiles
+- **Risk profiles in the admin UI** (set in SQL for now)

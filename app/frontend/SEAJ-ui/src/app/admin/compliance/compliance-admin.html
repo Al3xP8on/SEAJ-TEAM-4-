@@ -1,0 +1,211 @@
+<main class="admin-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h1>Compliance</h1>
+      <p class="muted">Pre-trade checks on every order: what was stopped, by which rule and why.</p>
+    </div>
+    <div class="actions">
+      <button type="button" (click)="load()" [disabled]="loading()">
+        {{ loading() ? 'Refreshing…' : 'Refresh' }}
+      </button>
+    </div>
+  </header>
+
+  @if (notice()) {
+    <p class="notice" role="status">{{ notice() }}</p>
+  }
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  <section class="panel" aria-labelledby="checks-title">
+    <h2 id="checks-title">
+      Recent checks <span class="count">{{ submissions().length }}</span>
+    </h2>
+    <p class="muted">
+      One row per order submission, newest first. Blocked orders were never placed.
+    </p>
+
+    <form class="filters" (ngSubmit)="loadSubmissions()" aria-label="Filter checks">
+      <label
+        >Decision<select name="decision" [(ngModel)]="filters.decision">
+          <option value="">All decisions</option>
+          <option value="BLOCKED">Blocked</option>
+          <option value="NEEDS_ACKNOWLEDGEMENT">Needs acknowledgement</option>
+          <option value="ALLOWED">Allowed</option>
+        </select></label
+      >
+      <label
+        >Account ID<input name="accountId" [(ngModel)]="filters.accountId" placeholder="ACC-0002"
+      /></label>
+      <label>Symbol<input name="symbol" [(ngModel)]="filters.symbol" placeholder="TSLA" /></label>
+      <div class="filter-actions">
+        <button type="submit" class="primary" [disabled]="loading()">Apply</button>
+        <button type="button" (click)="clearFilters()" [disabled]="loading()">Clear</button>
+      </div>
+    </form>
+
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Compliance checks table">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">When</th>
+            <th scope="col">Account</th>
+            <th scope="col">Order</th>
+            <th scope="col">Decision</th>
+            <th scope="col">Reasons</th>
+            <th scope="col">Placed</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (submission of submissions(); track submission.checkGroupId) {
+            <tr>
+              <td>{{ submission.checkedAt | date: 'd MMM, HH:mm:ss' }}</td>
+              <td>{{ submission.accountId }}</td>
+              <td>
+                <strong
+                  >{{ submission.side === 'BUY' ? 'Buy' : 'Sell' }} {{ submission.quantity }}
+                  {{ submission.symbol }}</strong
+                >
+                <span class="muted subline">at {{ submission.price | currency }}</span>
+              </td>
+              <td>
+                <span
+                  class="decision"
+                  [class.blocked]="submission.decision === 'BLOCKED'"
+                  [class.waiting]="submission.decision === 'NEEDS_ACKNOWLEDGEMENT'"
+                  >{{ decisionLabels[submission.decision] }}</span
+                >
+              </td>
+              <td>
+                @if (flagged(submission).length) {
+                  <ul class="reasons">
+                    @for (result of flagged(submission); track result.rule) {
+                      <li>
+                        <strong>{{ ruleNames[result.rule] ?? result.rule }}</strong>
+                        ({{ result.outcome === 'BLOCK' ? 'block' : 'warning'
+                        }}{{ result.acknowledged ? ', acknowledged' : '' }}):
+                        {{ result.reason }}
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <span class="muted">All checks passed</span>
+                }
+              </td>
+              <td>{{ submission.orderId ? 'Yes' : 'No' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="empty">
+                {{ loading() ? 'Loading checks…' : 'No checks match these filters.' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="restricted-title">
+    <h2 id="restricted-title">
+      Restricted list <span class="count">{{ restricted().length }}</span>
+    </h2>
+    <p class="muted">Customers can't buy these instruments. They can still sell what they hold.</p>
+
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Restricted instruments table">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Instrument</th>
+            <th scope="col">Reason shown to customers</th>
+            <th scope="col">Added</th>
+            <th scope="col"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of restricted(); track entry.symbol) {
+            <tr>
+              <td>
+                <strong>{{ entry.symbol }}</strong>
+                <span class="muted subline">{{ entry.name }}</span>
+              </td>
+              <td>{{ entry.reason }}</td>
+              <td>
+                {{ entry.addedOn | date: 'd MMM y' }}
+                <span class="muted subline">by {{ entry.addedBy }}</span>
+              </td>
+              <td>
+                <div class="row-actions">
+                  @if (confirmingRemoval() === entry.symbol) {
+                    <button
+                      type="button"
+                      class="danger"
+                      [id]="'confirm-remove-' + entry.symbol"
+                      (click)="remove(entry.symbol)"
+                      [disabled]="saving()"
+                    >
+                      Confirm removing {{ entry.symbol }}
+                    </button>
+                    <button
+                      type="button"
+                      (click)="cancelRemoval(entry.symbol)"
+                      [disabled]="saving()"
+                    >
+                      Cancel
+                    </button>
+                  } @else {
+                    <button
+                      type="button"
+                      [id]="'remove-' + entry.symbol"
+                      (click)="remove(entry.symbol)"
+                      [disabled]="saving()"
+                      [attr.aria-label]="'Remove ' + entry.symbol + ' from the restricted list'"
+                    >
+                      Remove
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="empty">Nothing is restricted.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <form
+      #restrictForm="ngForm"
+      class="restrict-form"
+      (ngSubmit)="restrict(restrictForm)"
+      aria-labelledby="restrict-title"
+    >
+      <h3 id="restrict-title">Restrict an instrument</h3>
+      <label
+        >Symbol<input
+          id="restrict-symbol"
+          name="symbol"
+          [(ngModel)]="newSymbol"
+          maxlength="20"
+          autocomplete="off"
+          placeholder="META"
+          required
+      /></label>
+      <label class="reason"
+        >Reason shown to customers<input
+          name="reason"
+          [(ngModel)]="newReason"
+          maxlength="255"
+          placeholder="pending corporate action review"
+          required
+      /></label>
+      <button type="submit" class="primary" [disabled]="saving()">
+        {{ saving() ? 'Saving…' : 'Add to restricted list' }}
+      </button>
+    </form>
+  </section>
+</main>

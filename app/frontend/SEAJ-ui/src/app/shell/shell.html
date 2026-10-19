@@ -8,8 +8,16 @@
     </a>
     <nav class="main-nav" aria-label="Main navigation">
       @if (isAdmin) {
-        <a routerLink="/admin" routerLinkActive="active" ariaCurrentWhenActive="page">
+        <a
+          routerLink="/admin"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          ariaCurrentWhenActive="page"
+        >
           <ng-icon name="lucideLayoutDashboard" aria-hidden="true" />Admin dashboard
+        </a>
+        <a routerLink="/admin/compliance" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <ng-icon name="lucideShieldCheck" aria-hidden="true" />Compliance
         </a>
         <a routerLink="/portfolio" routerLinkActive="active" ariaCurrentWhenActive="page">
           <ng-icon name="lucideLayoutDashboard" aria-hidden="true" />My portfolio
