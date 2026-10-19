@@ -1,5 +1,15 @@
 # Defines the platform containers, networking, storage and runtime configuration.
 # Builds the authentication service with its login page and shared API contract.
+# OpenTelemetry settings shared by the Java services (agent baked into their images).
+# Telemetry is off unless .env sets OTEL_SDK_DISABLED=false, which goes with
+# COMPOSE_PROFILES=observability; without a collector the agent would log export errors.
+x-otel-java: &otel-java
+  JAVA_TOOL_OPTIONS: "-javaagent:/opt/otel/opentelemetry-javaagent.jar"
+  OTEL_SDK_DISABLED: "${OTEL_SDK_DISABLED:-true}"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+  OTEL_METRIC_EXPORT_INTERVAL: "15000"
+
 services:
   db:
     build:
@@ -28,6 +38,8 @@ services:
       - db
       - auth-service
     environment:
+      <<: *otel-java
+      OTEL_SERVICE_NAME: seaj-app
       SPRING_DATASOURCE_URL: "${SPRING_DATASOURCE_URL}"
       SPRING_DATASOURCE_USERNAME: "${SPRING_DATASOURCE_USERNAME}"
       SPRING_DATASOURCE_PASSWORD: "${SPRING_DATASOURCE_PASSWORD}"
@@ -76,6 +88,14 @@ services:
       DB_USER: "${POSTGRES_USER}"
       DB_PASSWORD: "${POSTGRES_PASSWORD}"
       DB_NAME: "${POSTGRES_DB}"
+      # Same telemetry switch and collector as the Java services (x-otel-java above)
+      OTEL_SDK_DISABLED: "${OTEL_SDK_DISABLED:-true}"
+      OTEL_SERVICE_NAME: seaj-auth-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_METRIC_EXPORT_INTERVAL: "15000"
+      # Name HTTP metrics as the Java agent does (http_server_request_duration_seconds), so one panel covers all three
+      OTEL_SEMCONV_STABILITY_OPT_IN: http
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
@@ -127,6 +147,8 @@ services:
       kafka:
         condition: service_healthy
     environment:
+      <<: *otel-java
+      OTEL_SERVICE_NAME: seaj-execution-engine
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
 
   sonarqube:
@@ -143,7 +165,117 @@ services:
       - sonarqube_data:/opt/sonarqube/data
       - sonarqube_logs:/opt/sonarqube/logs
 
+  otel-collector:
+    profiles: ["observability"]
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    container_name: seaj_otel_collector
+    mem_limit: 512m   # above the collector's own 400 MiB memory_limiter
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./infra/observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC (services running outside Docker)
+      - "4318:4318"   # OTLP HTTP (browser / Angular)
+    depends_on:
+      - tempo
+      - loki
+
+  # Tempo runs as uid 10001; fix ownership of its data volume before it starts.
+  tempo-init:
+    profiles: ["observability"]
+    image: grafana/tempo:2.6.0
+    container_name: seaj_tempo_init
+    mem_limit: 32m
+    user: root
+    entrypoint: ["chown", "10001:10001", "/var/tempo"]
+    volumes:
+      - tempo_data:/var/tempo
+
+  tempo:
+    profiles: ["observability"]
+    image: grafana/tempo:2.6.0
+    container_name: seaj_tempo
+    # 384m left it pinned at the limit under normal app traffic (the dashboard polls every 2 s)
+    mem_limit: 512m
+    # Go doesn't see the container limit; this makes it collect garbage before hitting it
+    environment:
+      GOMEMLIMIT: 440MiB
+    restart: on-failure
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./infra/observability/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    depends_on:
+      tempo-init:
+        condition: service_completed_successfully
+
+  loki:
+    profiles: ["observability"]
+    image: grafana/loki:3.2.0
+    container_name: seaj_loki
+    mem_limit: 256m
+    environment:
+      GOMEMLIMIT: 210MiB
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./infra/observability/loki.yaml:/etc/loki/config.yaml:ro
+      - loki_data:/loki
+
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:v2.54.1
+    container_name: seaj_prometheus
+    mem_limit: 384m
+    environment:
+      GOMEMLIMIT: 320MiB
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-remote-write-receiver   # Tempo pushes service-graph / span metrics here
+      - --enable-feature=exemplar-storage    # metric -> trace jumps in Grafana
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "8086:9090"
+
+  kafka-exporter:
+    profiles: ["observability"]
+    image: danielqsj/kafka-exporter:v1.8.0
+    container_name: seaj_kafka_exporter
+    mem_limit: 64m
+    command: ["--kafka.server=kafka:9092"]
+    restart: on-failure
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  grafana:
+    profiles: ["observability"]
+    image: grafana/grafana:11.2.2
+    container_name: seaj_grafana
+    mem_limit: 256m
+    environment:
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
+      GF_FEATURE_TOGGLES_ENABLE: "traceqlEditor"
+    volumes:
+      - ./infra/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "8084:3000"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+
 volumes:
   pgdata_volume:
   sonarqube_data:
   sonarqube_logs:
+  tempo_data:
+  loki_data:
+  prometheus_data:
+  grafana_data:

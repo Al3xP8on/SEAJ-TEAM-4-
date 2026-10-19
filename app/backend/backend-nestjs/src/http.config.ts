@@ -4,6 +4,7 @@ import {
   Catch,
   HttpException,
   HttpStatus,
+  Logger,
   ValidationPipe,
 } from '@nestjs/common';
 import type {
@@ -14,9 +15,17 @@ import type {
 import type { Response } from 'express';
 @Catch()
 export class ApiErrorFilter implements ExceptionFilter {
+  private readonly logger = new Logger('ApiErrorFilter');
   catch(exception: unknown, host: ArgumentsHost): void {
     const statusCode =
       exception instanceof HttpException ? exception.getStatus() : 500;
+    // Clients get a generic message, so keep the real cause in the logs
+    if (statusCode >= 500) {
+      this.logger.error(
+        exception instanceof Error ? exception.message : 'Unexpected error',
+        exception instanceof Error ? exception.stack : undefined,
+      );
+    }
     const details =
       exception instanceof HttpException ? exception.getResponse() : undefined;
     const message =

@@ -4,6 +4,7 @@ import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.models.Order;
 import com.neueda.leap.models.OrderHistory;
+import com.neueda.leap.observability.OrderTelemetry;
 import com.neueda.leap.enums.OrderSide;
 import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.enums.OrderErrorCode;
@@ -114,6 +115,7 @@ public class OrderService {
         order.setStatus(OrderStatus.PENDING);
         orderRepository.save(order);
         recordOrderHistory(order.getId(), OrderStatus.PENDING);
+        OrderTelemetry.placed(order);
         outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_ACCEPTED, null);
         outbox.command(order, "SUBMIT");
         return order;
@@ -182,6 +184,7 @@ public class OrderService {
 
         Order cancelledOrder = orderRepository.save(order);
         recordOrderHistory(orderId, OrderStatus.CANCELLED);
+        OrderTelemetry.cancelled(cancelledOrder);
         outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_CANCELLED, "Cancelled by account user or administrator.");
         outbox.command(order, "CANCEL");
 
@@ -200,6 +203,7 @@ public class OrderService {
         OrderHistory entry = new OrderHistory(orderId, OrderStatus.REJECTED);
         entry.setReason(reason);
         orderHistoryRepository.save(entry);
+        OrderTelemetry.rejected(rejectedOrder, OrderTelemetry.RejectStage.ADMIN);
         outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_REJECTED, reason);
         outbox.command(order, "REJECT");
 

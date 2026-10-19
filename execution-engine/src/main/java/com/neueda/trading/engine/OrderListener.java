@@ -3,6 +3,8 @@ package com.neueda.trading.engine;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neueda.trading.enums.EventType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -15,6 +17,9 @@ import java.util.concurrent.TimeUnit;
 /** Single local engine: Kafka commands and quotes are serialised against the resting book. */
 @Component
 public class OrderListener {
+    // Logs each decision once, linked to the order's trace by the OpenTelemetry agent. Account ids are
+    // left out, matching how the trade API masks them; quotes aren't logged, as they arrive constantly.
+    private static final Logger log = LoggerFactory.getLogger(OrderListener.class);
     private final LiveMarket market;
     private final KafkaTemplate<String, String> kafka;
     private final ObjectMapper mapper;
@@ -45,16 +50,23 @@ public class OrderListener {
     public synchronized void onOrder(String message) throws JsonProcessingException {
         OrderEvent order = mapper.readValue(message, OrderEvent.class);
         if (!order.action().equals("SUBMIT")) {
+            boolean wasResting = pending.containsKey(order.orderId());
             remove(order);
             completed.put(order.orderId(), null);
+            log.info("Order {} orderId={} symbol={} wasResting={}", order.action().toLowerCase(Locale.ROOT),
+                    order.orderId(), safe(order.symbol()), wasResting);
             return;
         }
         if (completed.containsKey(order.orderId())) {
             var fill = completed.get(order.orderId());
+            log.debug("Duplicate order command orderId={} alreadyFilled={}", order.orderId(), fill != null);
             if (fill != null) report(order, fill);
             return;
         }
         if (!pending.containsKey(order.orderId())) {
+            log.info("Order received orderId={} symbol={} side={} type={} quantity={} limitPrice={}",
+                    order.orderId(), safe(order.symbol()), order.side(), order.orderType(), order.quantity(),
+                    order.orderType().equals("LIMIT") ? order.price() : null);
             emit(order, EventType.ORDER_RECEIVED, null, Map.of(), UUID.randomUUID());
             pending.put(order.orderId(), order);
             bySymbol.computeIfAbsent(order.symbol(), ignored -> new LinkedHashSet<>()).add(order.orderId());
@@ -92,13 +104,19 @@ public class OrderListener {
                     details.put("bidPrice", decision.quote().bid());
                     details.put("askPrice", decision.quote().ask());
                 }
+                log.info("Order waiting orderId={} symbol={} reason={} bid={} ask={}", order.orderId(),
+                        safe(order.symbol()), decision.reason(), details.get("bidPrice"), details.get("askPrice"));
                 emit(order, EventType.ORDER_WAITING, decision.reason(), details, UUID.randomUUID());
                 waitingReasons.put(order.orderId(), decision.reason());
             }
             return;
         }
         completed.put(order.orderId(), decision.fill());
-        report(order, decision.fill());
+        ExecutionEvent fill = decision.fill();
+        log.info("Order filled orderId={} executionId={} symbol={} side={} quantity={} price={} venue={}",
+                order.orderId(), fill.executionId(), safe(order.symbol()), order.side(), fill.quantity(),
+                fill.price(), fill.venue());
+        report(order, fill);
     }
 
     private void report(OrderEvent order, ExecutionEvent fill) {
@@ -150,8 +168,14 @@ public class OrderListener {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Kafka delivery interrupted", error);
         } catch (Exception error) {
-            throw new IllegalStateException("Kafka delivery failed; order will retry", error);
+            // The error handler logs the failure with its stack trace and retries; this adds which topic
+            throw new IllegalStateException("Kafka delivery to " + topic + " failed; order will retry", error);
         }
+    }
+
+    /** Symbols come from Kafka messages; strip line breaks so they can't forge extra log lines */
+    private static String safe(String value) {
+        return value == null ? null : value.replaceAll("[\\r\\n\\t]", "_");
     }
     private BigDecimal decimal(com.fasterxml.jackson.databind.JsonNode value) {
         return value.isNumber() || value.isTextual() ? new BigDecimal(value.asText()) : null;
