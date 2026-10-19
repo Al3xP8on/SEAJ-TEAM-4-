@@ -1,82 +1,125 @@
 <!-- Presents registration, username login and six-digit email verification in Angular.
-     Uses the existing page styling and displays safe status messages without exposing tokens. -->
+     Displays safe status messages without exposing tokens. -->
 <header>
-  <div class="brand-lockup">
-    <a class="logo-link" routerLink="/" aria-label="Go to SEAJ Capital landing page">
+  <div class="header-inner">
+    <a class="brand" routerLink="/" aria-label="SEAJ Capital, home">
       <img class="site-logo logo-light" src="seaj-capital-logo.png" alt="" />
       <img class="site-logo logo-dark" src="seaj-capital-logo-white.png" alt="" />
+      <span class="brand-name" aria-hidden="true">SEAJ Capital</span>
+    </a>
+    <a hlmBtn variant="ghost" class="home-link" routerLink="/">
+      <ng-icon name="lucideArrowLeft" aria-hidden="true" />Back to home
     </a>
   </div>
-  <span class="brand-title">SEAJ Capital</span>
-  <nav>
-    <a class="nav-btn" routerLink="/">Back to Landing</a>
-  </nav>
 </header>
 
 <main>
-  <div class="login-container">
-
+  <section hlmCard class="auth-card" aria-labelledby="auth-title">
     @if (view() === 'login') {
-      <h2>Login</h2>
-      <form (ngSubmit)="onLogin()" novalidate>
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input id="username" type="text" [(ngModel)]="username" name="username"
-            placeholder="Enter your username" />
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input id="password" type="password" [(ngModel)]="password" name="password"
-            placeholder="Enter your password" />
-        </div>
-        <p class="message" [class]="loginMessageType()">{{ loginMessage() }}</p>
-        <button type="submit" class="submit-btn" [disabled]="loginLoading()">Login</button>
-      </form>
-      <button class="toggle-btn" (click)="showView('register')" [disabled]="loginLoading()">New Customer?</button>
+      <div hlmCardHeader>
+        <h1 hlmCardTitle id="auth-title" tabindex="-1">Log in</h1>
+        <p hlmCardDescription>Welcome back.</p>
+      </div>
+      <div hlmCardContent>
+        <form (ngSubmit)="onLogin()" novalidate>
+          <div hlmField class="field">
+            <label hlmLabel for="username">Username</label>
+            <input hlmInput id="username" type="text" name="username" autocomplete="username"
+              [(ngModel)]="username" [aria-describedby]="loginMessage() ? 'login-message' : null" />
+          </div>
+          <div hlmField class="field">
+            <label hlmLabel for="password">Password</label>
+            <div class="password">
+              <input hlmInput id="password" name="password" autocomplete="current-password"
+                [type]="showLoginPassword() ? 'text' : 'password'" [(ngModel)]="password"
+                [aria-describedby]="loginMessage() ? 'login-message' : null" />
+              <button type="button" hlmBtn variant="ghost" size="icon-sm" class="reveal"
+                [attr.aria-pressed]="showLoginPassword()" (click)="showLoginPassword.set(!showLoginPassword())">
+                <ng-icon [name]="showLoginPassword() ? 'lucideEyeOff' : 'lucideEye'" aria-hidden="true" />
+                <span class="sr-only">Show password</span>
+              </button>
+            </div>
+          </div>
+          <p id="login-message" class="message" [class]="loginMessageType()" role="status">{{ loginMessage() }}</p>
+          <button type="submit" hlmBtn class="submit hover:bg-(--primary-hover)" [disabled]="loginLoading()">Log in</button>
+        </form>
+        <p class="switch">
+          New to SEAJ Capital?
+          <button type="button" hlmBtn variant="link" class="switch-link" (click)="showView('register')"
+            [disabled]="loginLoading()">Create an account</button>
+        </p>
+      </div>
     }
 
     @if (view() === 'register') {
-      <h2>Create Account</h2>
-      <div class="form-group">
-        <label for="regUsername">Username</label>
-        <input id="regUsername" type="text" [(ngModel)]="regUsername" name="regUsername"
-          placeholder="Choose a username" />
+      <div hlmCardHeader>
+        <h1 hlmCardTitle id="auth-title" tabindex="-1">Create an account</h1>
+        <p hlmCardDescription>It takes a minute. We'll email you a code to confirm it's you.</p>
       </div>
-      <div class="form-group">
-        <label for="regPassword">Password</label>
-        <input id="regPassword" type="password" [(ngModel)]="regPassword" name="regPassword"
-          placeholder="Enter a strong password" />
+      <div hlmCardContent>
+        <form (ngSubmit)="onRegister()" novalidate>
+          <div hlmField class="field">
+            <label hlmLabel for="regUsername">Username</label>
+            <input hlmInput id="regUsername" type="text" name="regUsername" autocomplete="username"
+              maxlength="100" [(ngModel)]="regUsername" />
+            <p hlmFieldDescription id="regUsername-hint" class="hint">3 to 100 characters.</p>
+          </div>
+          <div hlmField class="field">
+            <label hlmLabel for="regEmail">Email</label>
+            <input hlmInput id="regEmail" type="email" name="regEmail" autocomplete="email" required
+              maxlength="255" [(ngModel)]="regEmail" />
+          </div>
+          <div hlmField class="field">
+            <label hlmLabel for="regPassword">Password</label>
+            <div class="password">
+              <input hlmInput id="regPassword" name="regPassword" autocomplete="new-password"
+                [type]="showRegisterPassword() ? 'text' : 'password'" [(ngModel)]="regPassword" />
+              <button type="button" hlmBtn variant="ghost" size="icon-sm" class="reveal"
+                [attr.aria-pressed]="showRegisterPassword()" (click)="showRegisterPassword.set(!showRegisterPassword())">
+                <ng-icon [name]="showRegisterPassword() ? 'lucideEyeOff' : 'lucideEye'" aria-hidden="true" />
+                <span class="sr-only">Show password</span>
+              </button>
+            </div>
+            <p hlmFieldDescription id="regPassword-hint" class="hint">At least 8 characters.</p>
+          </div>
+          <div hlmField class="field">
+            <label hlmLabel for="regPhone">Phone <span class="optional">(optional)</span></label>
+            <input hlmInput id="regPhone" type="tel" name="regPhone" autocomplete="tel"
+              [(ngModel)]="regPhone" placeholder="+353 85 456 7891" />
+          </div>
+          <p id="register-message" class="message" [class]="registerMessageType()" role="status">{{ registerMessage() }}</p>
+          <button type="submit" hlmBtn class="submit hover:bg-(--primary-hover)" [disabled]="registerLoading()">Create account</button>
+        </form>
+        <p class="switch">
+          Already have an account?
+          <button type="button" hlmBtn variant="link" class="switch-link" (click)="showView('login')"
+            [disabled]="registerLoading()">Log in</button>
+        </p>
       </div>
-      <div class="form-group">
-        <label for="regEmail">Email</label>
-        <input id="regEmail" type="email" [(ngModel)]="regEmail" name="regEmail" required maxlength="255"
-          placeholder="your@email.com" />
-      </div>
-      <div class="form-group">
-        <label for="regPhone">Phone (optional)</label>
-        <input id="regPhone" type="tel" [(ngModel)]="regPhone" name="regPhone"
-          placeholder="+353-85-456-7891" />
-      </div>
-      <p class="message" [class]="registerMessageType()">{{ registerMessage() }}</p>
-      <button class="submit-btn" (click)="onRegister()" [disabled]="registerLoading()">Create Account</button>
-      <button class="toggle-btn" (click)="showView('login')" [disabled]="registerLoading()">Back to Login</button>
     }
 
     @if (view() === 'verify') {
-      <h2>Verify your email</h2>
-      <form (ngSubmit)="onVerify()" novalidate>
-        <p class="message" role="status">{{ verificationMessage() }}</p>
-        <div class="form-group">
-          <label for="verificationCode">Six-digit verification code</label>
-          <input id="verificationCode" name="verificationCode" [(ngModel)]="code"
-            type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" />
-        </div>
-        <button type="submit" class="submit-btn" [disabled]="verificationLoading()">Verify code</button>
-      </form>
-      <button type="button" class="toggle-btn" (click)="cancelVerification()">Cancel and start again</button>
+      <div hlmCardHeader>
+        <h1 hlmCardTitle id="auth-title" tabindex="-1">Check your email</h1>
+        <p id="verify-message" hlmCardDescription role="status">{{ verificationMessage() }}</p>
+      </div>
+      <div hlmCardContent>
+        <form (ngSubmit)="onVerify()" novalidate>
+          <div hlmField class="field">
+            <label hlmLabel for="verificationCode">Six-digit code</label>
+            <input hlmInput id="verificationCode" name="verificationCode" class="code" [(ngModel)]="code"
+              type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}"
+              aria-describedby="verify-message" />
+          </div>
+          <button type="submit" hlmBtn class="submit hover:bg-(--primary-hover)" [disabled]="verificationLoading()">Verify</button>
+        </form>
+        <p class="switch">
+          Didn't get it?
+          <button type="button" hlmBtn variant="link" class="switch-link" (click)="cancelVerification()">Start again</button>
+        </p>
+      </div>
     }
-
-  </div>
+  </section>
 </main>
 
 <footer>

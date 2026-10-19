@@ -1,0 +1,138 @@
+:host {
+  display: block;
+}
+
+/* A browser window in the app's own theme, so it previews light or dark mode as chosen */
+.window {
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 60px #00000059;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.light {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.address {
+  margin-left: 10px;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.body {
+  padding: 20px 22px 16px;
+}
+
+.summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+p {
+  margin: 0;
+}
+
+.label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.total {
+  font-size: 1.9rem;
+  font-weight: 650;
+  letter-spacing: -0.8px;
+  margin: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.change,
+.move {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--positive);
+}
+
+.move.down {
+  color: var(--destructive);
+}
+
+.periods {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.periods span {
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+
+.periods .on {
+  background: var(--card);
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  height: 120px;
+  margin: 14px 0 10px;
+}
+
+.line {
+  fill: none;
+  stroke: var(--positive);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.area {
+  fill: var(--positive);
+  opacity: 0.12;
+}
+
+.holdings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.holdings li {
+  display: grid;
+  grid-template-columns: 1fr auto 80px;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+}
+
+.holdings .move {
+  justify-content: flex-end;
+}

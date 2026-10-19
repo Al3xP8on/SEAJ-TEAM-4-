@@ -101,6 +101,7 @@ public class SecurityConfig {
                         .requestMatchers("/public", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/v1/accounts").permitAll()  // Allow public account signup
                         .requestMatchers(HttpMethod.POST, "/v1/accounts/login", "/v1/accounts/login/verify", "/v1/accounts/register/verify").permitAll()  // Allow public login
+                        .requestMatchers(HttpMethod.GET, "/v1/market-data/ticker").permitAll()  // Landing page ticker: public prices only, no account data
                         .anyRequest().authenticated())
                 .oauth2ResourceServer((OAuth2ResourceServerConfigurer<HttpSecurity> oauth2) ->
                         oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(authenticationConverter)));
