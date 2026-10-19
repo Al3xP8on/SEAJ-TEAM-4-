@@ -27,6 +27,15 @@ export interface RestrictedInstrument {
   addedBy: string;
   addedOn: string;
 }
+export type RiskProfile = 'CONSERVATIVE' | 'BALANCED' | 'AGGRESSIVE';
+export interface AccountRiskProfile {
+  id: number;
+  accountId: string;
+  holderName: string;
+  username: string;
+  status: 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
+  riskProfile: RiskProfile;
+}
 export interface SubmissionFilters {
   decision: ComplianceDecision | '';
   accountId: string;
@@ -56,6 +65,14 @@ export class ComplianceAdminService {
       symbol: symbol.trim().toUpperCase(),
       reason: reason.trim(),
     });
+  }
+
+  riskProfiles() {
+    return this.http.get<AccountRiskProfile[]>(`${this.base}/risk-profiles`);
+  }
+
+  setRiskProfile(id: number, riskProfile: RiskProfile) {
+    return this.http.put<AccountRiskProfile>(`${this.base}/risk-profiles/${id}`, { riskProfile });
   }
 
   unrestrict(symbol: string) {

@@ -4,11 +4,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule, NgForm } from '@angular/forms';
 import { finalize } from 'rxjs';
 import {
+  AccountRiskProfile,
   ComplianceAdminService,
   ComplianceDecision,
   ComplianceResult,
   ComplianceSubmission,
   RestrictedInstrument,
+  RiskProfile,
   SubmissionFilters,
 } from './compliance-admin.service';
 
@@ -27,6 +29,25 @@ export const DECISION_LABELS: Record<ComplianceDecision, string> = {
   ALLOWED: 'Allowed',
 };
 
+/** What each profile allows, in the words shown to admins (limits from RiskProfile.java) */
+export const RISK_PROFILES: { value: RiskProfile; label: string; limits: string }[] = [
+  {
+    value: 'CONSERVATIVE',
+    label: 'Conservative',
+    limits: 'Warns above 10% in one stock, blocks above 20%. Blocks orders over $5,000.',
+  },
+  {
+    value: 'BALANCED',
+    label: 'Balanced',
+    limits: 'Warns above 25% in one stock, blocks above 50%. Warns on orders over $25,000.',
+  },
+  {
+    value: 'AGGRESSIVE',
+    label: 'Aggressive',
+    limits: 'Warns above 40% in one stock, blocks above 80%. No order size limit.',
+  },
+];
+
 /**
  * Admin compliance page: who was stopped, by which rule and why (the audit trail), and the
  * restricted list customers can't buy from.
@@ -43,6 +64,7 @@ export class ComplianceAdminComponent {
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
 
   readonly ruleNames = RULE_NAMES;
+  readonly profiles = RISK_PROFILES;
   readonly decisionLabels = DECISION_LABELS;
 
   readonly submissions = signal<ComplianceSubmission[]>([]);
@@ -51,6 +73,9 @@ export class ComplianceAdminComponent {
   readonly saving = signal(false);
   readonly error = signal('');
   readonly notice = signal('');
+  readonly accounts = signal<AccountRiskProfile[]>([]);
+  /** Profiles chosen in the dropdowns but not saved yet, by account id */
+  readonly drafts = signal<Record<number, RiskProfile>>({});
   /** Symbol whose removal is waiting for a second click */
   readonly confirmingRemoval = signal<string | null>(null);
 
@@ -71,6 +96,16 @@ export class ComplianceAdminComponent {
       .subscribe({
         next: (list) => this.restricted.set(list),
         error: () => this.error.set('Could not load the restricted list. Please retry.'),
+      });
+    this.service
+      .riskProfiles()
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (list) => {
+          this.accounts.set(list);
+          this.drafts.set({});
+        },
+        error: () => this.error.set('Could not load risk profiles. Please retry.'),
       });
     this.loadSubmissions();
   }
@@ -157,6 +192,51 @@ export class ComplianceAdminComponent {
         },
         error: (error) =>
           this.error.set(error?.error?.message ?? `Could not remove ${symbol}. Please retry.`),
+      });
+  }
+
+  profileLabel(profile: RiskProfile): string {
+    return RISK_PROFILES.find((p) => p.value === profile)?.label ?? profile;
+  }
+
+  /** The profile shown in an account's dropdown: the unsaved choice, or the saved one */
+  chosen(account: AccountRiskProfile): RiskProfile {
+    return this.drafts()[account.id] ?? account.riskProfile;
+  }
+
+  choose(account: AccountRiskProfile, profile: RiskProfile): void {
+    this.drafts.update((drafts) => {
+      const next = { ...drafts };
+      if (profile === account.riskProfile) delete next[account.id];
+      else next[account.id] = profile;
+      return next;
+    });
+  }
+
+  saveProfile(account: AccountRiskProfile): void {
+    const profile = this.drafts()[account.id];
+    if (!profile || this.saving()) return;
+    this.saving.set(true);
+    this.error.set('');
+    this.notice.set('');
+    this.service
+      .setRiskProfile(account.id, profile)
+      .pipe(
+        finalize(() => this.saving.set(false)),
+        takeUntilDestroyed(this.destroy),
+      )
+      .subscribe({
+        next: (updated) => {
+          this.accounts.update((list) => list.map((a) => (a.id === updated.id ? updated : a)));
+          this.choose(updated, updated.riskProfile);
+          this.notice.set(
+            `${updated.holderName}'s risk profile is now ${this.profileLabel(updated.riskProfile)}. It applies from their next order.`,
+          );
+        },
+        error: (error) =>
+          this.error.set(
+            error?.error?.message ?? 'Could not change the risk profile. Please retry.',
+          ),
       });
   }
 

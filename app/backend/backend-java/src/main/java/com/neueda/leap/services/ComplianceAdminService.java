@@ -2,11 +2,16 @@ package com.neueda.leap.services;
 
 import com.neueda.leap.compliance.ComplianceDecision;
 import com.neueda.leap.compliance.ComplianceOutcome;
+import com.neueda.leap.dtos.AccountRiskProfileResponse;
 import com.neueda.leap.dtos.ComplianceSubmissionResponse;
 import com.neueda.leap.dtos.RestrictedInstrumentResponse;
+import com.neueda.leap.enums.AccountStatus;
+import com.neueda.leap.enums.RiskProfile;
+import com.neueda.leap.models.Account;
 import com.neueda.leap.models.ComplianceCheck;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.models.RestrictedInstrument;
+import com.neueda.leap.repositories.AccountRepository;
 import com.neueda.leap.repositories.ComplianceCheckRepository;
 import com.neueda.leap.repositories.InstrumentsRepository;
 import com.neueda.leap.repositories.RestrictedInstrumentRepository;
@@ -35,12 +40,14 @@ public class ComplianceAdminService {
     private final ComplianceCheckRepository checks;
     private final RestrictedInstrumentRepository restricted;
     private final InstrumentsRepository instruments;
+    private final AccountRepository accounts;
 
     public ComplianceAdminService(ComplianceCheckRepository checks, RestrictedInstrumentRepository restricted,
-                                  InstrumentsRepository instruments) {
+                                  InstrumentsRepository instruments, AccountRepository accounts) {
         this.checks = checks;
         this.restricted = restricted;
         this.instruments = instruments;
+        this.accounts = accounts;
     }
 
     /** The newest submissions first, each with every rule's result */
@@ -83,6 +90,33 @@ public class ComplianceAdminService {
         }
         restricted.deleteById(normalized);
         logger.info("Restricted list: {} removed by {}", normalized, adminUsername);
+    }
+
+    /** Every account and its risk profile, by holder name */
+    public List<AccountRiskProfileResponse> riskProfiles() {
+        return accounts.findAll().stream()
+                .sorted(Comparator.comparing(Account::getName, String.CASE_INSENSITIVE_ORDER))
+                .map(AccountRiskProfileResponse::from)
+                .toList();
+    }
+
+    /**
+     * Changes the limits the compliance rules apply to an account, from its next order. Holds the
+     * account row lock used by order placement, so an order in flight sees either the old or new profile.
+     */
+    @Transactional
+    public AccountRiskProfileResponse setRiskProfile(Long id, RiskProfile profile, String adminUsername) {
+        Account account = accounts.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
+        if (account.getStatus() == AccountStatus.CLOSED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Closed accounts can't be changed.");
+        }
+        RiskProfile previous = account.getRiskProfile();
+        account.setRiskProfile(profile);
+        accounts.save(account);
+        logger.info("Risk profile for account {} changed from {} to {} by {}",
+                com.neueda.leap.utils.LogMaskingUtil.maskAccountId(account.getAccountId()), previous, profile, adminUsername);
+        return AccountRiskProfileResponse.from(account);
     }
 
     private String instrumentName(String symbol) {

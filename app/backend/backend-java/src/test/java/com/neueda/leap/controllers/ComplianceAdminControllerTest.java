@@ -140,6 +140,33 @@ class ComplianceAdminControllerTest {
         verify(compliance).unrestrict("TSLA", "admin");
     }
 
+    @Test void customersCannotChangeRiskProfiles() throws Exception {
+        mvc.perform(put("/v1/admin/compliance/risk-profiles/2").header("Authorization", token(2, "USER"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"riskProfile\":\"AGGRESSIVE\"}"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(compliance);
+    }
+
+    @Test void adminChangesARiskProfileInTheirOwnName() throws Exception {
+        when(compliance.setRiskProfile(2L, com.neueda.leap.enums.RiskProfile.CONSERVATIVE, "admin")).thenReturn(
+                new com.neueda.leap.dtos.AccountRiskProfileResponse(2L, "ACC-0002", "customer", "customer",
+                        AccountStatus.ACTIVE, com.neueda.leap.enums.RiskProfile.CONSERVATIVE));
+        mvc.perform(put("/v1/admin/compliance/risk-profiles/2").header("Authorization", token(1, "ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"riskProfile\":\"CONSERVATIVE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.riskProfile").value("CONSERVATIVE"));
+    }
+
+    @Test void riskProfileMustBeAKnownValue() throws Exception {
+        mvc.perform(put("/v1/admin/compliance/risk-profiles/2").header("Authorization", token(1, "ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"riskProfile\":\"RECKLESS\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put("/v1/admin/compliance/risk-profiles/2").header("Authorization", token(1, "ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(compliance);
+    }
+
     @TestConfiguration @EnableWebSecurity @EnableWebMvc
     @Import({SecurityConfig.class, SecurityUtilsService.class, ComplianceAdminController.class, GlobalExceptionHandler.class})
     static class TestApplication {

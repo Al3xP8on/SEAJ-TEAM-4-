@@ -208,4 +208,76 @@
       </button>
     </form>
   </section>
+
+  <section class="panel" aria-labelledby="profiles-title">
+    <h2 id="profiles-title">
+      Risk profiles <span class="count">{{ accounts().length }}</span>
+    </h2>
+    <p class="muted">
+      Each account's profile sets the limits the single-stock and order-size rules apply.
+    </p>
+    <dl class="profile-limits">
+      @for (profile of profiles; track profile.value) {
+        <div>
+          <dt>{{ profile.label }}</dt>
+          <dd>{{ profile.limits }}</dd>
+        </div>
+      }
+    </dl>
+
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Risk profiles table">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Account holder</th>
+            <th scope="col">Status</th>
+            <th scope="col">Risk profile</th>
+            <th scope="col"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (account of accounts(); track account.id) {
+            <tr>
+              <td>
+                <strong>{{ account.holderName }}</strong>
+                <span class="muted subline">{{ account.accountId }} · {{ account.username }}</span>
+              </td>
+              <td>{{ account.status.toLowerCase() }}</td>
+              <td>
+                <select
+                  [attr.aria-label]="'Risk profile for ' + account.holderName"
+                  [ngModel]="chosen(account)"
+                  (ngModelChange)="choose(account, $event)"
+                  [disabled]="account.status === 'CLOSED' || saving()"
+                >
+                  @for (profile of profiles; track profile.value) {
+                    <option [ngValue]="profile.value">{{ profile.label }}</option>
+                  }
+                </select>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button
+                    type="button"
+                    class="primary"
+                    (click)="saveProfile(account)"
+                    [disabled]="!drafts()[account.id] || saving()"
+                    [attr.aria-label]="'Save risk profile for ' + account.holderName"
+                  >
+                    Save
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="empty">
+                {{ loading() ? 'Loading accounts…' : 'No accounts.' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
 </main>

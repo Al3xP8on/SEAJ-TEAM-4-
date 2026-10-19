@@ -68,3 +68,23 @@
     grid-template-columns: 1fr;
   }
 }
+
+.profile-limits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 12px 0 16px;
+}
+.profile-limits div {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.profile-limits dt {
+  font-weight: 600;
+}
+.profile-limits dd {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}

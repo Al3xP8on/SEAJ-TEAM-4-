@@ -42,7 +42,8 @@ trades unchecked.
 
 ### Risk profiles
 
-Each account has a `risk_profile`; accounts without one are `BALANCED`. The limits are in `RiskProfile.java`:
+Each account has a `risk_profile`; accounts without one are `BALANCED`. Admins change it on the **Compliance**
+page. The limits are in `RiskProfile.java`:
 
 | Profile | Single stock: warn above | Single stock: block above | Largest order |
 |---|---|---|---|
@@ -90,7 +91,7 @@ docker exec -i seaj_postgres_db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < inf
 
 It's safe to run more than once.
 
-Manage the restricted list on the admin **Compliance** page (below). Risk profiles are still set in SQL:
+Manage the restricted list and risk profiles on the admin **Compliance** page (below). The same in SQL:
 
 ```sql
 INSERT INTO restricted_instruments (symbol, reason, added_by) VALUES ('META', 'pending corporate action', 'jay');
@@ -121,6 +122,8 @@ Admins have a **Compliance** link in the header (`/admin/compliance`):
   account ID or symbol.
 - **Restricted list:** every restricted instrument with the reason customers see, and who added it and when.
   Add one (symbol and reason), or remove one (asks for confirmation first). Changes take effect on the next order.
+- **Risk profiles:** every account with its profile and a summary of what each profile allows. Choose a profile
+  and press **Save**; it applies from the account's next order. Closed accounts can't be changed.
 
 This is the brief's showcase: try to buy TSLA as a customer, then open **Compliance** as an admin and show the
 blocked row with its reason.
@@ -133,6 +136,8 @@ API, admin only (`ROLE_ADMIN`; customers get 403):
 | `GET /api/v1/admin/compliance/restricted` | The restricted list, with instrument names |
 | `POST /api/v1/admin/compliance/restricted` | `{"symbol":"META","reason":"…"}`. 404 if the instrument doesn't exist, 409 if already restricted. Recorded in the admin's name. |
 | `DELETE /api/v1/admin/compliance/restricted/{symbol}` | Remove a restriction (404 if it isn't restricted) |
+| `GET /api/v1/admin/compliance/risk-profiles` | Every account and its risk profile |
+| `PUT /api/v1/admin/compliance/risk-profiles/{id}` | `{"riskProfile":"CONSERVATIVE"}`. Holds the account row lock used by order placement; 409 for closed accounts. Logged with the admin's username. |
 
 ## Audit events and metrics
 
@@ -181,4 +186,3 @@ Code: `orders.ts` (`compliance`, `complianceStop()`), `orders.html`, `order-tick
 - **Preview at the review step,** so warnings show before Confirm rather than after (a dry-run endpoint)
 - **The checks on the order timeline,** so customers can see why an order of theirs was stopped
 - **Admin override** of a block, recorded in `overridden_by` and `override_reason`
-- **Risk profiles in the admin UI** (set in SQL for now)

@@ -60,9 +60,10 @@ class ComplianceAdminQueryTest {
         @Bean TransactionTemplate transactionTemplate(PlatformTransactionManager tm) { return new TransactionTemplate(tm); }
         @Bean RestrictedInstrumentRepository restricted() { return mock(RestrictedInstrumentRepository.class); }
         @Bean InstrumentsRepository instruments() { return mock(InstrumentsRepository.class); }
+        @Bean com.neueda.leap.repositories.AccountRepository accounts() { return mock(com.neueda.leap.repositories.AccountRepository.class); }
         @Bean ComplianceAdminService service(ComplianceCheckRepository checks, RestrictedInstrumentRepository restricted,
-                                             InstrumentsRepository instruments) {
-            return new ComplianceAdminService(checks, restricted, instruments);
+                                             InstrumentsRepository instruments, com.neueda.leap.repositories.AccountRepository accounts) {
+            return new ComplianceAdminService(checks, restricted, instruments, accounts);
         }
     }
 

@@ -1,7 +1,9 @@
 package com.neueda.leap.controllers;
 
 import com.neueda.leap.compliance.ComplianceDecision;
+import com.neueda.leap.dtos.AccountRiskProfileResponse;
 import com.neueda.leap.dtos.ComplianceSubmissionResponse;
+import com.neueda.leap.dtos.RiskProfileRequest;
 import com.neueda.leap.dtos.RestrictedInstrumentRequest;
 import com.neueda.leap.dtos.RestrictedInstrumentResponse;
 import com.neueda.leap.security.SecurityUtilsService;
@@ -57,5 +59,17 @@ public class ComplianceAdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unrestrict(@PathVariable String symbol) {
         compliance.unrestrict(symbol, security.getAuthenticatedUserAccount().getUsername());
+    }
+
+    @Operation(operationId = "listRiskProfiles", summary = "Every account and the risk profile its limits come from")
+    @GetMapping("/risk-profiles")
+    public List<AccountRiskProfileResponse> riskProfiles() {
+        return compliance.riskProfiles();
+    }
+
+    @Operation(operationId = "setRiskProfile", summary = "Change an account's risk profile")
+    @PutMapping("/risk-profiles/{id}")
+    public AccountRiskProfileResponse setRiskProfile(@PathVariable Long id, @Valid @RequestBody RiskProfileRequest request) {
+        return compliance.setRiskProfile(id, request.riskProfile(), security.getAuthenticatedUserAccount().getUsername());
     }
 }
