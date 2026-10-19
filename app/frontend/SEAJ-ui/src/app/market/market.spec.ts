@@ -146,6 +146,7 @@ describe('Market page', () => {
     expect(show).toHaveBeenCalledOnce();
     expect(dialog.open).toBe(true);
     expect(dialog.textContent).toContain('AAA · Market detail');
+    expect(dialog.querySelector('a')?.getAttribute('href')).toBe('/order?symbol=AAA');
     vi.spyOn(dialog, 'getBoundingClientRect').mockReturnValue({
       left: 100,
       right: 900,

@@ -376,7 +376,7 @@
           [selectedSymbol]="selected()"
           [showOverview]="false"
         />
-        <a routerLink="/order">Go to orders →</a>
+        <a routerLink="/order" [queryParams]="{ symbol: selected() }">Go to orders →</a>
       </section>
     }
   </dialog>

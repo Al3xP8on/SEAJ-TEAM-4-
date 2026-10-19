@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe, DOCUMENT, NgTemplateOutlet } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule, NgForm } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -52,6 +53,8 @@ import { MarketDataComponent } from './market-data';
 })
 export class OrdersComponent {
   private readonly document = inject(DOCUMENT);
+  private readonly route = inject(ActivatedRoute);
+  private requestedSymbol = '';
   private readonly service = inject(OrdersService);
   private readonly auth = inject(AuthService);
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
@@ -151,9 +154,11 @@ export class OrdersComponent {
   private isToday(value: string): boolean {
     const today = new Date();
     const created = new Date(value);
-    return created.getFullYear() === today.getFullYear()
-      && created.getMonth() === today.getMonth()
-      && created.getDate() === today.getDate();
+    return (
+      created.getFullYear() === today.getFullYear() &&
+      created.getMonth() === today.getMonth() &&
+      created.getDate() === today.getDate()
+    );
   }
 
   constructor() {
@@ -169,6 +174,12 @@ export class OrdersComponent {
             ?.focus();
         } else if (!open && wasOpen) this.previousFocus?.focus();
       });
+    });
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroy)).subscribe((params) => {
+      this.requestedSymbol = (params.get('symbol') ?? '').trim().toUpperCase();
+      if (this.initialized && this.requestedSymbol && this.requestedSymbol !== this.symbol) {
+        this.selectInstrument(this.requestedSymbol);
+      }
     });
     this.load();
   }
@@ -217,7 +228,11 @@ export class OrdersComponent {
             data.accounts.find((a) => String(a.id) === ownId)?.accountId ??
             (this.isAdmin ? data.accounts[0]?.accountId : '') ??
             '';
-          this.symbol = this.instruments()[0]?.symbol ?? '';
+          const requested = this.instruments().find(
+            (instrument) => instrument.symbol === this.requestedSymbol,
+          );
+          this.symbol = requested?.symbol ?? this.instruments()[0]?.symbol ?? '';
+          this.marketSymbol.set(requested?.symbol ?? '');
           if (!this.accountId) {
             this.error.set('No trading account is available.');
             this.loading.set(false);
