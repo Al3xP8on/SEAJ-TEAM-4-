@@ -91,6 +91,33 @@ describe('MarketDataComponent with Alpaca', () => {
     };
   }
 
+  it('falls back to daily weekly history when an older server rejects 6Hour', async () => {
+    const { fixture, component, page } = await render('AAPL');
+    service.marketBars.mockImplementation((symbol: string, timeframe: MarketTimeframe) =>
+      timeframe === '6Hour'
+        ? throwError(() => ({ status: 400, error: { message: 'Timeframe must be 1Min or 1Day' } }))
+        : of({
+            symbol,
+            timeframe,
+            feed: 'iex',
+            message: '',
+            bars: Array.from({ length: 8 }, (_, i) =>
+              bar(`2026-10-${String(6 + i).padStart(2, '0')}T04:00:00Z`, 100 + i),
+            ),
+          }),
+    );
+    component.chartPeriod.set('1W');
+    fixture.detectChanges();
+    await settle(fixture);
+    fixture.detectChanges();
+    expect(service.marketBars).toHaveBeenLastCalledWith('AAPL', '1Day');
+    expect(component.chartError()).toBe('');
+    expect(component.chart()?.points).toHaveLength(5);
+    expect(component.intraday()).toBe(false);
+    expect(page.textContent).toContain('daily closing prices');
+    expect(page.textContent).not.toContain('Timeframe must');
+  });
+
   it('ranks real snapshot changes against previous close and labels the feed', async () => {
     const { component, page } = await render();
     expect(component.leaders().map((entry) => entry.snapshot.symbol)).toEqual([
