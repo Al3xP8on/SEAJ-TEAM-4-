@@ -1,3 +1,4 @@
+import { NotificationsService } from '../notifications/notifications.service';
 import { HlmSwitch } from '@spartan-ng/helm/switch';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { Component, DestroyRef, ElementRef, inject, signal } from '@angular/core';
@@ -14,6 +15,7 @@ import { Account } from '../dashboard/dashboard.models';
 export class AccountComponent {
   private readonly element: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly service = inject(AccountService);
+  readonly notifications = inject(NotificationsService);
   private readonly destroyRef = inject(DestroyRef);
   readonly account = signal<Account | null>(null);
   readonly profile = signal<Profile | null>(null);
@@ -102,7 +104,7 @@ export class AccountComponent {
       next: settings => {
         this.applySettings(settings);
         if (this.email === this.profile()?.email) {
-          this.settingsBusy.set(false); this.editing.set(false); this.focus('#edit-account-button'); this.settingsMessage.set('Account information saved.'); return;
+          this.settingsBusy.set(false); this.editing.set(false); this.focus('#edit-account-button'); this.settingsMessage.set('Account information saved.'); this.notifications.show('Account information saved.'); return;
         }
         this.service.changeEmail(this.email).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: challenge => { this.settingsBusy.set(false); this.emailChallenge.set(challenge.challenge_id); this.focus('#email-code'); this.settingsMessage.set('Phone number saved. Enter the code sent to your new email. Your current email stays active until verified.'); },
@@ -121,7 +123,7 @@ export class AccountComponent {
         if (profile) {
           this.profile.set({ ...profile, email: result.email });
         }
-        this.settingsBusy.set(false); this.emailChallenge.set(null); this.editing.set(false); this.focus('#edit-account-button'); this.emailCode = ''; this.settingsMessage.set('Account information saved.');
+        this.settingsBusy.set(false); this.emailChallenge.set(null); this.editing.set(false); this.focus('#edit-account-button'); this.emailCode = ''; this.settingsMessage.set('Account information saved.'); this.notifications.show('Account information saved.');
       },
       error: error => { this.settingsBusy.set(false); this.settingsError.set(this.errorMessage(error, 'Unable to verify your new email.')); },
     });
@@ -138,7 +140,7 @@ export class AccountComponent {
     }
     this.settingsBusy.set(true); this.review.set(null);
     this.service.saveBank({ ...this.bankInput, holder_name: this.bankInput.holder_name.trim() }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: settings => { this.applySettings(settings); this.bankInput.card_number = ''; this.addingCard.set(false); this.focus('#edit-card-button'); this.paymentChoice = settings.bank?.id ?? 'legacy'; this.settingsBusy.set(false); this.cardMessage.set('Card details saved.'); },
+      next: settings => { this.applySettings(settings); this.bankInput.card_number = ''; this.addingCard.set(false); this.focus('#edit-card-button'); this.paymentChoice = settings.bank?.id ?? 'legacy'; this.settingsBusy.set(false); this.cardMessage.set('Card details saved.'); this.notifications.show('Card details saved.'); },
       error: error => { this.settingsBusy.set(false); this.cardError.set(this.errorMessage(error, 'Unable to save card details.')); },
     });
   }
@@ -151,7 +153,7 @@ export class AccountComponent {
         if (!this.selectedCard()) {
           this.paymentChoice = settings.cards?.[0]?.id ?? 'new';
         }
-        this.settingsBusy.set(false); this.cardMessage.set('Card removed.'); this.focus('#edit-card-button');
+        this.settingsBusy.set(false); this.cardMessage.set('Card removed.'); this.notifications.show('Card removed.'); this.focus('#edit-card-button');
       },
       error: error => { this.settingsBusy.set(false); this.cardError.set(this.errorMessage(error, 'Unable to remove card.')); },
     });
@@ -239,7 +241,7 @@ export class AccountComponent {
     if (this.newPassword !== this.confirmPassword) { this.passwordError.set('The new passwords do not match.'); return; }
     this.passwordBusy.set(true);
     this.service.password(this.currentPassword, this.newPassword).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => { this.currentPassword = ''; this.newPassword = ''; this.confirmPassword = ''; this.passwordBusy.set(false); this.passwordMessage.set('Password changed successfully.'); },
+      next: () => { this.currentPassword = ''; this.newPassword = ''; this.confirmPassword = ''; this.passwordBusy.set(false); this.passwordMessage.set('Password changed successfully.'); this.notifications.show('Password changed successfully.'); },
       error: error => { this.passwordBusy.set(false); this.passwordError.set(this.errorMessage(error, 'Unable to change your password. Please try again.')); },
     });
   }

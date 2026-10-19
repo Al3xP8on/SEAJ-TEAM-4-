@@ -12,7 +12,7 @@ main { max-width: 1320px; margin: auto; padding: 42px 32px; scroll-margin-top: 1
 .account-page { width: 100%; }
 h1 { font-size: 2.125rem; font-weight: 600; letter-spacing: -1px; margin: 0 0 10px; }
 .intro { font-size: .8125rem; margin: 0; line-height: 1.6; }
-.page-heading { margin-bottom: 28px; }
+.page-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 28px; }
 .eyebrow { font-size: .6875rem; letter-spacing: 1.7px; font-weight: 700; margin: 0 0 10px; }
 .cards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
 .account-settings-grid { align-items: stretch; }
@@ -36,7 +36,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .error { color: var(--error); line-height: 1.5; margin: 12px 0; }
 .error:empty { margin: 0; }
 .review { margin-top: 20px; padding: 16px; border: 1px solid #66786c; background: var(--surface-soft); line-height: 1.5; }
-.section-nav { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.section-nav { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; }
 .section-nav button { margin: 0; }
 .section-nav button[aria-pressed=true] { background: #ffffff; color: #111111; border-color: #246342; box-shadow: inset 0 -3px #246342; }
 .section-nav button[aria-pressed=true]:hover { background: #e2ece5; }
