@@ -34,9 +34,12 @@ class MarketDataControllerTest {
     @Test void defaultsToIntradayHistoryAndPassesTheSelectedTimeframe() throws Exception {
         when(market.bars("AAPL", "1Min")).thenReturn(new AlpacaMarketDataService.Chart("AAPL", "iex", "1Min", List.of(), ""));
         when(market.bars("AAPL", "1Day")).thenReturn(new AlpacaMarketDataService.Chart("AAPL", "iex", "1Day", List.of(), ""));
+        when(market.bars("AAPL", "6Hour")).thenReturn(new AlpacaMarketDataService.Chart("AAPL", "iex", "6Hour", List.of(), ""));
         mvc.perform(get("/v1/market-data/AAPL/bars")).andExpect(status().isOk()).andExpect(jsonPath("$.timeframe").value("1Min"));
         mvc.perform(get("/v1/market-data/AAPL/bars").param("timeframe", "1Day")).andExpect(status().isOk()).andExpect(jsonPath("$.timeframe").value("1Day"));
+        mvc.perform(get("/v1/market-data/AAPL/bars").param("timeframe", "6Hour")).andExpect(status().isOk()).andExpect(jsonPath("$.timeframe").value("6Hour"));
         verify(market).bars("AAPL", "1Min");
         verify(market).bars("AAPL", "1Day");
+        verify(market).bars("AAPL", "6Hour");
     }
 }

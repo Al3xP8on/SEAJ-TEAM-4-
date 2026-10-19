@@ -7,6 +7,13 @@
     </div>
     <span class="live"><span></span> Updates every 10 seconds</span>
   </div>
+  @if (isAdmin) {
+    <section class="admin-order-summary panel" aria-label="Platform activity overview">
+      <span class="eyebrow">PLATFORM ACTIVITY</span>
+      <strong>{{ ordersToday() | number }}</strong>
+      <span class="muted">Total orders today</span>
+    </section>
+  }
   @if (loading()) {
     <p class="panel">Loading your trading desk…</p>
   }
@@ -328,6 +335,16 @@
           <option value="CANCELLED">Cancelled</option>
           <option value="REJECTED">Rejected</option>
         </select>
+        @if (isAdmin) {
+          <select
+            aria-label="Filter order date"
+            [ngModel]="dateFilter()"
+            (ngModelChange)="dateFilter.set($event)"
+          >
+            <option value="ALL">All dates</option>
+            <option value="TODAY">Today ({{ ordersToday() }})</option>
+          </select>
+        }
         @if (isAdmin) {
           <select
             aria-label="Filter account"

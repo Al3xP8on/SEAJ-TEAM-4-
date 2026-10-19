@@ -124,4 +124,17 @@ class AlpacaMarketDataServiceTest {
         when(client.bars(any(), any(), any())).thenThrow(new AlpacaMarketDataClient.DataUnavailable("Alpaca offline"));
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, assertThrows(ResponseStatusException.class, () -> service.bars("AAPL", "1Min")).getStatusCode());
     }
+    @Test void sharesSixHourHistoryForFiveMinutesWithoutReusingDailyBars() {
+        var weekly = new AlpacaMarketDataClient.Bar(now, BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE, BigDecimal.TEN, 100);
+        when(client.bars(eq("AAPL"), eq("6Hour"), any())).thenReturn(List.of(weekly));
+        when(client.bars(eq("AAPL"), eq("1Day"), any())).thenReturn(List.of());
+        assertEquals(List.of(weekly), service.bars("AAPL", "6Hour").bars());
+        assertTrue(service.bars("AAPL", "1Day").bars().isEmpty());
+        when(clock.instant()).thenReturn(now.plusSeconds(299));
+        assertEquals(List.of(weekly), service.bars("AAPL", "6Hour").bars());
+        verify(client, times(1)).bars(eq("AAPL"), eq("6Hour"), any());
+        when(clock.instant()).thenReturn(now.plusSeconds(300));
+        service.bars("AAPL", "6Hour");
+        verify(client, times(2)).bars(eq("AAPL"), eq("6Hour"), any());
+    }
 }

@@ -6,6 +6,7 @@ import com.neueda.leap.exceptions.PositionNotFoundException;
 import com.neueda.leap.exceptions.AccountNotFoundException;
 import com.neueda.leap.exceptions.InsufficientHoldingsException;
 import com.neueda.leap.services.PositionsService;
+import com.neueda.leap.security.SecurityUtilsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,9 @@ public class PositionsController {
     
     @Autowired
     private PositionsService positionsService;
+
+    @Autowired
+    private SecurityUtilsService securityUtilsService;
     
     @GetMapping
     public ResponseEntity<Object> getRootPositions() {
@@ -31,6 +35,7 @@ public class PositionsController {
     
     @GetMapping("/{accountId}/positions")
     public ResponseEntity<Object> getPositions(@PathVariable Long accountId) {
+        securityUtilsService.validateAccountOwnershipById(accountId);
         try {
             List<PositionResponse> positions = positionsService.getPositions(accountId);
             return ResponseEntity.ok(positions);
@@ -43,6 +48,7 @@ public class PositionsController {
     
     @GetMapping("/{accountId}/positions/{positionId}")
     public ResponseEntity<Object> getPosition(@PathVariable Long accountId, @PathVariable Long positionId) {
+        securityUtilsService.validateAccountOwnershipById(accountId);
         try {
             PositionResponse position = positionsService.getPosition(accountId, positionId);
             return ResponseEntity.ok(position);
@@ -57,6 +63,7 @@ public class PositionsController {
     
     @GetMapping("/{accountId}/positions/symbol/{symbol}")
     public ResponseEntity<Object> getPositionBySymbol(@PathVariable Long accountId, @PathVariable String symbol) {
+        securityUtilsService.validateAccountOwnershipById(accountId);
         try {
             Optional<PositionResponse> position = positionsService.getPositionBySymbol(accountId, symbol);
             if (position.isPresent()) {
@@ -76,6 +83,7 @@ public class PositionsController {
             @PathVariable Long accountId,
             @PathVariable Long positionId,
             @RequestBody ClosePositionRequest request) {
+        securityUtilsService.validateAccountOwnershipById(accountId);
         try {
             PositionResponse closedPosition = positionsService.closePosition(
                     accountId, 

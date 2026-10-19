@@ -7,11 +7,28 @@
       <span class="brand-name" aria-hidden="true">SEAJ Capital</span>
     </a>
     <nav class="main-nav" aria-label="Main navigation">
-      <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
-        ariaCurrentWhenActive="page">
-        <ng-icon name="lucideLayoutDashboard" aria-hidden="true" />Portfolio
-      </a>
-      <a routerLink="/order" [class.active]="ordersActive()" [attr.aria-current]="ordersActive() ? 'page' : null">
+      @if (isAdmin) {
+        <a routerLink="/admin" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <ng-icon name="lucideLayoutDashboard" aria-hidden="true" />Admin dashboard
+        </a>
+        <a routerLink="/portfolio" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <ng-icon name="lucideLayoutDashboard" aria-hidden="true" />My portfolio
+        </a>
+      } @else {
+        <a
+          routerLink="/dashboard"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          ariaCurrentWhenActive="page"
+        >
+          <ng-icon name="lucideLayoutDashboard" aria-hidden="true" />Portfolio
+        </a>
+      }
+      <a
+        routerLink="/order"
+        [class.active]="ordersActive()"
+        [attr.aria-current]="ordersActive() ? 'page' : null"
+      >
         <ng-icon name="lucideArrowLeftRight" aria-hidden="true" />Orders
       </a>
     </nav>

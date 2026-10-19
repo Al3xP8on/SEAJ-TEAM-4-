@@ -8,7 +8,8 @@ import { AuthService as SessionClient, Challenge } from './session-client.mjs';
 export const AUTH_API_URL = new InjectionToken<string>('AUTH_API_URL', {
   providedIn: 'root', factory: () => '/auth',
 });
-export interface RegisterPayload { username: string; password: string; email: string; phone?: string; }
+export interface RegisterPayload { username: string; password: string; email: string; name?: string; phone?: string; }
+export type AccountRole = 'USER' | 'ADMIN';
 export interface RegisteredUser { username: string; account_id: string; email_verified: boolean; }
 
 @Injectable({ providedIn: 'root' })
@@ -43,6 +44,20 @@ export class AuthService implements OnDestroy {
   register(payload: RegisterPayload) {
     return defer(async () => {
       const { status, result } = await this.client.request(`${this.baseUrl}/register`, payload);
+      const challenge = result as Challenge;
+      if (status !== 202 || typeof challenge?.challenge_id !== 'string'
+        || !Number.isFinite(challenge.expires_in) || challenge.expires_in <= 0) {
+        throw new Error('Authentication service returned an invalid verification challenge.');
+      }
+      return challenge;
+    });
+  }
+  registerAdmin(payload: RegisterPayload, role: AccountRole) {
+    return defer(async () => {
+      const { status, result } = await this.client.request(`${this.baseUrl}/admin/register`, {
+        ...payload,
+        role,
+      });
       const challenge = result as Challenge;
       if (status !== 202 || typeof challenge?.challenge_id !== 'string'
         || !Number.isFinite(challenge.expires_in) || challenge.expires_in <= 0) {
