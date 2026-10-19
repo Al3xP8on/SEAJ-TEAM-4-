@@ -1,0 +1,397 @@
+<app-market-ticker />
+
+<main>
+  <app-market-clock [latestTrade]="latestTrade()" [pricesAsOf]="overview()?.updatedAt ?? null" />
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">EXPLORE THE MARKETS</p>
+      <h1>{{ assetClass() ? assetClass() + ' overview' : 'Market overview' }}</h1>
+      <p class="muted">Prices, performance and the instruments moving the market.</p>
+    </div>
+    <div class="feed">
+      <span class="dot"></span
+      >{{ assetClass() === 'Forex' ? 'Frankfurter · daily FX' : overview()?.feed || 'Market data'
+      }}<small>
+        @if (assetClass() === 'Forex') {
+          Daily reference rates · dates shown below
+        } @else if (overview()?.updatedAt) {
+          Updated {{ overview()!.updatedAt | date: 'medium' }}
+        } @else {
+          Waiting for market data
+        }
+      </small>
+    </div>
+  </header>
+  <div class="filters" role="group" aria-label="Asset class">
+    <button
+      type="button"
+      [class.active]="assetClass() === ''"
+      [attr.aria-pressed]="assetClass() === ''"
+      (click)="assetClass.set(''); selected.set('')"
+    >
+      Overview
+    </button>
+    @for (asset of assetClasses(); track asset) {
+      <button
+        type="button"
+        [class.active]="assetClass() === asset"
+        [attr.aria-pressed]="assetClass() === asset"
+        (click)="assetClass.set(asset); selected.set('')"
+      >
+        {{ asset }}
+      </button>
+    }
+  </div>
+  @if (catalogError()) {
+    <p role="alert" class="notice">
+      {{ catalogError() }} <button type="button" (click)="loadCatalog()">Try again</button>
+    </p>
+  }
+  @if (assetClass() !== 'Forex' && (quoteError() || overview()?.message)) {
+    <p role="status" class="notice">{{ quoteError() || overview()?.message }}</p>
+  }
+  @if (assetClass() === 'Forex') {
+    <section class="panel" aria-labelledby="forex-title">
+      <div class="panel-heading">
+        <div>
+          <h2 id="forex-title">Forex market</h2>
+          <p class="muted">
+            Major currency pairs · Frankfurter daily reference rates · checked hourly
+          </p>
+        </div>
+        <button type="button" (click)="refreshForex()">Refresh rates</button>
+      </div>
+      @if (fxLoading()) {
+        <p class="definition muted" role="status">Loading forex prices…</p>
+      }
+      @if (fxError()) {
+        <p class="notice" role="status">{{ fxError() }}</p>
+      }
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Currency pair</th>
+              <th scope="col">Reference rate</th>
+              <th scope="col">Daily change</th>
+              <th scope="col">Rate date</th>
+              <th scope="col">Explore</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (pair of forexRows(); track pair.symbol) {
+              <tr>
+                <td>
+                  <button type="button" class="symbol" (click)="viewForex(pair.symbol)">
+                    {{ pair.symbol }}
+                    <ng-container
+                      [ngTemplateOutlet]="direction"
+                      [ngTemplateOutletContext]="{ change: pair.change }"
+                    /></button
+                  ><small>{{ pair.name }}</small>
+                </td>
+                <td>{{ pair.latest ? (pair.latest.value | number: '1.4-5') : 'Unavailable' }}</td>
+                <td
+                  [class.positive]="(pair.change ?? 0) > 0"
+                  [class.negative]="(pair.change ?? 0) < 0"
+                >
+                  @if (pair.change !== null) {
+                    {{ pair.change > 0 ? '+' : '' }}{{ pair.change | number: '1.2-2' }}%
+                  } @else {
+                    —
+                  }
+                </td>
+                <td>{{ pair.latest?.date || 'Unavailable' }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="text-button"
+                    (click)="viewForex(pair.symbol)"
+                    [disabled]="!pair.latest"
+                    [attr.aria-label]="'View ' + pair.symbol + ' chart'"
+                  >
+                    View chart →
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="definition muted">
+        Prices show units of the second currency per one unit of the first. Daily change compares
+        the last two available reference dates. These are indicative daily rates, not live bid/ask
+        quotes
+      </p>
+    </section>
+  } @else if (assetClass() === 'Bond') {
+    <section class="panel" aria-labelledby="bond-title">
+      <div class="panel-heading"><h2 id="bond-title">Individual bonds</h2></div>
+      <p class="notice" role="status">
+        Individual bond data is not connected. The current Alpaca credentials do not have access to
+        its Broker fixed-income catalogue. Bond ETFs are not individual bonds.
+      </p>
+    </section>
+  } @else {
+    <section class="panel movers" aria-labelledby="movers-title">
+      <div class="panel-heading">
+        <h2 id="movers-title">Market movers</h2>
+        <span class="muted">{{ assetClass() ? assetClass() + ' overview' : 'Overview' }}</span>
+      </div>
+      <div class="ranking-tabs" role="group" aria-label="Market ranking">
+        @for (tab of rankings; track tab.key) {
+          <button
+            type="button"
+            [attr.aria-pressed]="ranking() === tab.key"
+            [class.active]="ranking() === tab.key"
+            (click)="ranking.set(tab.key)"
+          >
+            {{ tab.label }}
+          </button>
+        }
+      </div>
+      <p class="muted definition">{{ description() }}</p>
+      @if (ranking() === 'performance' || ranking() === 'trending') {
+        @if (historyLoading()) {
+          <p class="muted definition" role="status">
+            Loading historical analytics… Rankings update as data arrives.
+          </p>
+        }
+        @if (historyFailures()) {
+          <p class="notice" role="status">
+            Historical data could not be loaded for {{ historyFailures() }} instruments.
+            <button type="button" (click)="retryHistory()">Retry history</button>
+          </p>
+        }
+      }
+
+      <div class="leader-grid">
+        @for (row of leaders(); track row.symbol; let index = $index) {
+          <button type="button" class="leader" (click)="openChart(row.symbol)">
+            <small>0{{ index + 1 }} · {{ row.assetClass }}</small
+            ><strong
+              >{{ row.symbol
+              }}<ng-container
+                [ngTemplateOutlet]="direction"
+                [ngTemplateOutletContext]="{ change: row.change }" /></strong
+            ><span class="instrument-name">{{ row.name }}</span
+            ><b [class.negative]="row.value < 0"
+              >{{ row.value > 0 && ranking() !== 'active' && ranking() !== 'trending' ? '+' : ''
+              }}{{ row.value | number: (ranking() === 'active' ? '1.0-0' : '1.2-2')
+              }}{{ ranking() === 'active' ? ' units' : ranking() === 'trending' ? '×' : '%' }}</b
+            >
+          </button>
+        } @empty {
+          <p class="empty" role="status">
+            {{
+              historyLoading() && (ranking() === 'performance' || ranking() === 'trending')
+                ? 'Loading historical analytics…'
+                : ranking() === 'performance' || ranking() === 'trending'
+                  ? 'Not enough historical data for this asset class. Performance needs 21 completed daily closes; trending needs 20 prior sessions with volume.'
+                  : 'No qualifying market data for this ranking.'
+            }}
+          </p>
+        }
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="instruments-title">
+      <div class="panel-heading">
+        <div>
+          <h2 id="instruments-title">
+            {{ assetClass() ? assetClass() + ' overview' : 'Overview' }}
+          </h2>
+          <p class="muted">
+            {{ visibleRows().length }} instruments · quotes refresh every 30 seconds
+          </p>
+        </div>
+        <label class="search"
+          >Search instruments<input
+            type="search"
+            placeholder="Search symbol or name"
+            [value]="search()"
+            (input)="search.set($any($event.target).value)"
+        /></label>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Instrument</th>
+              <th scope="col">Asset class</th>
+              <th scope="col">Last price</th>
+              <th scope="col">Daily change</th>
+              <th scope="col">Session volume</th>
+              <th scope="col">Quote time</th>
+              <th scope="col">Explore</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of visibleRows(); track row.symbol) {
+              <tr>
+                <td>
+                  @if (row.assetClass === 'Cash') {
+                    <strong>{{ row.symbol }}</strong>
+                  } @else {
+                    <button type="button" class="symbol" (click)="openChart(row.symbol)">
+                      {{ row.symbol
+                      }}<ng-container
+                        [ngTemplateOutlet]="direction"
+                        [ngTemplateOutletContext]="{ change: row.change }"
+                      />
+                    </button>
+                  }
+                  <small>{{ row.name }}</small>
+                </td>
+                <td>
+                  {{
+                    row.assetClass === 'Bond' && row.name.includes('ETF')
+                      ? 'Bond ETF'
+                      : row.assetClass
+                  }}
+                </td>
+                <td>
+                  @if (row.snapshot) {
+                    {{ row.snapshot.price | currency: row.currency : 'symbol' : '1.2-4' }}
+                  } @else {
+                    —
+                  }
+                </td>
+                <td
+                  [class.positive]="(row.change ?? 0) > 0"
+                  [class.negative]="(row.change ?? 0) < 0"
+                >
+                  @if (row.change !== null) {
+                    {{ row.change > 0 ? '+' : '' }}{{ row.change | number: '1.2-2' }}%
+                  } @else {
+                    —
+                  }
+                </td>
+                <td>{{ row.volume === null ? '—' : (row.volume | number: '1.0-0') }}</td>
+                <td>
+                  {{
+                    row.snapshot
+                      ? (row.snapshot.timestamp | date: 'MMM d, HH:mm:ss')
+                      : 'Unavailable'
+                  }}
+                </td>
+                <td>
+                  @if (row.assetClass !== 'Cash') {
+                    <button
+                      type="button"
+                      class="text-button"
+                      (click)="openChart(row.symbol)"
+                      [attr.aria-label]="'View ' + row.symbol + ' chart'"
+                    >
+                      View chart →
+                    </button>
+                  } @else {
+                    <span class="muted">Account balance</span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="empty">
+                  {{ loading() ? 'Loading instruments…' : 'No instruments match your selection.' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+  <dialog
+    (click)="onChartBackdropClick($event)"
+    #chartDialog
+    class="chart-dialog"
+    aria-labelledby="chart-title"
+    (close)="selected.set('')"
+  >
+    @if (chartMode() === 'forex') {
+      <section class="detail" aria-label="Forex analytics">
+        <div class="panel-heading">
+          <h2 id="chart-title">{{ selectedFx() }} · Forex analytics</h2>
+          <button type="button" (click)="closeChart()">Close</button>
+        </div>
+        @if (forexChart(); as chart) {
+          <div class="panel-heading">
+            <div>
+              <h2>{{ chart.symbol }} · Historical rates</h2>
+              <p class="muted">
+                1 {{ chart.symbol.split('/')[0] }} = {{ chart.latest!.value | number: '1.4-5' }}
+                {{ chart.symbol.split('/')[1] }}
+              </p>
+            </div>
+            <div class="filters" role="group" aria-label="Forex chart period">
+              @for (days of [7, 30, 90]; track days) {
+                <button
+                  type="button"
+                  [class.active]="fxPeriod() === days"
+                  [attr.aria-pressed]="fxPeriod() === days"
+                  (click)="fxPeriod.set($any(days))"
+                >
+                  {{ days === 7 ? '1W' : days === 30 ? '1M' : '3M' }}
+                </button>
+              }
+            </div>
+          </div>
+          <figure id="forex-chart" class="forex-chart">
+            <svg
+              viewBox="0 0 1000 220"
+              role="img"
+              [attr.aria-label]="
+                chart.symbol +
+                ' daily reference rate chart, ' +
+                chart.points[0].date +
+                ' to ' +
+                chart.latest!.date
+              "
+            >
+              <line x1="20" y1="20" x2="980" y2="20" stroke="var(--border)" />
+              <line x1="20" y1="110" x2="980" y2="110" stroke="var(--border)" />
+              <line x1="20" y1="200" x2="980" y2="200" stroke="var(--border)" />
+              <polyline
+                [attr.points]="chart.line"
+                fill="none"
+                stroke="var(--positive)"
+                stroke-width="3"
+                vector-effect="non-scaling-stroke"
+              />
+            </svg>
+            <figcaption class="muted">
+              {{ chart.points[0].date }} — {{ chart.latest!.date }} · Low
+              {{ chart.low | number: '1.4-5' }} · High {{ chart.high | number: '1.4-5' }}
+            </figcaption>
+          </figure>
+        }
+        <p class="muted">Daily reference rates · indicative, not live trading quotes.</p>
+      </section>
+    } @else if (selected()) {
+      <section class="detail" aria-label="Instrument detail">
+        <div class="panel-heading">
+          <h2 id="chart-title">{{ selected() }} · Market detail</h2>
+          <button type="button" (click)="closeChart()">Close</button>
+        </div>
+        <app-market-data
+          [instruments]="instruments()"
+          [selectedSymbol]="selected()"
+          [showOverview]="false"
+        />
+        <a routerLink="/order" [queryParams]="{ symbol: selected() }">Go to orders →</a>
+      </section>
+    }
+  </dialog>
+  <ng-template #direction let-change="change">
+    @if (change !== null && change !== 0) {
+      <span
+        class="direction"
+        [class.positive]="change > 0"
+        [class.negative]="change < 0"
+        [attr.aria-label]="change > 0 ? 'Price increased' : 'Price decreased'"
+        role="img"
+        >{{ change > 0 ? '↑' : '↓' }}</span
+      >
+    }
+  </ng-template>
+</main>

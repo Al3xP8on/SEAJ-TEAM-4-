@@ -76,3 +76,38 @@ The Orders page polls every ten seconds while visible and refreshes immediately 
 ## Verification
 
 Backend tests mock Alpaca HTTP responses and cover authentication, parsing, previous-close calculations, pagination, caching, unavailable feeds and quote publication. UI tests cover live price updates, chart periods, rankings, unsupported instruments, failed requests and cancelling obsolete chart requests. A production build validates the templates. Actual live-feed verification requires account credentials.
+
+## Catalogue replacement
+
+Apply `infra/db/migrations/04-market-catalogue.sql` to existing databases before deploying the backend changes. New database containers apply it after seeding orders and holdings. It replaces the sample GLBEQ1 entry in the browsable catalogue with IBM (USD Equity), verified against Alpaca's IEX snapshots. All other current USD equity/ETF/commodity tickers returned feed data during verification. Migration `05-bond-cash-market-catalogue.sql` subsequently replaces the eight unsupported Bond/Cash entries with feed-connected ETFs as described below.
+
+The visible catalogue remains 120 instruments: Equity 80, ETF 28, Bond 7, Cash 2 and Commodity 3. The legacy GLBEQ1 database row remains hidden from catalogue listings and is no longer tradable. Direct symbol lookup and historical relationships remain intact; orders, holdings, currency and recorded prices are not transferred to IBM. Physical database row count after migration 04 is 121 (129 after migration 05). `catalog_visible` applies consistently to unfiltered, asset-class, currency and tradability catalogue queries. An already-present IBM causes the migration to roll back rather than silently change counts. Re-running a completed migration has no effect.
+
+
+### Bond and cash-equivalent ETFs
+
+Apply `infra/db/migrations/05-bond-cash-market-catalogue.sql` after migration 04. Fresh database containers apply both automatically. Bond replacements are CORPB1 → VCIT, GILT10 → VGIT, UST10 → GOVT, UST2 → VGSH, UST5 → SCHR, UST30 → VGLT. CORP already supplies Alpaca quotes and stays in the catalogue. Cash replacements are CASHGBP → SGOV and CASHUSD → BIL. Names explicitly identify these as ETFs (cash-equivalent Treasury ETFs for the Cash category); all quote in USD. GILT10's replacement provides US Treasury exposure rather than UK gilts, and SGOV is a USD cash equivalent rather than GBP cash.
+
+All 120 visible tickers returned trade data from Alpaca's IEX snapshot endpoint when verified. Category counts remain Equity 80, ETF 28, Bond 7, Cash 2, Commodity 3. The Bond/Cash categories now group exposure rather than security structure; these are securities, not cash balances or individual bonds. Original instrument rows remain hidden and nontradable for historical records. No orders, holdings, price history, or account balances are transferred. The migration checks category counts, rolls back on replacement collisions, and is safe to rerun. Feed availability can still vary by session and provider status.
+
+### Actual cash and individual bonds
+
+Migration `06-actual-cash-catalogue.sql` restores CASHUSD and CASHGBP as nontradable currency entries, hiding BIL and SGOV without modifying their historical relationships. Apply migrations in order; migration 05 has been superseded for cash entries. Cash remains two catalogue entries; other category counts are unchanged.
+
+The Market Cash tab reads only the authenticated user's `/api/v1/accounts/{id}` balance, using the same USD convention as Portfolio, refreshed every 30 seconds while visible. GBP is explicitly unavailable because accounts have no separate GBP ledger. Cash has no stock rankings or price charts. These are SEAJ balances, not the balance of the shared Alpaca data-provider account.
+
+Individual bonds require Alpaca Broker API fixed-income access, which is separate from the existing IEX stock-data credentials. Read-only checks against the connected credentials returned HTTP 401 for the sandbox Treasury catalogue and HTTP 403 for production. Until suitable Broker credentials or a different provider are configured, the Bond tab displays the connection limitation rather than claiming bond ETFs are individual bonds. Existing bond ETFs remain identified as Bond ETFs in the Overview table. No individual-bond quotes are fabricated.
+
+### Converted USD cash values
+
+The Cash table shows the SEAJ USD balance alongside GBP, EUR, CHF, JPY, CAD and AUD equivalents. All equivalents represent the same USD funds, not separate holdings, and no conversion transaction occurs. `GET /api/v1/market-data/fx-rates` proxies daily USD-based Frankfurter reference rates, caches successful results for one hour and includes the provider's rate date. Requests use a fixed provider URL and carry no account information. The endpoint remains behind the existing API authentication. Rate failures leave USD available; cached rates retain their original date with an explicit warning and failures back off for a minute. The UI refreshes rates hourly while Cash is visible and account cash every 30 seconds. Invalid/missing rates show unavailable; zero cash converts to zero. The values are indicative, not executable FX quotes.
+
+### Forex market view
+
+The Cash market filter has been replaced by Forex. Account cash remains in Portfolio. Forex displays EUR/USD, GBP/USD, USD/JPY, USD/CHF, USD/CAD and AUD/USD using daily Frankfurter reference rates, with rate dates and changes versus the previous available reference date. EUR/USD, GBP/USD and AUD/USD invert the provider's USD-based rates. `GET /api/v1/market-data/fx-history` fetches the latest 120 calendar days through a fixed server-side request, with hourly caching and dated-cache fallback on upstream failures. The 1W/1M/3M chart windows end at the latest available rate date. Missing pairs remain unavailable and their chart buttons are disabled. There are no bid/ask spreads or order controls because this is a reference-rate market view, not an execution feed. Provider status and dates replace the IEX feed label while Forex is selected.
+
+Forex chart links open the shared market-detail modal rather than rendering analytics under the pair table. The dialog retains the 1W/1M/3M controls and closes with Close, Escape, or a click outside its bounds; interactions within the popup keep it open.
+
+### Additional commodities
+
+`07-expand-commodities.sql` adds SLV, IAU, PPLT, PALL, CPER, UNG, BNO, DBA, PDBC, COMT, GSG and USCI. All twelve were verified as tradable Alpaca assets with IEX latest-trade and daily-bar data. They are USD exchange-traded commodity funds/trusts, not direct spot or futures instruments. The visible catalogue grows from 120 to 132, with Commodity increasing from 3 to 15; other category counts stay unchanged. The base seed includes them, and fresh database initialization also runs the idempotent migration. Existing orders and positions are unchanged.

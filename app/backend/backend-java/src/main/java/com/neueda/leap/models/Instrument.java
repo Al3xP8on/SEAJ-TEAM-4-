@@ -25,6 +25,11 @@ public class Instrument {
     @Column(nullable = false)
     private boolean tradable;
 
+    @Column(name = "catalog_visible", nullable = false)
+    private boolean catalogVisible = true;
+
+    public boolean isCatalogVisible() { return catalogVisible; }
+
     protected Instrument() {
         this.symbol = null;
         this.name = null;

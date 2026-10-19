@@ -23,6 +23,7 @@ import { AuthService } from '../auth/auth.service';
 import { hasAdminRole } from '../auth/auth.guard';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
+  lucideChartNoAxesCombined,
   lucideArrowLeftRight,
   lucideLayoutDashboard,
   lucideLogOut,
@@ -35,7 +36,13 @@ import { HlmButton } from '@spartan-ng/helm/button';
   selector: 'app-shell',
   imports: [RouterLink, RouterLinkActive, RouterOutlet, NgIcon, HlmButton],
   providers: [
-    provideIcons({ lucideArrowLeftRight, lucideLayoutDashboard, lucideLogOut, lucideSettings }),
+    provideIcons({
+      lucideChartNoAxesCombined,
+      lucideArrowLeftRight,
+      lucideLayoutDashboard,
+      lucideLogOut,
+      lucideSettings,
+    }),
   ],
   templateUrl: './shell.html',
   styleUrl: './shell.css',
