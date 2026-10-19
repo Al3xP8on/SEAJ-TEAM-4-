@@ -56,13 +56,13 @@ public class AlpacaMarketDataService {
     }
 
     public Chart bars(String rawSymbol, String timeframe) {
-        if (!List.of("1Min", "1Day").contains(timeframe)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Timeframe must be 1Min or 1Day");
+        if (!List.of("1Min", "6Hour", "1Day").contains(timeframe)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Timeframe must be 1Min, 6Hour or 1Day");
         String symbol = rawSymbol.trim().toUpperCase(Locale.ROOT);
         Instrument instrument = instruments.findBySymbol(symbol).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instrument not found"));
         if (!supports(instrument)) return new Chart(symbol, client.feed(), timeframe, List.of(), "Alpaca stock data is unavailable for this instrument.");
         if (!isConfigured()) return new Chart(symbol, client.feed(), timeframe, List.of(), "Alpaca market data is not connected yet.");
         Instant now = clock.instant();
-        Duration cacheTime = Duration.ofMinutes(timeframe.equals("1Day") ? 5 : 1);
+        Duration cacheTime = Duration.ofMinutes(timeframe.equals("1Min") ? 1 : 5);
         try {
             CachedBars result = charts.compute(symbol + ":" + timeframe, (key, previous) -> {
                 if (previous != null && Duration.between(previous.fetchedAt(), now).compareTo(cacheTime) < 0) return previous;

@@ -9,6 +9,7 @@ import { OrderNotificationsService } from '../notifications/order-notifications.
 import { NotificationsService } from '../notifications/notifications.service';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
+import { hasAdminRole } from '../auth/auth.guard';
 
 /** Keeps navigation mounted while the authenticated page changes beneath it. */
 @Component({
@@ -20,6 +21,7 @@ import { AuthService } from '../auth/auth.service';
 export class ShellComponent {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  readonly isAdmin = hasAdminRole(this.auth.getToken());
   private readonly path = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),

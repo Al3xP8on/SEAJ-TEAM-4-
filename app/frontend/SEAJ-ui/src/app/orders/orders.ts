@@ -77,6 +77,7 @@ export class OrdersComponent {
   readonly historyError = signal('');
   readonly accountFilter = signal('');
   readonly statusFilter = signal('ALL');
+  readonly dateFilter = signal('ALL');
   readonly search = signal('');
   readonly instrumentSearch = signal('');
   readonly pickerOpen = signal(false);
@@ -104,6 +105,7 @@ export class OrdersComponent {
   readonly visibleOrders = computed(() =>
     this.orders()
       .filter((o) => !this.accountFilter() || o.accountId === this.accountFilter())
+      .filter((o) => this.dateFilter() === 'ALL' || this.isToday(o.createdAt))
       .filter(
         (o) =>
           this.statusFilter() === 'ALL' ||
@@ -141,6 +143,18 @@ export class OrdersComponent {
     ),
   );
   readonly pendingCount = computed(() => this.orders().filter((o) => this.isPending(o)).length);
+  readonly ordersToday = computed(() => {
+    if (!this.isAdmin) return 0;
+    return this.orders().filter((order) => this.isToday(order.createdAt)).length;
+  });
+
+  private isToday(value: string): boolean {
+    const today = new Date();
+    const created = new Date(value);
+    return created.getFullYear() === today.getFullYear()
+      && created.getMonth() === today.getMonth()
+      && created.getDate() === today.getDate();
+  }
 
   constructor() {
     effect(() => {

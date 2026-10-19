@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 import { SessionService } from './session.service';
+import { UsersService } from '../users/users.service';
 
 export interface AuthenticatedRequest extends Request {
   user: { sub: string; role: 'USER' | 'ADMIN'; sid: string };
@@ -16,6 +17,7 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwt: JwtService,
     private readonly sessions: SessionService,
+    private readonly users: UsersService,
   ) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
@@ -41,6 +43,9 @@ export class JwtAuthGuard implements CanActivate {
         !(await this.sessions.isActive(payload.sid, payload.sub))
       )
         throw new Error('Invalid session');
+      const account = await this.users.findById(payload.sub);
+      if (!account || account.status !== 'ACTIVE')
+        throw new Error('Account is unavailable');
       request.user = payload;
       return true;
     } catch {

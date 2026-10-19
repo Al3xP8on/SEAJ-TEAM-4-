@@ -65,9 +65,17 @@ public class AlpacaMarketDataClient {
     }
 
     public List<Bar> bars(String symbol, String timeframe, Instant now) {
-        if (!List.of("1Min", "1Day").contains(timeframe)) throw new IllegalArgumentException("Timeframe must be 1Min or 1Day");
-        Instant start = now.minus(Duration.ofDays(timeframe.equals("1Min") ? 7 : 60));
-        int maxBars = timeframe.equals("1Min") ? 1000 : 30;
+        if (!List.of("1Min", "6Hour", "1Day").contains(timeframe)) throw new IllegalArgumentException("Timeframe must be 1Min, 6Hour or 1Day");
+        Instant start = now.minus(Duration.ofDays(switch (timeframe) {
+            case "1Min" -> 7;
+            case "6Hour" -> 21;
+            default -> 60;
+        }));
+        int maxBars = switch (timeframe) {
+            case "1Min" -> 1000;
+            case "6Hour" -> 60;
+            default -> 30;
+        };
         // Historical SIP access on Basic is delayed; IEX is explicitly requested by default.
         Instant end = feed.equals("sip") ? now.minus(Duration.ofMinutes(15)) : now;
         List<Bar> results = new ArrayList<>();
