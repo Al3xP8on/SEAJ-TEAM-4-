@@ -111,10 +111,27 @@ FROM compliance_checks WHERE account_id = 'ACC-0002' ORDER BY checked_at DESC, i
 3. Read only from the `OrderContext`. Rules must not query the database or change anything.
 4. Add tests next to `ComplianceRulesTest`.
 
+## On the order ticket
+
+When the server stops an order, the ticket shows why, inside the ticket, after **Confirm**:
+
+- **Blocked:** a red box headed *"This order can't be placed"* lists each reason. Confirm stays disabled until
+  the order is changed (resending it unchanged would be blocked again).
+- **Warning:** an amber box headed *"Check before you place this order"* lists each warning, with an *"I
+  understand and want to place this order anyway"* checkbox. Ticking it enables **Place order anyway**, which
+  resends the same order, with the same submission key, plus `acknowledgedWarnings`.
+- Changing the order or going back to editing clears the box.
+- Keyboard focus moves into the box (to the checkbox for a warning), because the disabled Confirm button would
+  otherwise drop it. The box is announced to screen readers.
+
+Code: `orders.ts` (`compliance`, `complianceStop()`), `orders.html`, `order-ticket.css`; tests in
+`orders-compliance.spec.ts`.
+
 ## Still to come
 
 - **Kafka audit events** (`COMPLIANCE_CHECKED` through the outbox) and a metric for the Grafana dashboard
-- **UI:** warnings and blocks at the order review step, reasons on rejected orders, the checks on the order
-  timeline, and an admin compliance page
+- **Preview at the review step,** so warnings show before Confirm rather than after (a dry-run endpoint)
+- **The checks on the order timeline,** and an **admin compliance page** (the admin dashboard at `/admin` is
+  the natural home)
 - **Admin override** of a block, recorded in `overridden_by` and `override_reason`
 - **Admin endpoints** for the restricted list and risk profiles
