@@ -34,9 +34,12 @@ import {
   OrderStatus,
   Quote,
   TradingAccount,
+  MarketOverview,
 } from './orders.models';
 import { OrdersService } from './orders.service';
 import { MarketDataComponent } from './market-data';
+import { MarketTickerComponent } from '../landing/market-ticker/market-ticker';
+import { MarketClockComponent } from '../dashboard/market-clock/market-clock';
 
 @Component({
   selector: 'app-orders',
@@ -47,6 +50,8 @@ import { MarketDataComponent } from './market-data';
     DecimalPipe,
     DatePipe,
     MarketDataComponent,
+    MarketTickerComponent,
+    MarketClockComponent,
     NgTemplateOutlet,
   ],
   templateUrl: './orders.html',
@@ -69,6 +74,7 @@ export class OrdersComponent {
   readonly positions = signal<Position[]>([]);
   readonly orders = signal<Order[]>([]);
   readonly quote = signal<Quote | null>(null);
+  readonly market = signal<MarketOverview | null>(null);
   readonly loading = signal(true);
   readonly error = signal('');
   readonly refreshError = signal('');
@@ -86,6 +92,13 @@ export class OrdersComponent {
   readonly orderView = signal(this.management ? 'ACTIVE' : 'ALL');
   readonly sideFilter = signal('ALL');
   readonly sortOrder = signal('NEWEST');
+  readonly pricesAsOf = computed(() => this.market()?.updatedAt ?? null);
+  readonly latestTrade = computed(() => {
+    const trades = (this.market()?.snapshots ?? []).map((snapshot) => snapshot.timestamp);
+    return trades.length > 0
+      ? trades.reduce((latest, timestamp) => (latest > timestamp ? latest : timestamp))
+      : null;
+  });
   readonly scopedOrders = computed(() =>
     this.orders().filter(
       (order) => !this.accountFilter() || order.accountId === this.accountFilter(),
@@ -348,9 +361,10 @@ export class OrdersComponent {
     const accountId = this.accountId;
     const symbol = this.symbol;
     if (this.management) {
-      return this.service.orders().pipe(
-        exhaustMap((orders) => {
-          this.updateOrders(orders);
+      return forkJoin({ orders: this.service.orders(), market: this.service.marketOverview() }).pipe(
+        exhaustMap((data) => {
+          this.updateOrders(data.orders);
+          this.market.set(data.market);
           this.loading.set(false);
           this.refreshError.set('');
           return EMPTY;
@@ -366,6 +380,7 @@ export class OrdersComponent {
       orders: this.service.orders(),
       portfolio: this.service.portfolio(accountId),
       quote: this.service.quote(symbol),
+      market: this.service.marketOverview(),
     }).pipe(
       exhaustMap((data) => {
         if (accountId !== this.accountId || symbol !== this.symbol) return EMPTY;
@@ -373,6 +388,7 @@ export class OrdersComponent {
         this.account.set(data.portfolio.account);
         this.positions.set(data.portfolio.positions);
         this.quote.set(data.quote);
+        this.market.set(data.market);
         this.loading.set(false);
         this.refreshError.set('');
         return EMPTY;

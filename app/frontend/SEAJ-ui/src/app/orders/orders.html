@@ -1,7 +1,11 @@
+<app-market-ticker />
+
 <main
   [class.management-page]="management"
   [attr.inert]="confirming() || historyOrder() ? '' : null"
 >
+  <app-market-clock [latestTrade]="latestTrade()" [pricesAsOf]="pricesAsOf()" />
+
   <div class="page-heading">
     <div>
       <p class="eyebrow">YOUR TRADING DESK</p>
