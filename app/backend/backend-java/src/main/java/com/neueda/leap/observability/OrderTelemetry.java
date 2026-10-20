@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Business metrics and span attributes for the order lifecycle, feeding the Grafana dashboards.
@@ -47,7 +48,7 @@ public final class OrderTelemetry {
     private static final List<Double> FILL_SECONDS_BUCKETS =
             List.of(0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 300.0, 1800.0);
 
-    private static volatile Instruments instruments;
+    private static final AtomicReference<Instruments> instruments = new AtomicReference<>();
 
     private OrderTelemetry() {
     }
@@ -95,14 +96,17 @@ public final class OrderTelemetry {
 
     /** Lets tests record into an in-memory SDK; production uses the agent's global instance */
     static void use(OpenTelemetry openTelemetry) {
-        instruments = new Instruments(openTelemetry.getMeter(SCOPE));
+        instruments.set(new Instruments(openTelemetry.getMeter(SCOPE)));
     }
 
     private static Instruments instruments() {
-        Instruments current = instruments;
+        Instruments current = instruments.get();
         if (current == null) {
-            current = new Instruments(GlobalOpenTelemetry.getMeter(SCOPE));
-            instruments = current;
+            Instruments created = new Instruments(GlobalOpenTelemetry.getMeter(SCOPE));
+            if (instruments.compareAndSet(null, created)) {
+                return created;
+            }
+            current = instruments.get();
         }
         return current;
     }
