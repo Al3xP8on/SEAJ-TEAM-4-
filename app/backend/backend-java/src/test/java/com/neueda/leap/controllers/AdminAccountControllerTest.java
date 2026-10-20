@@ -12,6 +12,8 @@ import com.neueda.leap.repositories.AccountStatusHistoryRepository;
 import com.neueda.leap.security.SecurityConfig;
 import com.neueda.leap.security.SecurityUtilsService;
 import com.neueda.leap.services.AdminAccountService;
+import com.neueda.leap.services.AdminObservabilityService;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -56,6 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebAppConfiguration
 @TestPropertySource(properties = "jwt.shared-secret=test-only-secret-with-at-least-32-bytes")
 class AdminAccountControllerTest {
+    @MockitoBean private AdminObservabilityService monitoring;
     private static final String SECRET = "test-only-secret-with-at-least-32-bytes";
     @Autowired private WebApplicationContext context;
     @Autowired private AccountRepository accounts;
@@ -67,7 +70,7 @@ class AdminAccountControllerTest {
 
     @BeforeEach
     void setup() {
-        reset(accounts, positions, orders, statusHistory);
+        reset(accounts, positions, orders, statusHistory, monitoring);
         Account admin = account(1L, "admin", "ADMIN,USER");
         target = account(2L, "customer", "USER");
         when(accounts.findById(1L)).thenReturn(Optional.of(admin));
@@ -204,9 +207,20 @@ class AdminAccountControllerTest {
         verify(accounts, never()).findByIdForUpdate(any());
     }
 
+    @ParameterizedTest @ValueSource(strings = {"ANONYMOUS", "USER", "ADMIN"})
+    void observabilityIsAvailableOnlyToAdmins(String role) throws Exception {
+        when(monitoring.snapshot()).thenReturn(new AdminObservabilityService.Snapshot("UNAVAILABLE", "Monitoring is unavailable.",
+                Instant.now(), 3600, 30, "", List.of(), List.of(), List.of(), List.of(), java.util.Map.of()));
+        var request = get("/v1/admin/observability");
+        if (!role.equals("ANONYMOUS")) request.header("Authorization", token(1, role));
+        mvc.perform(request).andExpect(status().is(role.equals("ADMIN") ? 200 : role.equals("USER") ? 403 : 401));
+        if (role.equals("ADMIN")) verify(monitoring).snapshot();
+        else verifyNoInteractions(monitoring);
+    }
+
     @TestConfiguration @EnableWebSecurity @EnableWebMvc
     @Import({SecurityConfig.class, SecurityUtilsService.class, AdminAccountController.class,
-            AdminAccountService.class, GlobalExceptionHandler.class})
+            AdminAccountService.class, AdminObservabilityController.class, GlobalExceptionHandler.class})
     static class TestApplication {
         @Bean AccountRepository accounts() { return mock(AccountRepository.class); }
         @Bean PositionsRepository positions() { return mock(PositionsRepository.class); }

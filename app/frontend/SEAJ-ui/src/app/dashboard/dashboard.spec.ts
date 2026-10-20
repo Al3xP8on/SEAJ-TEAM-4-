@@ -449,7 +449,7 @@ describe('DashboardComponent', () => {
 
   it.each([
     ['Place Order', '/order'],
-    ['View all orders', '/order'],
+    ['Manage orders', '/blotter'],
   ])('%s button navigates to %s', async (label, path) => {
     const { page } = await render();
 
