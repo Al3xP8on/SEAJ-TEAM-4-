@@ -66,7 +66,7 @@ public class AlpacaBondService {
         Reply reply = call("GET", url, accessToken(), null);
         if (reply.status() == 401) { token = null; reply = call("GET", url, accessToken(), null); }
         String label = type.equals("us_treasuries") ? "Treasury" : "Corporate bond";
-        if (reply.status() == 403) throw new Unavailable(label + " access is not enabled.");
+        if (reply.status() == 403) throw new Unavailable(label + " access is not enabled for this subscription.");
         if (reply.status() == 401) throw new Unavailable("Alpaca rejected the Broker access token. Check the Broker credentials.");
         if (reply.status() == 429) throw new Unavailable("Alpaca's Broker request limit was reached. Retrying shortly.");
         if (reply.status() != 200) throw new Unavailable(label + " catalogue is temporarily unavailable.");
