@@ -9,8 +9,8 @@ import {
   signal,
 } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe, DOCUMENT, NgTemplateOutlet } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
 import { FormsModule, NgForm } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   EMPTY,
@@ -42,6 +42,7 @@ import { MarketDataComponent } from './market-data';
   selector: 'app-orders',
   imports: [
     FormsModule,
+    RouterLink,
     CurrencyPipe,
     DecimalPipe,
     DatePipe,
@@ -49,11 +50,12 @@ import { MarketDataComponent } from './market-data';
     NgTemplateOutlet,
   ],
   templateUrl: './orders.html',
-  styleUrls: ['./orders.css', './order-ticket.css'],
+  styleUrls: ['./orders.css', './order-ticket.css', './order-management.css'],
 })
 export class OrdersComponent {
-  private readonly document = inject(DOCUMENT);
   private readonly route = inject(ActivatedRoute);
+  readonly management = this.route.snapshot.data['management'] === true;
+  private readonly document = inject(DOCUMENT);
   private requestedSymbol = '';
   private readonly service = inject(OrdersService);
   private readonly auth = inject(AuthService);
@@ -81,6 +83,31 @@ export class OrdersComponent {
   readonly accountFilter = signal('');
   readonly statusFilter = signal('ALL');
   readonly dateFilter = signal('ALL');
+  readonly orderView = signal(this.management ? 'ACTIVE' : 'ALL');
+  readonly sideFilter = signal('ALL');
+  readonly sortOrder = signal('NEWEST');
+  readonly scopedOrders = computed(() =>
+    this.orders().filter(
+      (order) => !this.accountFilter() || order.accountId === this.accountFilter(),
+    ),
+  );
+  readonly activeOrders = computed(() =>
+    this.scopedOrders().filter((order) => this.isPending(order)),
+  );
+  readonly rejectedOrders = computed(() =>
+    this.scopedOrders().filter((order) => order.status === 'REJECTED'),
+  );
+  readonly completedOrders = computed(() =>
+    this.scopedOrders().filter((order) => ['FILLED', 'CANCELLED'].includes(order.status)),
+  );
+  readonly committedCash = computed(() =>
+    this.activeOrders()
+      .filter((order) => order.side === 'BUY')
+      .reduce((sum, order) => sum + order.quantity * order.price, 0),
+  );
+  readonly filledOrders = computed(() =>
+    this.scopedOrders().filter((order) => order.status === 'FILLED'),
+  );
   readonly search = signal('');
   readonly instrumentSearch = signal('');
   readonly pickerOpen = signal(false);
@@ -106,9 +133,18 @@ export class OrdersComponent {
   private historyRequestVersion = 0;
 
   readonly visibleOrders = computed(() =>
-    this.orders()
-      .filter((o) => !this.accountFilter() || o.accountId === this.accountFilter())
-      .filter((o) => this.dateFilter() === 'ALL' || this.isToday(o.createdAt))
+    this.scopedOrders()
+      .filter(
+        (o) =>
+          this.orderView() === 'ALL' ||
+          (this.orderView() === 'ACTIVE'
+            ? this.isPending(o)
+            : this.orderView() === 'REJECTED'
+              ? o.status === 'REJECTED'
+              : ['FILLED', 'CANCELLED'].includes(o.status)),
+      )
+      .filter((o) => this.sideFilter() === 'ALL' || o.side === this.sideFilter())
+      .filter((o) => this.matchesDate(o.createdAt))
       .filter(
         (o) =>
           this.statusFilter() === 'ALL' ||
@@ -121,7 +157,13 @@ export class OrdersComponent {
           .toLowerCase()
           .includes(this.search().toLowerCase()),
       )
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      .sort((a, b) =>
+        this.sortOrder() === 'VALUE'
+          ? this.orderValue(b) - this.orderValue(a)
+          : this.sortOrder() === 'OLDEST'
+            ? Date.parse(a.createdAt) - Date.parse(b.createdAt)
+            : Date.parse(b.createdAt) - Date.parse(a.createdAt),
+      ),
   );
   readonly historyRejectionReason = computed(() => {
     if (this.historyOrder()?.status !== 'REJECTED' || this.historyLoading() || this.historyError())
@@ -150,6 +192,35 @@ export class OrdersComponent {
     if (!this.isAdmin) return 0;
     return this.orders().filter((order) => this.isToday(order.createdAt)).length;
   });
+
+  selectView(view: string): void {
+    this.orderView.set(view);
+    this.statusFilter.set('ALL');
+  }
+
+  clearFilters(): void {
+    this.orderView.set('ALL');
+    this.accountFilter.set('');
+    this.statusFilter.set('ALL');
+    this.dateFilter.set('ALL');
+    this.sideFilter.set('ALL');
+    this.sortOrder.set('NEWEST');
+    this.search.set('');
+  }
+
+  orderValue(order: Order): number {
+    return order.quantity * (order.executionPrice ?? order.price);
+  }
+
+  private matchesDate(value: string): boolean {
+    if (this.dateFilter() === 'ALL') return true;
+    if (this.dateFilter() === 'TODAY') return this.isToday(value);
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (this.dateFilter() === 'WEEK' ? 6 : 29));
+    const time = Date.parse(value);
+    return time >= start.getTime() && time <= Date.now();
+  }
 
   private isToday(value: string): boolean {
     const today = new Date();
@@ -212,8 +283,7 @@ export class OrdersComponent {
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.service
-      .setup()
+    (this.management ? this.service.managementSetup() : this.service.setup())
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (data) => {
@@ -228,11 +298,25 @@ export class OrdersComponent {
             data.accounts.find((a) => String(a.id) === ownId)?.accountId ??
             (this.isAdmin ? data.accounts[0]?.accountId : '') ??
             '';
+          const params = this.route.snapshot.queryParamMap;
           const requested = this.instruments().find(
             (instrument) => instrument.symbol === this.requestedSymbol,
           );
           this.symbol = requested?.symbol ?? this.instruments()[0]?.symbol ?? '';
           this.marketSymbol.set(requested?.symbol ?? '');
+          if (!this.management && this.requestedSymbol && !requested) {
+            this.symbol = '';
+            this.error.set(
+              'This instrument is no longer available for trading. Choose another instrument.',
+            );
+          }
+          if (requested) {
+            this.side = params.get('side') === 'SELL' ? 'SELL' : 'BUY';
+            const requestedAccount = data.accounts.find(
+              (account) => account.accountId === params.get('account'),
+            );
+            if (this.isAdmin && requestedAccount) this.accountId = requestedAccount.accountId;
+          }
           if (!this.accountId) {
             this.error.set('No trading account is available.');
             this.loading.set(false);
@@ -263,6 +347,21 @@ export class OrdersComponent {
   private fetch() {
     const accountId = this.accountId;
     const symbol = this.symbol;
+    if (this.management) {
+      return this.service.orders().pipe(
+        exhaustMap((orders) => {
+          this.updateOrders(orders);
+          this.loading.set(false);
+          this.refreshError.set('');
+          return EMPTY;
+        }),
+        catchError(() => {
+          this.loading.set(false);
+          this.refreshError.set('Order updates are unavailable. Retrying automatically…');
+          return EMPTY;
+        }),
+      );
+    }
     return forkJoin({
       orders: this.service.orders(),
       portfolio: this.service.portfolio(accountId),
@@ -270,12 +369,7 @@ export class OrdersComponent {
     }).pipe(
       exhaustMap((data) => {
         if (accountId !== this.accountId || symbol !== this.symbol) return EMPTY;
-        this.orders.set(data.orders);
-        const viewedOrder = this.historyOrder();
-        const updatedOrder = data.orders.find((order) => order.orderId === viewedOrder?.orderId);
-        if (viewedOrder && updatedOrder && viewedOrder.status !== updatedOrder.status) {
-          this.showHistory(updatedOrder);
-        }
+        this.updateOrders(data.orders);
         this.account.set(data.portfolio.account);
         this.positions.set(data.portfolio.positions);
         this.quote.set(data.quote);
@@ -289,6 +383,16 @@ export class OrdersComponent {
         return EMPTY;
       }),
     );
+  }
+
+  private updateOrders(orders: Order[]): void {
+    this.orders.set(orders);
+    const viewed = this.historyOrder();
+    const updated = orders.find((order) => order.orderId === viewed?.orderId);
+    if (viewed && updated && viewed.status !== updated.status) this.showHistory(updated);
+    const cancelling = this.confirming();
+    const latest = orders.find((order) => order.orderId === cancelling?.orderId);
+    if (latest) this.confirming.set(latest);
   }
 
   refresh(): void {
@@ -523,8 +627,15 @@ export class OrdersComponent {
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   }
 
+  beginCancel(order: Order): void {
+    if (!this.isPending(order)) return;
+    this.historyOrder.set(null);
+    this.confirming.set(order);
+    this.rejectionReason = '';
+  }
+
   cancel(order: Order): void {
-    if (this.actionId()) return;
+    if (this.actionId() || !this.isPending(order)) return;
     this.actionId.set(order.orderId);
     this.error.set('');
     this.service
@@ -551,7 +662,8 @@ export class OrdersComponent {
       });
   }
   reject(order: Order): void {
-    if (!this.isAdmin || this.actionId() || !this.rejectionReason.trim()) return;
+    if (!this.isAdmin || this.actionId() || !this.isPending(order) || !this.rejectionReason.trim())
+      return;
     this.actionId.set(order.orderId);
     this.error.set('');
     this.service

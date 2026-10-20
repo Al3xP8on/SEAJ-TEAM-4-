@@ -48,6 +48,10 @@ market:
     staleness:
       threshold-seconds: 60
 
+observability:
+  prometheus-url: ${OBSERVABILITY_PROMETHEUS_URL:http://prometheus:9090}
+  grafana-url: ${OBSERVABILITY_GRAFANA_URL:}
+
 alpaca:
   enabled: ${ALPACA_ENABLED:true}
   key-id: ${ALPACA_API_KEY_ID:}

@@ -53,3 +53,18 @@ Fresh database builds include the additional columns and PENDING enum value in t
 ## Validation
 
 Run backend tests with `mvn test` in `app/backend/backend-java`, and frontend tests/build with `npm test -- --watch=false` and `npm run build` in `app/frontend/SEAJ-ui`. Tests cover submission/retries, limits, cash/holding reservations, settlement, duplicate fills, position closure/reopening, cancellation, authorization, and UI updates.
+
+
+## Order management
+
+The **Manage orders** workspace at `/blotter` replaces the old history destination. It is linked from the trading workspace and the portfolio's recent orders card. Existing `/blotter` bookmarks remain valid.
+
+The page defaults to active (NEW/PENDING) orders, with separate completed (FILLED/CANCELLED), rejected and all-order views. Summaries show active orders, estimated cash committed to pending buys and filled trades. Counts and commitments respect the admin account filter. Regular users retain their existing server-enforced account access and never see an account selector.
+
+Users can combine instrument/order search, status, direction, today/last-seven-days/last-thirty-days filters and newest/oldest/highest-value sorting. Date ranges use local calendar days; completed means filled or cancelled, with rejected orders kept in their own view. Trade values use execution prices where recorded; otherwise they are explicitly labelled estimates.
+
+Details include quantity, price, cash spent/received for recorded executions, the lifecycle timeline and rejection reasons. Pending orders can be cancelled after confirmation. If a polling update reports a fill while confirmation is open, cancellation and admin rejection are disabled; the server remains authoritative for races.
+
+**New order** opens a fresh ticket for the same instrument and direction. Admins also keep the selected account. It resets quantity to one and type to MARKET, fetches a fresh quote and requires review/confirmation. It never copies an old execution price or submits automatically. Unavailable instruments require the user to choose another.
+
+Management refreshes only orders every ten seconds while visible; it does not load instrument lists, quotes, charts or portfolios. The order ticket keeps its existing polling. No backend API or database changes are required.
