@@ -111,3 +111,22 @@ Forex chart links open the shared market-detail modal rather than rendering anal
 ### Additional commodities
 
 `07-expand-commodities.sql` adds SLV, IAU, PPLT, PALL, CPER, UNG, BNO, DBA, PDBC, COMT, GSG and USCI. All twelve were verified as tradable Alpaca assets with IEX latest-trade and daily-bar data. They are USD exchange-traded commodity funds/trusts, not direct spot or futures instruments. The visible catalogue grows from 120 to 132, with Commodity increasing from 3 to 15; other category counts stay unchanged. The base seed includes them, and fresh database initialization also runs the idempotent migration. Existing orders and positions are unchanged.
+
+## Alpaca Broker individual bonds
+
+The Bond tab now uses the authenticated, read-only `GET /api/v1/market-data/bonds` endpoint. Configure these separately from stock-feed credentials in the root private `.env`:
+
+```dotenv
+ALPACA_BROKER_ENABLED=true
+ALPACA_BROKER_BASE_URL=https://broker-api.sandbox.alpaca.markets
+ALPACA_BROKER_CLIENT_ID=your_client_id
+ALPACA_BROKER_CLIENT_SECRET=your_client_secret
+```
+
+Docker Compose passes the settings only to the Java backend. Generate Client Secret credentials in Brokerdash with read-only access; never commit them. The server exchanges credentials via form-encoded OAuth client credentials at `https://authx.sandbox.alpaca.markets/v1/oauth2/token` (production uses `authx.alpaca.markets`), reuses tokens until shortly before expiry and retries a rejected token once. It accepts only the documented US sandbox/production Broker hosts. Credentials and access tokens are not sent to the browser, returned in API DTOs, or logged. The OAuth client uses JDK HTTP rather than Spring HTTP body logging.
+
+The service reads `us_treasuries` and `us_corporates`, filtering for outstanding securities, and displays ISIN, CUSIP, issuer, maturity, coupon, catalogue close price, price date and close yield to maturity. Prices are percentages of par, not dollar values or executable quotes. Missing fields are shown unavailable rather than zero. The details popup has no order action; no accounts, orders, holdings or catalogue database rows are changed by this integration. Broker tradability is informational and does not enable SEAJ bond execution.
+
+Successful catalogues are cached for five minutes; failures back off for one minute. The client refreshes the tab every five minutes while visible and provides a manual refresh. Partial failures preserve prior category results and show a warning with the original per-bond price dates.
+
+After changing settings or source, run `docker-compose up -d --no-deps --build app frontend`. The current sandbox credentials authenticate, but both catalogue requests return HTTP 403 with `subscription does not permit querying us treasuries` / `subscription does not permit querying us corporates`. Ask Alpaca support to enable fixed-income catalogue access for the sandbox correspondent. Authentication success alone does not establish product entitlement; changing to a full-access key is not the fix for this subscription response. Once entitled, the same integration can load the catalogues on the next refresh without another code change. No fabricated securities or prices are substituted.
