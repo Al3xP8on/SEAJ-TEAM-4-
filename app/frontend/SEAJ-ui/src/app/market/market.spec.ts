@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { EMPTY, of, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { MarketComponent } from './market';
@@ -169,6 +169,27 @@ describe('Market page', () => {
     dialog.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 50, clientY: 150 }));
     expect(close).toHaveBeenCalledOnce();
     expect(component.selected()).toBe('');
+  });
+  it('closes the market dialog before navigating to the prefilled order page', () => {
+    const { fixture, component } = setup();
+    fixture.detectChanges();
+    const dialog = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
+    const close = vi.fn(() => dialog.removeAttribute('open'));
+    Object.defineProperties(dialog, {
+      showModal: { value: () => dialog.setAttribute('open', '') },
+      close: { value: close },
+    });
+    component.openChart('AAA');
+    fixture.detectChanges();
+    const router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigateByUrl').mockImplementation((url) => {
+      expect(close).toHaveBeenCalledOnce();
+      expect(dialog.open).toBe(false);
+      expect(router.serializeUrl(url as import('@angular/router').UrlTree)).toBe('/order?symbol=AAA');
+      return Promise.resolve(true);
+    });
+    dialog.querySelector('a')!.click();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
   });
   it('populates historical rankings from market-feed daily bars without stored price history', async () => {
     const bars = Array.from({ length: 22 }, (_, i) => ({

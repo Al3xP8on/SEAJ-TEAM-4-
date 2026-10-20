@@ -542,7 +542,9 @@
           [selectedSymbol]="selected()"
           [showOverview]="false"
         />
-        <a routerLink="/order" [queryParams]="{ symbol: selected() }">Go to orders →</a>
+        <a [attr.href]="'/order?symbol=' + selected()" (click)="goToOrders($event)">
+          Go to orders →
+        </a>
       </section>
     }
   </dialog>
