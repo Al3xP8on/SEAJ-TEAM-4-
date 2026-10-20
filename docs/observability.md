@@ -151,6 +151,12 @@ The health row still shows **Requests failing** (the errors golden signal), so f
 
 ## Extending the dashboard
 
+### In-app administration
+
+The Angular admin dashboard now includes an **Observability** section and a compact monitoring view on its overview. It reads fixed Prometheus summaries through the admin-only Java endpoint `/api/v1/admin/observability`, with a shared 30-second cache and visible-tab polling. It shows traffic, HTTP 5xx share, the slowest service p95, trading telemetry, Kafka lag and monitoring scrape status. Missing data is explicitly unavailable; telemetry presence is not an external availability probe.
+
+Logs and trace investigation open the existing provisioned Grafana panels with Grafana's own login. See [admin.md](admin.md#integrated-observability) for configuration, units, failure behavior and validation.
+
 - Edit `infra/observability/grafana/dashboards/seaj-platform.json`. Grafana reloads it within a minute. Changes
   saved in the Grafana UI are overwritten the next time the file changes, so copy them into the JSON
   (Dashboard → Share → Export).

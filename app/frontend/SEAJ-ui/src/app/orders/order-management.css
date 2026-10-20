@@ -1,0 +1,166 @@
+.desk-navigation {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+.desk-navigation a {
+  padding: 12px 18px;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-bottom: 3px solid transparent;
+}
+.desk-navigation a.current {
+  color: var(--foreground);
+  border-bottom-color: var(--positive);
+}
+.desk-navigation a:hover {
+  background: var(--surface-soft);
+}
+.management-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.management-summary strong {
+  display: block;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  margin: 14px 0 8px;
+}
+.order-views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.order-views button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+}
+.order-views button[aria-pressed='true'] {
+  background: var(--surface-soft);
+  color: var(--foreground);
+  border-color: var(--positive);
+  box-shadow: inset 0 -2px var(--positive);
+  font-weight: 600;
+}
+.order-views span {
+  border-radius: 4px;
+  background: var(--surface-soft);
+  padding: 3px 6px;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+.management-tools {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin: 0 0 20px;
+}
+.management-tools label {
+  margin: 0;
+  min-width: 150px;
+}
+.management-tools select {
+  display: block;
+  margin-top: 8px;
+}
+.management-tools p {
+  margin-left: auto;
+  align-self: center;
+}
+.management-tools button {
+  min-height: 44px;
+}
+.new-ticket {
+  display: inline-block;
+  min-height: 32px;
+}
+.management-page .row-actions {
+  min-width: 140px;
+}
+.management-page .row-actions button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-right: 10px;
+}
+.management-page .badge[data-status='PENDING'],
+.management-page .badge[data-status='NEW'] {
+  color: var(--foreground);
+}
+.management-page .badge[data-status='FILLED'] {
+  color: var(--positive);
+}
+.order-detail-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 20px 0;
+  margin-top: 20px;
+  border-block: 1px solid var(--border);
+}
+.order-detail-summary dt {
+  font-size: 0.75rem;
+  color: var(--text);
+  margin-bottom: 7px;
+}
+.order-detail-summary dd {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 600px) {
+  .management-summary {
+    grid-template-columns: 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .management-summary .panel {
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 5px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+  }
+  .management-summary .panel:last-child {
+    border-bottom: 0;
+  }
+  .management-summary .eyebrow {
+    margin: 0;
+  }
+  .management-summary strong {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 1.3rem;
+    margin: 0;
+  }
+  .management-tools p {
+    margin-left: 0;
+    width: 100%;
+  }
+  .management-tools label {
+    flex: 1;
+  }
+}

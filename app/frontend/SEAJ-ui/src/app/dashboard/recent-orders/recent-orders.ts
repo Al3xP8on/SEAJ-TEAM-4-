@@ -45,8 +45,8 @@ export class RecentOrdersComponent {
     return STATUS_BADGES[status];
   }
 
-  /** Full order history, with each order's timeline, lives on the Orders page */
+  /** Order history keeps active orders and completed trades together. */
   goToOrders(): void {
-    this.router.navigate(['/order']);
+    this.router.navigate(['/order'], { fragment: 'order-history' });
   }
 }

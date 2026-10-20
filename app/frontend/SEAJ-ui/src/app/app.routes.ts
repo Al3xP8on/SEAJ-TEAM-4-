@@ -34,7 +34,11 @@ export const routes: Routes = [
         title: 'Market | SEAJ Capital',
       },
       { path: 'order', component: OrdersComponent },
-      { path: 'blotter', component: OrdersComponent },
+      {
+        path: 'blotter',
+        redirectTo: '/order#order-history',
+        pathMatch: 'full',
+      },
     ],
   },
 ];

@@ -1,19 +1,30 @@
-<main [attr.inert]="confirming() || historyOrder() ? '' : null">
+<main
+  [class.management-page]="management"
+  [attr.inert]="confirming() || historyOrder() ? '' : null"
+>
   <div class="page-heading">
     <div>
       <p class="eyebrow">YOUR TRADING DESK</p>
       <h1>Place an order</h1>
-      <p class="muted">Put your next investment in motion.</p>
+      <p class="muted">
+        Put your next investment in motion.
+      </p>
     </div>
     <span class="live"><span></span> Updates every 10 seconds</span>
   </div>
-  @if (isAdmin) {
-    <section class="admin-order-summary panel" aria-label="Platform activity overview">
-      <span class="eyebrow">PLATFORM ACTIVITY</span>
-      <strong>{{ ordersToday() | number }}</strong>
-      <span class="muted">Total orders today</span>
-    </section>
-  }
+  <nav class="desk-navigation" aria-label="Trading workspace">
+    <a
+      routerLink="/order"
+      [class.current]="!management"
+      [attr.aria-current]="!management ? 'page' : null"
+      >Place order</a
+    >
+    <a
+      routerLink="/order"
+      fragment="order-history"
+      >Order history</a
+    >
+  </nav>
   @if (loading()) {
     <p class="panel">Loading your trading desk…</p>
   }
@@ -33,290 +44,333 @@
   }
   @if (accounts().length) {
     <div class="workspace">
-      <div class="ticket-column">
-        <section class="panel ticket" aria-labelledby="ticket-title">
-          <div class="section-heading ticket-heading">
-            <div>
-              <p class="eyebrow">NEW TRADE</p>
-              <h2 id="ticket-title">Order ticket</h2>
+        <div class="ticket-column">
+          <section class="panel ticket" aria-labelledby="ticket-title">
+            <div class="section-heading ticket-heading">
+              <div>
+                <p class="eyebrow">NEW TRADE</p>
+                <h2 id="ticket-title">Order ticket</h2>
+              </div>
+              <span class="tag">{{ selectedInstrument()?.currency }}</span>
             </div>
-            <span class="tag">{{ selectedInstrument()?.currency }}</span>
-          </div>
-          <form #ticket="ngForm" (ngSubmit)="submit(ticket)">
-            <fieldset [disabled]="submitting()">
-              <legend class="sr-only">Order ticket</legend>
-              @if (isAdmin) {
-                <label for="account">Trading account</label>
-                <select
-                  id="account"
-                  name="account"
-                  [(ngModel)]="accountId"
-                  (ngModelChange)="changeAccount()"
-                  required
-                >
-                  @for (a of accounts(); track a.accountId) {
-                    <option [value]="a.accountId">
-                      {{ a.name }} · {{ a.accountId
-                      }}{{ a.status !== 'ACTIVE' ? ' (' + a.status + ')' : '' }}
-                    </option>
-                  }
-                </select>
-              }
-              <label for="instrument">Instrument</label>
-              <div class="instrument-picker" (focusout)="closeInstrumentPicker($event)">
-                <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="10.5" cy="10.5" r="6.5" />
-                  <path d="m16 16 4 4" />
-                </svg>
-                <input
-                  id="instrument"
-                  type="text"
-                  role="combobox"
-                  autocomplete="off"
-                  aria-autocomplete="list"
-                  aria-controls="instrument-options"
-                  [attr.aria-expanded]="pickerOpen()"
-                  [attr.aria-activedescendant]="
-                    pickerOpen() && filteredInstruments().length
-                      ? 'instrument-option-' + activeInstrument()
-                      : null
-                  "
-                  placeholder="Search by symbol or instrument name"
-                  [ngModel]="
-                    pickerOpen()
-                      ? instrumentSearch()
-                      : symbol + ' — ' + (selectedInstrument()?.name ?? '')
-                  "
-                  [ngModelOptions]="{ standalone: true }"
-                  (ngModelChange)="searchInstruments($event)"
-                  (focus)="openInstrumentPicker()"
-                  (click)="!pickerOpen() && openInstrumentPicker()"
-                  (keydown)="instrumentKey($event)"
-                />
-                @if (pickerOpen()) {
-                  <div
-                    id="instrument-options"
-                    class="instrument-options"
-                    role="listbox"
-                    aria-label="Instruments"
+            <form #ticket="ngForm" (ngSubmit)="submit(ticket)">
+              <fieldset [disabled]="submitting()">
+                <legend class="sr-only">Order ticket</legend>
+                @if (isAdmin) {
+                  <label for="account">Trading account</label>
+                  <select
+                    id="account"
+                    name="account"
+                    [(ngModel)]="accountId"
+                    (ngModelChange)="changeAccount()"
+                    required
                   >
-                    @for (i of filteredInstruments(); track i.symbol; let index = $index) {
+                    @for (a of accounts(); track a.accountId) {
+                      <option [value]="a.accountId">
+                        {{ a.name }} · {{ a.accountId
+                        }}{{ a.status !== 'ACTIVE' ? ' (' + a.status + ')' : '' }}
+                      </option>
+                    }
+                  </select>
+                }
+                <label for="instrument">Instrument</label>
+                <div class="instrument-picker" (focusout)="closeInstrumentPicker($event)">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="10.5" cy="10.5" r="6.5" />
+                    <path d="m16 16 4 4" />
+                  </svg>
+                  <input
+                    id="instrument"
+                    type="text"
+                    role="combobox"
+                    autocomplete="off"
+                    aria-autocomplete="list"
+                    aria-controls="instrument-options"
+                    [attr.aria-expanded]="pickerOpen()"
+                    [attr.aria-activedescendant]="
+                      pickerOpen() && filteredInstruments().length
+                        ? 'instrument-option-' + activeInstrument()
+                        : null
+                    "
+                    placeholder="Search by symbol or instrument name"
+                    [ngModel]="
+                      pickerOpen()
+                        ? instrumentSearch()
+                        : symbol + ' — ' + (selectedInstrument()?.name ?? '')
+                    "
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="searchInstruments($event)"
+                    (focus)="openInstrumentPicker()"
+                    (click)="!pickerOpen() && openInstrumentPicker()"
+                    (keydown)="instrumentKey($event)"
+                  />
+                  @if (pickerOpen()) {
+                    <div
+                      id="instrument-options"
+                      class="instrument-options"
+                      role="listbox"
+                      aria-label="Instruments"
+                    >
+                      @for (i of filteredInstruments(); track i.symbol; let index = $index) {
+                        <button
+                          type="button"
+                          role="option"
+                          tabindex="-1"
+                          [id]="'instrument-option-' + index"
+                          [attr.aria-selected]="i.symbol === symbol"
+                          [class.active-option]="index === activeInstrument()"
+                          (pointerdown)="$event.preventDefault()"
+                          (click)="selectInstrument(i.symbol)"
+                        >
+                          <strong>{{ i.symbol }}</strong
+                          ><span>{{ i.name }}</span>
+                        </button>
+                      } @empty {
+                        <p class="help">No instruments match your search.</p>
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="quote-strip" [attr.data-side]="side">
+                  @if (quote(); as q) {
+                    <div [class.selected-quote]="side === 'SELL'">
+                      <span>Bid</span><strong>{{ q.bidPrice | currency }}</strong>
+                    </div>
+                    <div [class.selected-quote]="side === 'BUY'">
+                      <span>Ask</span><strong>{{ q.askPrice | currency }}</strong>
+                    </div>
+                    <div>
+                      <span>As of</span><strong>{{ q.priceTimeStamp | date: 'HH:mm:ss' }}</strong>
+                    </div>
+                  } @else {
+                    <p>No current quote. You can still place a limit order.</p>
+                  }
+                </div>
+                <div class="form-row">
+                  <div>
+                    <span class="field-label" id="direction-label">Direction</span>
+                    <div class="side-switch" role="group" aria-labelledby="direction-label">
                       <button
                         type="button"
-                        role="option"
-                        tabindex="-1"
-                        [id]="'instrument-option-' + index"
-                        [attr.aria-selected]="i.symbol === symbol"
-                        [class.active-option]="index === activeInstrument()"
-                        (pointerdown)="$event.preventDefault()"
-                        (click)="selectInstrument(i.symbol)"
+                        class="buy-option"
+                        [attr.aria-pressed]="side === 'BUY'"
+                        (click)="side = 'BUY'; edited()"
                       >
-                        <strong>{{ i.symbol }}</strong
-                        ><span>{{ i.name }}</span>
+                        Buy
                       </button>
-                    } @empty {
-                      <p class="help">No instruments match your search.</p>
-                    }
-                  </div>
-                }
-              </div>
-              <div class="quote-strip" [attr.data-side]="side">
-                @if (quote(); as q) {
-                  <div [class.selected-quote]="side === 'SELL'">
-                    <span>Bid</span><strong>{{ q.bidPrice | currency }}</strong>
-                  </div>
-                  <div [class.selected-quote]="side === 'BUY'">
-                    <span>Ask</span><strong>{{ q.askPrice | currency }}</strong>
+                      <button
+                        type="button"
+                        class="sell-option"
+                        [attr.aria-pressed]="side === 'SELL'"
+                        (click)="side = 'SELL'; edited()"
+                      >
+                        Sell
+                      </button>
+                    </div>
                   </div>
                   <div>
-                    <span>As of</span><strong>{{ q.priceTimeStamp | date: 'HH:mm:ss' }}</strong>
-                  </div>
-                } @else {
-                  <p>No current quote. You can still place a limit order.</p>
-                }
-              </div>
-              <div class="form-row">
-                <div>
-                  <span class="field-label" id="direction-label">Direction</span>
-                  <div class="side-switch" role="group" aria-labelledby="direction-label">
-                    <button
-                      type="button"
-                      class="buy-option"
-                      [attr.aria-pressed]="side === 'BUY'"
-                      (click)="side = 'BUY'; edited()"
-                    >
-                      Buy
-                    </button>
-                    <button
-                      type="button"
-                      class="sell-option"
-                      [attr.aria-pressed]="side === 'SELL'"
-                      (click)="side = 'SELL'; edited()"
-                    >
-                      Sell
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <label for="type">Order type</label
-                  ><select id="type" name="type" [(ngModel)]="orderType" (ngModelChange)="edited()">
-                    <option value="MARKET">Market</option>
-                    <option value="LIMIT">Limit</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-row" [class.market-quantity]="orderType === 'MARKET'">
-                <div>
-                  <label for="quantity" class="quantity-label">
-                    Quantity <span>Whole units</span></label
-                  ><input
-                    id="quantity"
-                    name="quantity"
-                    type="number"
-                    min="1"
-                    max="2147483647"
-                    step="1"
-                    required
-                    [(ngModel)]="quantity"
-                    (ngModelChange)="edited()"
-                  />
-                </div>
-                @if (orderType === 'LIMIT') {
-                  <div>
-                    <label for="price">Limit price ($)</label
-                    ><input
-                      id="price"
-                      name="price"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      required
-                      [(ngModel)]="limitPrice"
+                    <label for="type">Order type</label
+                    ><select
+                      id="type"
+                      name="type"
+                      [(ngModel)]="orderType"
                       (ngModelChange)="edited()"
-                      placeholder="0.00"
+                    >
+                      <option value="MARKET">Market</option>
+                      <option value="LIMIT">Limit</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row" [class.market-quantity]="orderType === 'MARKET'">
+                  <div>
+                    <label for="quantity" class="quantity-label">
+                      Quantity <span>Whole units</span></label
+                    ><input
+                      id="quantity"
+                      name="quantity"
+                      type="number"
+                      min="1"
+                      max="2147483647"
+                      step="1"
+                      required
+                      [(ngModel)]="quantity"
+                      (ngModelChange)="edited()"
                     />
                   </div>
-                }
-              </div>
-              <p class="help">
-                @if (orderType === 'MARKET') {
-                  Market orders use the available quote. The final execution price may differ.
-                } @else {
-                  {{ side === 'BUY' ? 'Buy at or below' : 'Sell at or above' }} your limit. Your
-                  order stays pending until a matching quote is available or you cancel it.
-                }
-              </p>
-              <div class="estimate">
-                <div class="estimate-total">
-                  <span>{{
-                    orderType === 'MARKET' ? 'Estimated order value' : 'Value at limit price'
-                  }}</span>
-                  <strong>{{ unitPrice() === null ? '—' : (estimatedTotal() | currency) }}</strong>
+                  @if (orderType === 'LIMIT') {
+                    <div>
+                      <label for="price">Limit price ($)</label
+                      ><input
+                        id="price"
+                        name="price"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        required
+                        [(ngModel)]="limitPrice"
+                        (ngModelChange)="edited()"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  }
                 </div>
-                <p class="estimate-detail">
-                  {{ quantity ?? 0 | number }} {{ quantity === 1 ? 'unit' : 'units' }} ×
-                  {{ unitPrice() === null ? '—' : (unitPrice() | currency) }}
+                <p class="help">
+                  @if (orderType === 'MARKET') {
+                    Market orders use the available quote. The final execution price may differ.
+                  } @else {
+                    {{ side === 'BUY' ? 'Buy at or below' : 'Sell at or above' }} your limit. Your
+                    order stays pending until a matching quote is available or you cancel it.
+                  }
                 </p>
-                <div class="estimate-available">
-                  <span>
-                    {{ side === 'BUY' ? 'Available cash' : 'Available units' }}
-                    <small>After pending orders</small>
-                  </span>
-                  <strong>
-                    @if (side === 'BUY') {
-                      {{ availableCash() | currency }}
-                    } @else {
-                      {{ availableHolding() | number }}
-                    }
-                  </strong>
-                </div>
-              </div>
-              @if (review) {
-                <div class="review" role="status">
-                  <strong>Review your {{ side.toLowerCase() }} order</strong>
-                  <p>
-                    {{ quantity }} units of {{ symbol }} · {{ orderType.toLowerCase() }} ·
-                    {{ accountId }}
+                <div class="estimate">
+                  <div class="estimate-total">
+                    <span>{{
+                      orderType === 'MARKET' ? 'Estimated order value' : 'Value at limit price'
+                    }}</span>
+                    <strong>{{
+                      unitPrice() === null ? '—' : (estimatedTotal() | currency)
+                    }}</strong>
+                  </div>
+                  <p class="estimate-detail">
+                    {{ quantity ?? 0 | number }} {{ quantity === 1 ? 'unit' : 'units' }} ×
+                    {{ unitPrice() === null ? '—' : (unitPrice() | currency) }}
                   </p>
-                  <p>Good till cancelled. Check these details before submitting.</p>
+                  <div class="estimate-available">
+                    <span>
+                      {{ side === 'BUY' ? 'Available cash' : 'Available units' }}
+                      <small>After pending orders</small>
+                    </span>
+                    <strong>
+                      @if (side === 'BUY') {
+                        {{ availableCash() | currency }}
+                      } @else {
+                        {{ availableHolding() | number }}
+                      }
+                    </strong>
+                  </div>
                 </div>
-              }
-              <button
-                class="primary full"
-                type="submit"
-                [disabled]="
-                  loading() ||
-                  !account() ||
-                  account()?.status !== 'ACTIVE' ||
-                  (orderType === 'MARKET' && !quote())
-                "
-              >
-                {{
-                  submitting()
-                    ? 'Submitting…'
-                    : review
-                      ? 'Confirm ' + side.toLowerCase() + ' order'
-                      : 'Review ' + side.toLowerCase() + ' order'
-                }}
-                @if (!submitting()) {
-                  <span aria-hidden="true">→</span>
+                @if (review) {
+                  <div class="review" role="status">
+                    <strong>Review your {{ side.toLowerCase() }} order</strong>
+                    <p>
+                      {{ quantity }} units of {{ symbol }} · {{ orderType.toLowerCase() }} ·
+                      {{ accountId }}
+                    </p>
+                    <p>Good till cancelled. Check these details before submitting.</p>
+                  </div>
                 }
-              </button>
-              @if (review) {
-                <button class="quiet full" type="button" (click)="review = false">
-                  Back to editing
+                <button
+                  class="primary full"
+                  type="submit"
+                  [disabled]="
+                    loading() ||
+                    !account() ||
+                    account()?.status !== 'ACTIVE' ||
+                    (orderType === 'MARKET' && !quote())
+                  "
+                >
+                  {{
+                    submitting()
+                      ? 'Submitting…'
+                      : review
+                        ? 'Confirm ' + side.toLowerCase() + ' order'
+                        : 'Review ' + side.toLowerCase() + ' order'
+                  }}
+                  @if (!submitting()) {
+                    <span aria-hidden="true">→</span>
+                  }
                 </button>
-              }
-            </fieldset>
-          </form>
-        </section>
-        @if (marketSymbol()) {
-          <ng-container [ngTemplateOutlet]="marketData.overviewTemplate() ?? null" />
-        }
-      </div>
-      <aside class="portfolio">
-        <section class="panel balance-panel">
-          <p class="eyebrow">ACCOUNT CASH</p>
-          <p class="cash">{{ account()?.cashBalance ?? 0 | currency }}</p>
-          <p class="muted">{{ account()?.holderName }} · {{ accountId }}</p>
-          <hr />
-          <div class="section-heading cash-reserved">
-            <span>Reserved for pending buys</span><strong>{{ reservedCash() | currency }}</strong>
-          </div>
-          <div class="section-heading cash-available">
-            <span>Available for orders</span><strong>{{ availableCash() | currency }}</strong>
-          </div>
-          <p class="help balance-help">
-            Account cash minus reserved cash is available for new orders.
-          </p>
-        </section>
-        <app-market-data
-          #marketData
-          [instruments]="instruments()"
-          [selectedSymbol]="marketSymbol()"
-          [showOverview]="!marketSymbol()"
-          (choose)="selectInstrument($event)"
-        />
-        <div class="desk-note">
-          <span>↗</span>
-          <div>
-            <strong>A little clarity before you trade</strong>
-            <p>
-              Only whole units are supported. Our execution engine uses live Alpaca bid and ask
-              prices.
-            </p>
-          </div>
+                @if (review) {
+                  <button class="quiet full" type="button" (click)="review = false">
+                    Back to editing
+                  </button>
+                }
+              </fieldset>
+            </form>
+          </section>
+          @if (marketSymbol()) {
+            <ng-container [ngTemplateOutlet]="marketData.overviewTemplate() ?? null" />
+          }
         </div>
-      </aside>
+        <aside class="portfolio">
+          <section class="panel balance-panel">
+            <p class="eyebrow">ACCOUNT CASH</p>
+            <p class="cash">{{ account()?.cashBalance ?? 0 | currency }}</p>
+            <p class="muted">{{ account()?.holderName }} · {{ accountId }}</p>
+            <hr />
+            <div class="section-heading cash-reserved">
+              <span>Reserved for pending buys</span><strong>{{ reservedCash() | currency }}</strong>
+            </div>
+            <div class="section-heading cash-available">
+              <span>Available for orders</span><strong>{{ availableCash() | currency }}</strong>
+            </div>
+            <p class="help balance-help">
+              Account cash minus reserved cash is available for new orders.
+            </p>
+          </section>
+          <app-market-data
+            #marketData
+            [instruments]="instruments()"
+            [selectedSymbol]="marketSymbol()"
+            [showOverview]="!marketSymbol()"
+            (choose)="selectInstrument($event)"
+          />
+          <div class="desk-note">
+            <span>↗</span>
+            <div>
+              <strong>A little clarity before you trade</strong>
+              <p>
+                Only whole units are supported. Our execution engine uses live Alpaca bid and ask
+                prices.
+              </p>
+            </div>
+          </div>
+        </aside>
     </div>
-    <section class="panel orders-panel" aria-labelledby="orders-title">
+    <section id="order-history" class="panel orders-panel" aria-labelledby="orders-title">
       <div class="section-heading">
         <div>
-          <h2 id="orders-title">{{ isAdmin ? 'All account orders' : 'Your orders' }}</h2>
-          <p class="muted">{{ pendingCount() }} pending · Status updates automatically</p>
+          <h2 id="orders-title">
+            {{
+              isAdmin ? 'All account order history' : 'Your order history'
+            }}
+          </h2>
+          <p class="muted">
+            {{ activeOrders().length }} pending · Status updates automatically
+          </p>
         </div>
         <button type="button" class="quiet" (click)="refresh()">Refresh</button>
       </div>
+        <div class="order-views" role="group" aria-label="Order views">
+          <button
+            type="button"
+            [attr.aria-pressed]="orderView() === 'ACTIVE'"
+            (click)="selectView('ACTIVE')"
+          >
+            Active <span>{{ activeOrders().length }}</span>
+          </button>
+          <button
+            type="button"
+            [attr.aria-pressed]="orderView() === 'COMPLETED'"
+            (click)="selectView('COMPLETED')"
+          >
+            Completed <span>{{ completedOrders().length }}</span>
+          </button>
+          <button
+            type="button"
+            [attr.aria-pressed]="orderView() === 'REJECTED'"
+            (click)="selectView('REJECTED')"
+          >
+            Rejected <span>{{ rejectedOrders().length }}</span>
+          </button>
+          <button
+            type="button"
+            [attr.aria-pressed]="orderView() === 'ALL'"
+            (click)="selectView('ALL')"
+          >
+            All orders <span>{{ scopedOrders().length }}</span>
+          </button>
+        </div>
       <div class="filters">
         <input
           aria-label="Search orders"
@@ -335,16 +389,16 @@
           <option value="CANCELLED">Cancelled</option>
           <option value="REJECTED">Rejected</option>
         </select>
-        @if (isAdmin) {
-          <select
+        <select
             aria-label="Filter order date"
             [ngModel]="dateFilter()"
             (ngModelChange)="dateFilter.set($event)"
           >
             <option value="ALL">All dates</option>
-            <option value="TODAY">Today ({{ ordersToday() }})</option>
-          </select>
-        }
+            <option value="TODAY">Today</option>
+            <option value="WEEK">Last 7 days</option>
+            <option value="MONTH">Last 30 days</option>
+        </select>
         @if (isAdmin) {
           <select
             aria-label="Filter account"
@@ -358,6 +412,26 @@
           </select>
         }
       </div>
+        <div class="management-tools">
+          <label
+            >Direction<select [ngModel]="sideFilter()" (ngModelChange)="sideFilter.set($event)">
+              <option value="ALL">Buy and sell</option>
+              <option value="BUY">Buy</option>
+              <option value="SELL">Sell</option>
+            </select></label
+          >
+          <label
+            >Sort by<select [ngModel]="sortOrder()" (ngModelChange)="sortOrder.set($event)">
+              <option value="NEWEST">Newest first</option>
+              <option value="OLDEST">Oldest first</option>
+              <option value="VALUE">Highest value</option>
+            </select></label
+          >
+          <button type="button" class="text-button" (click)="clearFilters()">Clear filters</button>
+          <p class="muted" role="status">
+            {{ visibleOrders().length }} of {{ scopedOrders().length }} orders shown
+          </p>
+        </div>
       <div class="table-scroll" role="region" aria-label="Order data table" tabindex="0">
         <table class="order-table">
           <caption class="sr-only">
@@ -373,6 +447,7 @@
               <th class="num">Units</th>
               <th class="num">Order price</th>
               <th class="num">Fill price</th>
+              <th class="num">Trade value</th>
               <th>Status</th>
               <th>Placed</th>
               <th>Actions</th>
@@ -408,10 +483,23 @@
                     —
                   }
                 </td>
+                <td class="num">
+                  {{ orderValue(o) | currency }}
+                  @if (o.executionPrice === null) {
+                    <small>Estimate</small>
+                  }
+                </td>
                 <td>
                   <span class="badge" [attr.data-status]="o.status">{{
                     statusLabel(o.status)
                   }}</span>
+                  @if (isPending(o)) {
+                    <small>{{
+                      o.orderType === 'LIMIT'
+                        ? 'Waiting for a matching price'
+                        : 'Awaiting execution'
+                    }}</small>
+                  }
                 </td>
                 <td>
                   {{ o.createdAt | date: 'MMM d'
@@ -426,16 +514,37 @@
                       type="button"
                       class="text-button danger"
                       [disabled]="!!actionId()"
-                      (click)="confirming.set(o); rejectionReason = ''"
+                      (click)="beginCancel(o)"
                     >
                       Cancel{{ isAdmin ? ' / reject' : '' }}
                     </button>
                   }
+                  <a
+                    class="text-button new-ticket"
+                    routerLink="/order"
+                    [queryParams]="{
+                      symbol: o.ticker,
+                      side: o.side,
+                      account: isAdmin ? o.accountId : null,
+                    }"
+                    >New order</a
+                  >
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="9" class="empty">No orders match this view.</td>
+                <td [attr.colspan]="9 + (isAdmin ? 1 : 0)" class="empty">
+                  @if (!orders().length) {
+                    <strong>Your trading activity starts here.</strong>
+                    <p>Place your first order to track its progress and manage it here.</p>
+                    <a routerLink="/order" class="text-button">Place an order →</a>
+                  } @else {
+                    <p>No orders match this view.</p>
+                    <button type="button" class="text-button" (click)="clearFilters()">
+                      Show all orders
+                    </button>
+                  }
+                </td>
               </tr>
             }
           </tbody>
@@ -459,6 +568,12 @@
       @if (error()) {
         <p class="alert" role="alert">{{ error() }}</p>
       }
+      @if (!isPending(o)) {
+        <p class="alert" role="status">
+          This order is now {{ statusLabel(o.status).toLowerCase() }} and can no longer be
+          cancelled.
+        </p>
+      }
       <div class="modal-actions">
         <button
           type="button"
@@ -467,7 +582,12 @@
           (click)="confirming.set(null)"
         >
           Keep order</button
-        ><button type="button" class="primary" [disabled]="!!actionId()" (click)="cancel(o)">
+        ><button
+          type="button"
+          class="primary"
+          [disabled]="!!actionId() || !isPending(o)"
+          (click)="cancel(o)"
+        >
           {{ actionId() ? 'Updating…' : 'Cancel order' }}
         </button>
       </div>
@@ -482,7 +602,7 @@
         /><button
           type="button"
           class="text-button danger"
-          [disabled]="!rejectionReason.trim() || !!actionId()"
+          [disabled]="!rejectionReason.trim() || !!actionId() || !isPending(o)"
           (click)="reject(o)"
         >
           Reject order
@@ -500,6 +620,53 @@
       </div>
       <p class="muted">{{ o.side }} {{ o.quantity }} units · {{ o.accountId }}</p>
       <p class="order-id">{{ o.orderId }}</p>
+      <dl class="order-detail-summary">
+        <div>
+          <dt>Status</dt>
+          <dd>{{ statusLabel(o.status) }}</dd>
+        </div>
+        <div>
+          <dt>Direction / type</dt>
+          <dd>
+            {{ o.side === 'BUY' ? 'Buy' : 'Sell' }} ·
+            {{ o.orderType === 'LIMIT' ? 'Limit' : 'Market' }}
+          </dd>
+        </div>
+        <div>
+          <dt>Quantity</dt>
+          <dd>{{ o.quantity | number }}</dd>
+        </div>
+        <div>
+          <dt>{{ o.executionPrice !== null ? 'Execution price' : 'Order price' }}</dt>
+          <dd>{{ o.executionPrice ?? o.price | currency }}</dd>
+        </div>
+        <div>
+          <dt>
+            {{
+              o.executionPrice !== null
+                ? o.side === 'BUY'
+                  ? 'Cash spent'
+                  : 'Cash received'
+                : 'Estimated trade value'
+            }}
+          </dt>
+          <dd>{{ orderValue(o) | currency }}</dd>
+        </div>
+        <div>
+          <dt>Placed</dt>
+          <dd>{{ o.createdAt | date: 'medium' }}</dd>
+        </div>
+      </dl>
+      @if (isPending(o)) {
+        <p class="help">
+          {{
+            o.orderType === 'LIMIT'
+              ? 'This order is waiting for a price that meets your limit. Execution is not guaranteed.'
+              : 'This order is awaiting execution using a current market quote.'
+          }}
+        </p>
+        <button type="button" class="quiet" (click)="beginCancel(o)">Cancel this order</button>
+      }
       @if (historyLoading()) {
         <p>Loading timeline…</p>
       }
