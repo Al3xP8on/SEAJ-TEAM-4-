@@ -53,3 +53,9 @@ alpaca:
   key-id: ${ALPACA_API_KEY_ID:}
   secret-key: ${ALPACA_API_SECRET_KEY:}
   feed: ${ALPACA_DATA_FEED:iex}
+
+  broker:
+    enabled: ${ALPACA_BROKER_ENABLED:false}
+    base-url: ${ALPACA_BROKER_BASE_URL:https://broker-api.sandbox.alpaca.markets}
+    client-id: ${ALPACA_BROKER_CLIENT_ID:}
+    client-secret: ${ALPACA_BROKER_CLIENT_SECRET:}

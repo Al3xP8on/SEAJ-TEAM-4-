@@ -177,6 +177,20 @@ input {
   max-width: 100%;
   font: inherit;
 }
+.instrument-search {
+  width: min(440px, 100%);
+}
+.instrument-search input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover,
+.clickable-row:focus-within {
+  background: var(--muted);
+}
 .table-wrap {
   overflow-x: auto;
 }
@@ -317,4 +331,18 @@ input:focus-visible {
   width: 100%;
   height: auto;
   display: block;
+}
+
+.bond-details {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(100px, 2fr);
+  gap: 12px 20px;
+  margin: 24px 0;
+}
+.bond-details dt {
+  color: var(--muted-foreground);
+}
+.bond-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }

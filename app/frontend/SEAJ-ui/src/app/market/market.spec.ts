@@ -125,6 +125,15 @@ describe('Market page', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Bond overview');
     expect(fixture.nativeElement.querySelector('#bond-title').textContent).toBe('Individual bonds');
+    TestBed.inject(HttpTestingController)
+      .expectOne('/api/v1/market-data/bonds')
+      .flush({
+        configured: true,
+        environment: 'Sandbox',
+        checkedAt: null,
+        bonds: [],
+        message: 'Treasury access is not enabled for this Alpaca subscription.',
+      });
   });
   it('shows up and down arrows only for instruments with a daily price change', () => {
     const { fixture } = setup();
@@ -262,5 +271,62 @@ describe('Market page', () => {
     expect(component.forexChart()).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Forex rates could not be refreshed');
     expect(fixture.nativeElement.textContent).toContain('Unavailable');
+  });
+  it('renders genuine Broker bonds, filters by type, and opens read-only details', async () => {
+    const { fixture, component } = setup();
+    component.assetClass.set('Bond');
+    fixture.detectChanges();
+    TestBed.inject(HttpTestingController)
+      .expectOne('/api/v1/market-data/bonds')
+      .flush({
+        configured: true,
+        environment: 'Sandbox',
+        checkedAt: '2026-10-20T12:00:00Z',
+        message: '',
+        bonds: [
+          {
+            isin: 'US912797MU86',
+            cusip: '912797MU8',
+            type: 'Treasury',
+            name: 'Treasury Bill',
+            issuer: 'U.S. Treasury',
+            maturityDate: '2027-03-27',
+            coupon: 0,
+            closePrice: 99.6,
+            priceDate: '2026-10-19',
+            yieldToMaturity: 4.2,
+            tradable: true,
+          },
+          {
+            isin: 'US00138CAU27',
+            cusip: null,
+            type: 'Corporate bond',
+            name: 'Corporate Bond',
+            issuer: 'Issuer',
+            maturityDate: null,
+            coupon: 5,
+            closePrice: null,
+            priceDate: null,
+            yieldToMaturity: null,
+            tradable: false,
+          },
+        ],
+      });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('99.6');
+    expect(fixture.nativeElement.textContent).toContain('2026-10-19');
+    expect(fixture.nativeElement.textContent).toContain('Alpaca Broker · fixed income');
+    component.bondType.set('Treasury');
+    expect(component.visibleBonds()).toHaveLength(1);
+    component.bondSearch.set('912797');
+    expect(component.visibleBonds()).toHaveLength(1);
+    const dialog = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
+    Object.defineProperty(dialog, 'showModal', { value: () => dialog.setAttribute('open', '') });
+    component.viewBond(component.visibleBonds()[0]);
+    fixture.detectChanges();
+    expect(dialog.open).toBe(true);
+    expect(dialog.textContent).toContain('Treasury Bill');
+    expect(dialog.querySelector('a')).toBeNull();
   });
 });

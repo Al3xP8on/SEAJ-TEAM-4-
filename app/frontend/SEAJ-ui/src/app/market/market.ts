@@ -20,6 +20,27 @@ import { MarketDataComponent } from '../orders/market-data';
 import { MarketTickerComponent } from '../landing/market-ticker/market-ticker';
 import { MarketClockComponent } from '../dashboard/market-clock/market-clock';
 
+interface BrokerBond {
+  isin: string;
+  cusip: string | null;
+  type: string;
+  name: string;
+  issuer: string;
+  maturityDate: string | null;
+  coupon: number | null;
+  closePrice: number | null;
+  priceDate: string | null;
+  yieldToMaturity: number | null;
+  tradable: boolean;
+}
+interface BondOverview {
+  configured: boolean;
+  environment: string;
+  checkedAt: string | null;
+  bonds: BrokerBond[];
+  message: string;
+}
+
 type Ranking = 'gainers' | 'losers' | 'active' | 'performance' | 'trending';
 @Component({
   selector: 'app-market',
@@ -41,6 +62,32 @@ export class MarketComponent {
   private readonly destroy = inject(DestroyRef);
   private readonly service = inject(OrdersService);
   private readonly document = inject(DOCUMENT);
+  readonly bondOverview = signal<BondOverview | null>(null);
+  readonly bondLoading = signal(false);
+  readonly bondError = signal('');
+  readonly bondSearch = signal('');
+  readonly bondType = signal('');
+  readonly selectedBond = signal<BrokerBond | null>(null);
+  private readonly bondRetry = signal(0);
+  readonly visibleBonds = computed(() => {
+    const query = this.bondSearch().trim().toLowerCase();
+    return (this.bondOverview()?.bonds ?? []).filter(
+      (bond) =>
+        (!this.bondType() || bond.type === this.bondType()) &&
+        `${bond.isin} ${bond.cusip ?? ''} ${bond.name} ${bond.issuer}`
+          .toLowerCase()
+          .includes(query),
+    );
+  });
+  refreshBonds(): void {
+    this.bondRetry.update((n) => n + 1);
+  }
+  viewBond(bond: BrokerBond): void {
+    this.selectedBond.set(bond);
+    this.chartMode.set('bond');
+    const dialog = this.chartDialog().nativeElement;
+    if (!dialog.open) dialog.showModal();
+  }
   readonly fxSessions = signal<{ date: string; rates: Record<string, number> }[]>([]);
   readonly fxError = signal('');
   readonly fxLoading = signal(false);
@@ -119,7 +166,7 @@ export class MarketComponent {
   readonly search = signal('');
   readonly ranking = signal<Ranking>('gainers');
   readonly selected = signal('');
-  readonly chartMode = signal<'instrument' | 'forex'>('instrument');
+  readonly chartMode = signal<'instrument' | 'forex' | 'bond'>('instrument');
   readonly chartDialog = viewChild.required<ElementRef<HTMLDialogElement>>('chartDialog');
   openChart(symbol: string): void {
     this.chartMode.set('instrument');
@@ -298,6 +345,32 @@ export class MarketComponent {
   );
 
   constructor() {
+    effect((onCleanup) => {
+      if (this.assetClass() !== 'Bond') return;
+      this.bondRetry();
+      this.bondLoading.set(true);
+      const subscription = pollWhileVisible(this.document, 300_000, { immediate: true })
+        .pipe(
+          exhaustMap(() =>
+            this.http.get<BondOverview>('/api/v1/market-data/bonds').pipe(
+              catchError(() => {
+                this.bondLoading.set(false);
+                this.bondError.set(
+                  'The bond catalogue could not be refreshed. Any displayed prices retain their original dates.',
+                );
+                return EMPTY;
+              }),
+            ),
+          ),
+        )
+        .subscribe((data) => {
+          this.bondOverview.set(data);
+          this.bondLoading.set(false);
+          this.bondError.set('');
+        });
+      onCleanup(() => subscription.unsubscribe());
+    });
+
     effect((onCleanup) => {
       if (this.assetClass() !== 'Forex') return;
       this.fxRetry();
