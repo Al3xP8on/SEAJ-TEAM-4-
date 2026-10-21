@@ -76,22 +76,13 @@
   border-bottom-color: var(--positive);
   background: var(--muted);
 }
-.admin-sections button > span:not(.section-dot) {
+.admin-sections button > span {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 2px 6px;
   margin-left: 6px;
   font-size: 0.7rem;
-}
-.section-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--muted-foreground);
-  vertical-align: middle;
-  margin-left: 6px;
 }
 .stats .panel {
   position: relative;
