@@ -37,13 +37,6 @@
     >
       Accounts <span>{{ accounts().length }}</span>
     </button>
-    <button
-      type="button"
-      [attr.aria-pressed]="activeSection() === 'observability'"
-      (click)="activeSection.set('observability')"
-    >
-      Observability <span class="section-dot" aria-hidden="true"></span>
-    </button>
   </nav>
 
   @if (notice()) {
@@ -53,26 +46,24 @@
     <p class="error" role="alert">{{ error() }}</p>
   }
 
-  @if (activeSection() !== 'observability') {
-    <section class="stats" aria-label="Account summary">
-      <div class="panel">
-        <span class="eyebrow">Total accounts</span><strong>{{ accounts().length | number }}</strong
-        ><span class="muted">Across the platform</span>
-      </div>
-      <div class="panel">
-        <span class="eyebrow">Active</span><strong>{{ activeCount() | number }}</strong
-        ><span class="muted">Accounts enabled for trading</span>
-      </div>
-      <div class="panel">
-        <span class="eyebrow">Suspended</span><strong>{{ suspendedCount() | number }}</strong
-        ><span class="muted">Access currently restricted</span>
-      </div>
-      <div class="panel">
-        <span class="eyebrow">Cash held</span><strong>{{ totalCash() | currency }}</strong
-        ><span class="muted">Total account cash · USD</span>
-      </div>
-    </section>
-  }
+  <section class="stats" aria-label="Account summary">
+    <div class="panel">
+      <span class="eyebrow">Total accounts</span><strong>{{ accounts().length | number }}</strong
+      ><span class="muted">Across the platform</span>
+    </div>
+    <div class="panel">
+      <span class="eyebrow">Active</span><strong>{{ activeCount() | number }}</strong
+      ><span class="muted">Accounts enabled for trading</span>
+    </div>
+    <div class="panel">
+      <span class="eyebrow">Suspended</span><strong>{{ suspendedCount() | number }}</strong
+      ><span class="muted">Access currently restricted</span>
+    </div>
+    <div class="panel">
+      <span class="eyebrow">Cash held</span><strong>{{ totalCash() | currency }}</strong
+      ><span class="muted">Total account cash · USD</span>
+    </div>
+  </section>
   @if (activeSection() === 'overview') {
     <div class="overview-grid">
       <section class="panel account-distribution" aria-labelledby="distribution-title">
@@ -139,7 +130,6 @@
         }
       </section>
     </div>
-    <app-admin-observability [compact]="true" />
     <section class="panel recent-account-panel" aria-labelledby="recent-account-title">
       <div class="section-heading">
         <div>
@@ -171,9 +161,6 @@
         </p>
       }
     </section>
-  }
-  @if (activeSection() === 'observability') {
-    <app-admin-observability />
   }
   @if (activeSection() === 'accounts') {
     @if (showCreate()) {
