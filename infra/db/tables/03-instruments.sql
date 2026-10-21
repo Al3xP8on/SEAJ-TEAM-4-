@@ -15,7 +15,7 @@ CREATE INDEX idx_instruments_tradable ON instruments(tradable) WHERE tradable = 
 CREATE INDEX idx_instruments_asset_class ON instruments(asset_class);
 CREATE INDEX idx_instruments_currency ON instruments(currency);
 
--- Seed data - 132 instruments across multiple asset classes
+-- Seed data - 137 instruments across multiple asset classes
 INSERT INTO instruments (symbol, name, asset_class, currency, tradable) VALUES
     -- Original instruments
     ('GLBEQ1', 'Global Equity Index Fund', 'Equity', 'GBP', TRUE),
@@ -144,16 +144,23 @@ INSERT INTO instruments (symbol, name, asset_class, currency, tradable) VALUES
     ('VEA', 'Vanguard FTSE Developed Markets ETF', 'ETF', 'USD', TRUE),
     ('VWO', 'Vanguard FTSE Emerging Markets ETF', 'ETF', 'USD', TRUE),
     ('EWJ', 'iShares MSCI Japan ETF', 'ETF', 'USD', TRUE),
-    ('BND', 'Vanguard Total Bond Market ETF', 'ETF', 'USD', TRUE),
-    ('AGG', 'iShares Core U.S. Aggregate Bond ETF', 'ETF', 'USD', TRUE),
-    ('TLT', 'iShares 20+ Year Treasury Bond ETF', 'ETF', 'USD', TRUE),
-    ('IEF', 'iShares 7-10 Year Treasury Bond ETF', 'ETF', 'USD', TRUE),
-    ('SHY', 'iShares 1-3 Year Treasury Bond ETF', 'ETF', 'USD', TRUE),
-    ('LQD', 'iShares iBoxx Investment Grade Corporate Bond ETF', 'ETF', 'USD', TRUE),
-    ('HYG', 'iShares iBoxx High Yield Corporate Bond ETF', 'ETF', 'USD', TRUE),
-    ('TIP', 'iShares TIPS Bond ETF', 'ETF', 'USD', TRUE),
+    ('BND', 'Vanguard Total Bond Market ETF', 'Bond', 'USD', TRUE),
+    ('AGG', 'iShares Core U.S. Aggregate Bond ETF', 'Bond', 'USD', TRUE),
+    ('TLT', 'iShares 20+ Year Treasury Bond ETF', 'Bond', 'USD', TRUE),
+    ('IEF', 'iShares 7-10 Year Treasury Bond ETF', 'Bond', 'USD', TRUE),
+    ('SHY', 'iShares 1-3 Year Treasury Bond ETF', 'Bond', 'USD', TRUE),
+    ('LQD', 'iShares iBoxx Investment Grade Corporate Bond ETF', 'Bond', 'USD', TRUE),
+    ('HYG', 'iShares iBoxx High Yield Corporate Bond ETF', 'Bond', 'USD', TRUE),
+    ('TIP', 'iShares TIPS Bond ETF', 'Bond', 'USD', TRUE),
     ('VNQ', 'Vanguard Real Estate ETF', 'ETF', 'USD', TRUE),
     ('XLK', 'Technology Select Sector SPDR Fund', 'ETF', 'USD', TRUE),
+
+    -- Additional bond ETFs
+    ('BNDX', 'Vanguard Total International Bond ETF', 'Bond', 'USD', TRUE),
+    ('IAGG', 'iShares Core International Aggregate Bond ETF', 'Bond', 'USD', TRUE),
+    ('JNK', 'State Street SPDR Bloomberg High Yield Bond ETF', 'Bond', 'USD', TRUE),
+    ('MUB', 'iShares National Muni Bond ETF', 'Bond', 'USD', TRUE),
+    ('EMB', 'iShares J.P. Morgan USD Emerging Markets Bond ETF', 'Bond', 'USD', TRUE),
 
     -- Additional commodity funds and trusts (Alpaca market-data connected)
     ('SLV', 'iShares Silver Trust', 'Commodity', 'USD', TRUE),
