@@ -21,6 +21,28 @@ import { MarketTickerComponent } from '../landing/market-ticker/market-ticker';
 import { MarketClockComponent } from '../dashboard/market-clock/market-clock';
 
 type Ranking = 'gainers' | 'losers' | 'active' | 'performance' | 'trending';
+interface Bond {
+  isin: string;
+  cusip: string | null;
+  type: string;
+  name: string;
+  issuer: string;
+  maturityDate: string | null;
+  coupon: number | null;
+  closePrice: number | null;
+  priceDate: string | null;
+  yieldToMaturity: number | null;
+  tradable: boolean;
+}
+
+interface BondOverview {
+  configured: boolean;
+  environment: string;
+  checkedAt: string | null;
+  bonds: Bond[];
+  message: string;
+}
+
 @Component({
   selector: 'app-market',
   imports: [
@@ -103,6 +125,41 @@ export class MarketComponent {
   }
   refreshForex(): void {
     this.fxRetry.update((n) => n + 1);
+  }
+
+  readonly bondOverview = signal<BondOverview | null>(null);
+  readonly bondLoading = signal(false);
+  readonly bondError = signal('');
+  readonly bondType = signal('');
+  readonly bondSearch = signal('');
+  readonly visibleBonds = computed(() => {
+    const type = this.bondType();
+    const query = this.bondSearch().trim().toLowerCase();
+    return (this.bondOverview()?.bonds ?? []).filter((bond) => {
+      const matchesType = !type || bond.type === type;
+      const searchable = `${bond.isin} ${bond.cusip ?? ''} ${bond.name} ${bond.issuer}`;
+      return matchesType && searchable.toLowerCase().includes(query);
+    });
+  });
+  refreshBonds(): void {
+    this.bondLoading.set(true);
+    this.bondError.set('');
+    this.http
+      .get<BondOverview>('/api/v1/market-data/bonds')
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (data) => {
+          this.bondOverview.set(data);
+          this.bondLoading.set(false);
+        },
+        error: () => {
+          this.bondLoading.set(false);
+          this.bondError.set('Bond data could not be loaded.');
+        },
+      });
+  }
+  viewBond(bond: Bond): void {
+    this.openChart(bond.isin);
   }
 
   readonly instruments = signal<Instrument[]>([]);
@@ -309,6 +366,12 @@ export class MarketComponent {
   );
 
   constructor() {
+    effect(() => {
+      if (this.assetClass() === 'Bond' && !this.bondOverview() && !this.bondLoading()) {
+        this.refreshBonds();
+      }
+    });
+
     effect((onCleanup) => {
       if (this.assetClass() !== 'Forex') return;
       this.fxRetry();
