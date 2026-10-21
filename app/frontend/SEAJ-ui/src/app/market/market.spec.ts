@@ -124,16 +124,11 @@ describe('Market page', () => {
     component.assetClass.set('Bond');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Bond overview');
-    expect(fixture.nativeElement.querySelector('#bond-title').textContent).toBe('Individual bonds');
-    TestBed.inject(HttpTestingController)
-      .expectOne('/api/v1/market-data/bonds')
-      .flush({
-        configured: true,
-        environment: 'Sandbox',
-        checkedAt: null,
-        bonds: [],
-        message: 'Treasury access is not enabled for this Alpaca subscription.',
-      });
+    expect(fixture.nativeElement.querySelector('#instruments-title').textContent.trim()).toBe(
+      'Bond overview',
+    );
+    expect(fixture.nativeElement.querySelector('#movers-title').textContent).toBe('Market movers');
+    TestBed.inject(HttpTestingController).expectNone('/api/v1/market-data/bonds');
   });
   it('shows up and down arrows only for instruments with a daily price change', () => {
     const { fixture } = setup();
@@ -185,7 +180,9 @@ describe('Market page', () => {
     vi.spyOn(router, 'navigateByUrl').mockImplementation((url) => {
       expect(close).toHaveBeenCalledOnce();
       expect(dialog.open).toBe(false);
-      expect(router.serializeUrl(url as import('@angular/router').UrlTree)).toBe('/order?symbol=AAA');
+      expect(router.serializeUrl(url as import('@angular/router').UrlTree)).toBe(
+        '/order?symbol=AAA',
+      );
       return Promise.resolve(true);
     });
     dialog.querySelector('a')!.click();
@@ -293,61 +290,35 @@ describe('Market page', () => {
     expect(fixture.nativeElement.textContent).toContain('Forex rates could not be refreshed');
     expect(fixture.nativeElement.textContent).toContain('Unavailable');
   });
-  it('renders genuine Broker bonds, filters by type, and opens read-only details', async () => {
+  it('shows bond ETFs from the instrument catalogue without requesting Broker bonds', () => {
     const { fixture, component } = setup();
+    component.instruments.update((instruments) =>
+      instruments.map((instrument) =>
+        instrument.symbol === 'BBB'
+          ? { ...instrument, name: 'Treasury Bond ETF', tradable: true }
+          : instrument,
+      ),
+    );
     component.assetClass.set('Bond');
     fixture.detectChanges();
-    TestBed.inject(HttpTestingController)
-      .expectOne('/api/v1/market-data/bonds')
-      .flush({
-        configured: true,
-        environment: 'Sandbox',
-        checkedAt: '2026-10-20T12:00:00Z',
-        message: '',
-        bonds: [
-          {
-            isin: 'US912797MU86',
-            cusip: '912797MU8',
-            type: 'Treasury',
-            name: 'Treasury Bill',
-            issuer: 'U.S. Treasury',
-            maturityDate: '2027-03-27',
-            coupon: 0,
-            closePrice: 99.6,
-            priceDate: '2026-10-19',
-            yieldToMaturity: 4.2,
-            tradable: true,
-          },
-          {
-            isin: 'US00138CAU27',
-            cusip: null,
-            type: 'Corporate bond',
-            name: 'Corporate Bond',
-            issuer: 'Issuer',
-            maturityDate: null,
-            coupon: 5,
-            closePrice: null,
-            priceDate: null,
-            yieldToMaturity: null,
-            tradable: false,
-          },
-        ],
-      });
-    await fixture.whenStable();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('99.6');
-    expect(fixture.nativeElement.textContent).toContain('2026-10-19');
-    expect(fixture.nativeElement.textContent).toContain('Alpaca Broker · fixed income');
-    component.bondType.set('Treasury');
-    expect(component.visibleBonds()).toHaveLength(1);
-    component.bondSearch.set('912797');
-    expect(component.visibleBonds()).toHaveLength(1);
+    TestBed.inject(HttpTestingController).expectNone('/api/v1/market-data/bonds');
+    expect(component.visibleRows().map((row) => row.symbol)).toEqual(['BBB']);
+    const row = fixture.nativeElement.querySelector('tbody tr') as HTMLTableRowElement;
+    expect(row.textContent).toContain('Treasury Bond ETF');
+    expect(row.textContent).toContain('$98.00');
+    expect(row.textContent).toContain('Bond ETF');
+    expect(fixture.nativeElement.textContent).toContain('Bond ETFs · exchange-traded funds');
+    expect(fixture.nativeElement.textContent).not.toContain('Alpaca Broker');
     const dialog = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
     Object.defineProperty(dialog, 'showModal', { value: () => dialog.setAttribute('open', '') });
-    component.viewBond(component.visibleBonds()[0]);
+    row.click();
     fixture.detectChanges();
     expect(dialog.open).toBe(true);
-    expect(dialog.textContent).toContain('Treasury Bill');
-    expect(dialog.querySelector('a')).toBeNull();
+    expect(component.selected()).toBe('BBB');
+    expect(dialog.querySelector('a')?.getAttribute('href')).toBe('/order?symbol=BBB');
+    component.search.set('Treasury');
+    expect(component.visibleRows()).toHaveLength(1);
+    component.search.set('AAA');
+    expect(component.visibleRows()).toHaveLength(0);
   });
 });

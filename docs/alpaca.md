@@ -130,3 +130,16 @@ The service reads `us_treasuries` and `us_corporates`, filtering for outstanding
 Successful catalogues are cached for five minutes; failures back off for one minute. The client refreshes the tab every five minutes while visible and provides a manual refresh. Partial failures preserve prior category results and show a warning with the original per-bond price dates.
 
 After changing settings or source, run `docker-compose up -d --no-deps --build app frontend`. The current sandbox credentials authenticate, but both catalogue requests return HTTP 403 with `subscription does not permit querying us treasuries` / `subscription does not permit querying us corporates`. Ask Alpaca support to enable fixed-income catalogue access for the sandbox correspondent. Authentication success alone does not establish product entitlement; changing to a full-access key is not the fix for this subscription response. Once entitled, the same integration can load the catalogues on the next refresh without another code change. No fabricated securities or prices are substituted.
+
+
+### Bond ETF catalogue expansion
+
+The Bonds filter uses the regular stock/ETF market feed and does not require Broker fixed-income access. Migration `08-expand-bond-etfs.sql` moves BND, AGG, TLT, IEF, SHY, LQD, HYG and TIP from ETF to Bond, then adds BNDX, IAGG, JNK, MUB and EMB. This brings Bond to 20 and ETF to 20, with 137 visible instruments overall. Symbols and historical portfolio/order relationships remain intact. The seed includes the same changes, and fresh database initialization runs the idempotent migration.
+
+For an existing database, apply from the repository root without resetting its volume:
+
+```bash
+docker exec -i seaj_postgres_db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < infra/db/migrations/08-expand-bond-etfs.sql
+```
+
+Reload the Market page to refresh its instrument catalogue. Quote availability depends on the configured market-data subscription and provider response.

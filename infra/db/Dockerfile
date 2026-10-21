@@ -30,5 +30,6 @@ COPY migrations/06-actual-cash-catalogue.sql /docker-entrypoint-initdb.d/16-actu
 COPY migrations/07-expand-commodities.sql /docker-entrypoint-initdb.d/17-expand-commodities.sql
 
 COPY migrations/08-pre-trade-compliance.sql /docker-entrypoint-initdb.d/18-pre-trade-compliance.sql
+COPY migrations/08-expand-bond-etfs.sql /docker-entrypoint-initdb.d/18-expand-bond-etfs.sql
 
 EXPOSE 5432

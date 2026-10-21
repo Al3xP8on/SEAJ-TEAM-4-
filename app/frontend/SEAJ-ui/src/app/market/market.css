@@ -332,17 +332,3 @@ input:focus-visible {
   height: auto;
   display: block;
 }
-
-.bond-details {
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr) minmax(100px, 2fr);
-  gap: 12px 20px;
-  margin: 24px 0;
-}
-.bond-details dt {
-  color: var(--muted-foreground);
-}
-.bond-details dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
