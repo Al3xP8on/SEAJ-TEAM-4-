@@ -11,7 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { EMPTY, catchError, exhaustMap, from, map, mergeMap, of } from 'rxjs';
 import { pollWhileVisible } from '../dashboard/poll-while-visible';
 import { DailyPrice, Instrument, MarketOverview } from '../orders/orders.models';
@@ -48,7 +48,6 @@ type Ranking = 'gainers' | 'losers' | 'active' | 'performance' | 'trending';
     CurrencyPipe,
     DatePipe,
     DecimalPipe,
-    RouterLink,
     MarketDataComponent,
     NgTemplateOutlet,
     MarketClockComponent,
@@ -58,6 +57,7 @@ type Ranking = 'gainers' | 'losers' | 'active' | 'performance' | 'trending';
   styleUrl: './market.css',
 })
 export class MarketComponent {
+  private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
   private readonly destroy = inject(DestroyRef);
   private readonly service = inject(OrdersService);
@@ -186,6 +186,14 @@ export class MarketComponent {
     ) {
       this.closeChart();
     }
+  }
+
+  goToOrders(event: MouseEvent): void {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    const symbol = this.selected();
+    this.closeChart();
+    void this.router.navigateByUrl(this.router.createUrlTree(['/order'], { queryParams: { symbol } }));
   }
 
   closeChart(): void {

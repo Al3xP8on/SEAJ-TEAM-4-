@@ -35,11 +35,17 @@ public class AlpacaBondService {
         this(enabled, base, clientId, clientSecret, new HttpTransport(), Clock.systemUTC());
     }
     AlpacaBondService(boolean enabled, String base, String clientId, String clientSecret, Transport transport, Clock clock) {
-        this.enabled = enabled; this.base = base.replaceAll("/+$", "");
+        this.enabled = enabled; this.base = stripTrailingSlashes(base);
         if (!List.of("https://broker-api.sandbox.alpaca.markets", "https://broker-api.alpaca.markets").contains(this.base))
             throw new IllegalArgumentException("Unsupported Alpaca Broker base URL");
         this.authUrl = this.base.contains("sandbox") ? "https://authx.sandbox.alpaca.markets/v1/oauth2/token" : "https://authx.alpaca.markets/v1/oauth2/token";
         this.clientId = clientId.trim(); this.clientSecret = clientSecret.trim(); this.transport = transport; this.clock = clock;
+    }
+
+    private static String stripTrailingSlashes(String value) {
+        int end = value.length();
+        while (end > 0 && value.charAt(end - 1) == '/') end--;
+        return value.substring(0, end);
     }
     public synchronized Overview overview() {
         boolean configured = enabled && !clientId.isBlank() && !clientSecret.isBlank();
@@ -66,7 +72,7 @@ public class AlpacaBondService {
         Reply reply = call("GET", url, accessToken(), null);
         if (reply.status() == 401) { token = null; reply = call("GET", url, accessToken(), null); }
         String label = type.equals("us_treasuries") ? "Treasury" : "Corporate bond";
-        if (reply.status() == 403) throw new Unavailable(label + " access is not enabled.");
+        if (reply.status() == 403) throw new Unavailable(label + " access is not enabled for this subscription.");
         if (reply.status() == 401) throw new Unavailable("Alpaca rejected the Broker access token. Check the Broker credentials.");
         if (reply.status() == 429) throw new Unavailable("Alpaca's Broker request limit was reached. Retrying shortly.");
         if (reply.status() != 200) throw new Unavailable(label + " catalogue is temporarily unavailable.");

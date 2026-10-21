@@ -48,7 +48,9 @@ export class OrdersService {
       .pipe(catchError(() => of(null)));
   }
   marketOverview() {
-    return this.http.get<MarketOverview>('/api/v1/market-data/overview');
+    return this.http
+      .get<MarketOverview>('/api/v1/market-data/overview')
+      .pipe(catchError(() => of(null)));
   }
   priceHistory(symbol: string) {
     return this.http.get<DailyPrice[]>(`/api/v1/price-history/${encodeURIComponent(symbol)}`);

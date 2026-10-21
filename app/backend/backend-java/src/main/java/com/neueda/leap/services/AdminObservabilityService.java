@@ -46,9 +46,15 @@ public class AdminObservabilityService {
 
     AdminObservabilityService(RestTemplate http, String baseUrl, String grafanaUrl, Clock clock) {
         this.http = http;
-        this.baseUrl = baseUrl.replaceAll("/+$", "");
+        this.baseUrl = stripTrailingSlashes(baseUrl);
         this.grafanaUrl = grafanaUrl;
         this.clock = clock;
+    }
+
+    private static String stripTrailingSlashes(String value) {
+        int end = value.length();
+        while (end > 0 && value.charAt(end - 1) == '/') end--;
+        return value.substring(0, end);
     }
 
     public synchronized Snapshot snapshot() {
