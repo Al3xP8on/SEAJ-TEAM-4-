@@ -87,6 +87,19 @@ export interface OrderRequest {
   price?: number;
   timeInForce: 'GTC';
   idempotencyKey: string;
+  /** Compliance warnings the customer confirmed they understand, e.g. SINGLE_STOCK_LIMIT */
+  acknowledgedWarnings?: string[];
+}
+/** One pre-trade compliance rule's reason for stopping an order */
+export interface ComplianceReason {
+  rule: string;
+  outcome: 'BLOCK' | 'WARN';
+  message: string;
+}
+/** A 422 from the server: the order was blocked, or needs its warnings acknowledged */
+export interface ComplianceStop {
+  code: 'COMPLIANCE_BLOCKED' | 'COMPLIANCE_WARNING';
+  reasons: ComplianceReason[];
 }
 export interface OrderHistory {
   orderId: string;

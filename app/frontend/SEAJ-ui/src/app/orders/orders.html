@@ -263,6 +263,37 @@
                     <p>Good till cancelled. Check these details before submitting.</p>
                   </div>
                 }
+                @if (compliance(); as stop) {
+                  <div
+                    id="compliance-result"
+                    class="compliance"
+                    [class.blocked]="stop.code === 'COMPLIANCE_BLOCKED'"
+                    role="alert"
+                    tabindex="-1"
+                    aria-labelledby="compliance-title"
+                  >
+                    <strong id="compliance-title">
+                      {{
+                        stop.code === 'COMPLIANCE_BLOCKED'
+                          ? "This order can't be placed"
+                          : 'Check before you place this order'
+                      }}
+                    </strong>
+                    <ul>
+                      @for (reason of stop.reasons; track reason.rule) {
+                        <li>{{ reason.message }}</li>
+                      }
+                    </ul>
+                    @if (stop.code === 'COMPLIANCE_BLOCKED') {
+                      <p>Change the order to continue.</p>
+                    } @else {
+                      <label class="acknowledge">
+                        <input type="checkbox" name="acknowledgeWarnings" [(ngModel)]="acknowledged" />
+                        I understand and want to place this order anyway
+                      </label>
+                    }
+                  </div>
+                }
                 <button
                   class="primary full"
                   type="submit"
@@ -270,22 +301,26 @@
                     loading() ||
                     !account() ||
                     account()?.status !== 'ACTIVE' ||
-                    (orderType === 'MARKET' && !quote())
+                    (orderType === 'MARKET' && !quote()) ||
+                    compliance()?.code === 'COMPLIANCE_BLOCKED' ||
+                    (compliance()?.code === 'COMPLIANCE_WARNING' && !acknowledged)
                   "
                 >
                   {{
                     submitting()
                       ? 'Submitting…'
-                      : review
-                        ? 'Confirm ' + side.toLowerCase() + ' order'
-                        : 'Review ' + side.toLowerCase() + ' order'
+                      : compliance()?.code === 'COMPLIANCE_WARNING'
+                        ? 'Place ' + side.toLowerCase() + ' order anyway'
+                        : review
+                          ? 'Confirm ' + side.toLowerCase() + ' order'
+                          : 'Review ' + side.toLowerCase() + ' order'
                   }}
                   @if (!submitting()) {
                     <span aria-hidden="true">→</span>
                   }
                 </button>
                 @if (review) {
-                  <button class="quiet full" type="button" (click)="review = false">
+                  <button class="quiet full" type="button" (click)="backToEditing()">
                     Back to editing
                   </button>
                 }

@@ -27,6 +27,7 @@ import { AuthService } from '../auth/auth.service';
 import { Account, Position } from '../dashboard/dashboard.models';
 import { accountIdFromToken } from '../dashboard/dashboard.service';
 import {
+  ComplianceStop,
   Instrument,
   Order,
   OrderHistory,
@@ -80,6 +81,10 @@ export class OrdersComponent {
   readonly refreshError = signal('');
   readonly notice = signal('');
   readonly submitting = signal(false);
+  /** Set when pre-trade compliance stopped the last submission */
+  readonly compliance = signal<ComplianceStop | null>(null);
+  /** The customer ticked "I understand" for the current warnings */
+  acknowledged = false;
   readonly actionId = signal('');
   readonly confirming = signal<Order | null>(null);
   readonly historyOrder = signal<Order | null>(null);
@@ -488,6 +493,15 @@ export class OrdersComponent {
   edited(): void {
     this.review = false;
     this.error.set('');
+    this.clearCompliance();
+  }
+  backToEditing(): void {
+    this.review = false;
+    this.clearCompliance();
+  }
+  private clearCompliance(): void {
+    this.compliance.set(null);
+    this.acknowledged = false;
   }
   selectedInstrument() {
     return this.instruments().find((i) => i.symbol === this.symbol);
@@ -563,6 +577,13 @@ export class OrdersComponent {
       this.error.set('');
       return;
     }
+    // A blocked order must be changed first; a warned one needs "I understand" ticked
+    const stop = this.compliance();
+    if (stop?.code === 'COMPLIANCE_BLOCKED') return;
+    if (stop?.code === 'COMPLIANCE_WARNING' && !this.acknowledged) {
+      this.focusCompliance();
+      return;
+    }
     const draft = {
       accountId: this.accountId,
       symbol: this.symbol,
@@ -581,7 +602,14 @@ export class OrdersComponent {
         return;
       }
     }
-    const request: OrderRequest = { ...draft, idempotencyKey: this.submission.key };
+    // Same key as the stopped attempt: no order was created, so this is the same order resent
+    const request: OrderRequest = {
+      ...draft,
+      idempotencyKey: this.submission.key,
+      ...(stop?.code === 'COMPLIANCE_WARNING'
+        ? { acknowledgedWarnings: stop.reasons.map((reason) => reason.rule) }
+        : {}),
+    };
     this.submitting.set(true);
     this.error.set('');
     this.notice.set('');
@@ -602,16 +630,36 @@ export class OrdersComponent {
           );
           this.review = false;
           this.submission = null;
+          this.clearCompliance();
           this.refresh();
         },
-        error: (error) =>
+        error: (error) => {
+          const stopped = complianceStop(error);
+          if (stopped) {
+            this.compliance.set(stopped);
+            this.acknowledged = false;
+            this.focusCompliance();
+            return;
+          }
           this.error.set(
             this.message(
               error,
               'Order submission failed. Check your available cash or holdings and retry.',
             ),
-          ),
+          );
+        },
       });
+  }
+
+  /**
+   * The Confirm button is disabled when an order is stopped, which would drop keyboard focus,
+   * so focus moves into the result: the checkbox for warnings, the box itself for a block.
+   */
+  private focusCompliance(): void {
+    setTimeout(() => {
+      const box = this.host.nativeElement.querySelector<HTMLElement>('#compliance-result');
+      (box?.querySelector<HTMLInputElement>('input[type="checkbox"]') ?? box)?.focus();
+    });
   }
 
   private priceAndBalanceError(price: number): string {
@@ -748,4 +796,19 @@ export class OrdersComponent {
       return false;
     }
   }
+}
+
+/** The compliance details from a 422, or null for any other error */
+export function complianceStop(error: unknown): ComplianceStop | null {
+  const response = error as { status?: number; error?: Partial<ComplianceStop> } | null;
+  const body = response?.error;
+  if (
+    response?.status !== 422 ||
+    (body?.code !== 'COMPLIANCE_BLOCKED' && body?.code !== 'COMPLIANCE_WARNING') ||
+    !Array.isArray(body.reasons) ||
+    body.reasons.length === 0
+  ) {
+    return null;
+  }
+  return { code: body.code, reasons: body.reasons };
 }

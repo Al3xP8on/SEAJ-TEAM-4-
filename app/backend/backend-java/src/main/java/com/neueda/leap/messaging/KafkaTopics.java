@@ -23,6 +23,12 @@ public class KafkaTopics {
         return TopicBuilder.name(name).partitions(3).replicas(1).build();
     }
 
+    /** Pre-trade compliance audit: one event per order submission, keyed by accountId */
+    @Bean
+    public NewTopic complianceAuditTopic(@Value("${trading.kafka.topics.compliance-audit:compliance-audit}") String name) {
+        return TopicBuilder.name(name).partitions(3).replicas(1).build();
+    }
+
     @Bean
     public NewTopic tradesTopic(@Value("${trading.kafka.topics.trades}") String name,
                                @Value("${trading.kafka.partitions.trades}") int partitions) {

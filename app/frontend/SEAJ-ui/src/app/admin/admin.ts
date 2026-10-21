@@ -15,6 +15,7 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Subscription, finalize } from 'rxjs';
 import { AccountRole, AuthService } from '../auth/auth.service';
+import { AdminTabsComponent } from './admin-tabs/admin-tabs';
 import { AdminObservabilityComponent } from './observability';
 import { accountIdFromToken } from '../dashboard/dashboard.service';
 import {
@@ -27,7 +28,7 @@ import {
 
 @Component({
   selector: 'app-admin',
-  imports: [
+  imports: [AdminTabsComponent, 
     CurrencyPipe,
     DatePipe,
     DecimalPipe,

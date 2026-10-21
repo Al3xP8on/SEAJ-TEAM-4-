@@ -1,5 +1,7 @@
 # Admin account management
 
+The admin area has two tabs: **Accounts** (`/admin`, below) and **Compliance** (`/admin/compliance`), for the pre-trade compliance audit trail, restricted list and risk profiles. See [compliance.md](compliance.md).
+
 After login, admins land on `/admin`; regular users keep the personal overview at `/dashboard`. The shared navigation gives admins an **Admin dashboard**, **My portfolio**, and **Orders**. Normal users do not see administration, and cannot open the admin route or call its API.
 
 The dashboard has three sections:

@@ -11,7 +11,9 @@ public enum OrderErrorCode {
     EXECUTION_FAILED("Order execution failed"),
     EXECUTION_ERROR("Order execution error"),
     CANCEL_INVALID_STATE("Order cannot be cancelled in current state"),
-    INSUFFICIENT_FUNDS("Insufficient funds for order execution");
+    INSUFFICIENT_FUNDS("Insufficient funds for order execution"),
+    COMPLIANCE_BLOCKED("Order blocked by a pre-trade compliance rule"),
+    COMPLIANCE_WARNING("Order needs the customer to acknowledge compliance warnings");
 
     private final String description;
 
