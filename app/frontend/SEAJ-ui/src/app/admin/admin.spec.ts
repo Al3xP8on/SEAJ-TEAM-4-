@@ -3,7 +3,6 @@ import { provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { AdminComponent } from './admin';
-import { ObservabilityService } from './observability.service';
 import { AccountDetails, AdminAccount, AdminService } from './admin.service';
 
 const ACCOUNTS: AdminAccount[] = [
@@ -94,23 +93,6 @@ describe('Admin account management', () => {
       providers: [
         provideRouter([]),
         { provide: AdminService, useValue: service },
-        {
-          provide: ObservabilityService,
-          useValue: {
-            snapshot: () =>
-              of({
-                status: 'UNAVAILABLE',
-                message: 'Monitoring off',
-                observedAt: new Date().toISOString(),
-                grafanaUrl: '',
-                services: [],
-                monitors: [],
-                consumerLag: [],
-                traffic: [],
-                trading: {},
-              }),
-          },
-        },
         { provide: AuthService, useValue: auth },
       ],
     }).compileComponents();
@@ -309,18 +291,16 @@ describe('Admin account management', () => {
     expect(fixture.componentInstance.activeSection()).toBe('overview');
     expect(page.textContent).toContain('Access across the platform');
     expect(page.textContent).toContain('Recently updated accounts');
-    expect(page.querySelector('app-admin-observability')).not.toBeNull();
     expect(page.querySelector('.accounts-panel')).toBeNull();
     expect(service.details).not.toHaveBeenCalled();
   });
 
-  it('switches between account management and observability without losing account filters', async () => {
+  it('switches between account management and the overview without losing account filters', async () => {
     const { fixture, component, page } = await render();
     component.search.set('brian');
-    button(page, 'Observability').click();
+    button(page, 'Overview').click();
     await fixture.whenStable();
     expect(page.querySelector('.accounts-panel')).toBeNull();
-    expect(page.querySelector('app-admin-observability')).not.toBeNull();
     component.activeSection.set('accounts');
     await fixture.whenStable();
     expect(component.visibleAccounts()).toHaveLength(1);
