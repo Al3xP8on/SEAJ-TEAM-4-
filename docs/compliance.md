@@ -81,12 +81,12 @@ block. Other order errors keep their existing 400 response.
 | `compliance_checks` | The audit trail: one row per rule per submission, with account, order details, outcome, reason, figures (`details`, JSON) and whether a warning was acknowledged. `order_id` is set when the order was accepted. `overridden_by` and `override_reason` are reserved for admin overrides. |
 | `accounts.risk_profile` | `CONSERVATIVE`, `BALANCED` or `AGGRESSIVE` |
 
-**Fresh databases** get these from `infra/db/migrations/04-pre-trade-compliance.sql` (run by the db image).
+**Fresh databases** get these from `infra/db/migrations/08-pre-trade-compliance.sql` (run by the db image).
 **Existing databases:** the app creates the tables and column on start (`ddl-auto=update`). Run the migration
 once to add the TSLA demo restriction and the column default:
 
 ```bash
-docker exec -i seaj_postgres_db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < infra/db/migrations/04-pre-trade-compliance.sql
+docker exec -i seaj_postgres_db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < infra/db/migrations/08-pre-trade-compliance.sql
 ```
 
 It's safe to run more than once.
