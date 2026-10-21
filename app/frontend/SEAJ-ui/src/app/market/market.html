@@ -10,18 +10,9 @@
     </div>
     <div class="feed">
       <span class="dot"></span
-      >{{
-        assetClass() === 'Bond'
-          ? 'Alpaca Broker · fixed income'
-          : assetClass() === 'Bond'
-            ? 'Alpaca Broker · fixed income'
-            : assetClass() === 'Forex'
-              ? 'Frankfurter · daily FX'
-              : overview()?.feed || 'Market data'
+      >{{ assetClass() === 'Forex' ? 'Frankfurter · daily FX' : overview()?.feed || 'Market data'
       }}<small>
-        @if (assetClass() === 'Bond') {
-          Broker fixed-income catalogue
-        } @else if (assetClass() === 'Forex') {
+        @if (assetClass() === 'Forex') {
           Daily reference rates · dates shown below
         } @else if (overview()?.updatedAt) {
           Updated {{ overview()!.updatedAt | date: 'medium' }}
@@ -51,14 +42,17 @@
       </button>
     }
   </div>
+  @if (assetClass() === 'Bond') {
+    <p class="muted">
+      Bond ETFs · exchange-traded funds holding bonds, with prices and charts from the market feed.
+    </p>
+  }
   @if (catalogError()) {
     <p role="alert" class="notice">
       {{ catalogError() }} <button type="button" (click)="loadCatalog()">Try again</button>
     </p>
   }
-  @if (
-    assetClass() !== 'Forex' && assetClass() !== 'Bond' && (quoteError() || overview()?.message)
-  ) {
+  @if (assetClass() !== 'Forex' && (quoteError() || overview()?.message)) {
     <p role="status" class="notice">{{ quoteError() || overview()?.message }}</p>
   }
   @if (assetClass() === 'Forex') {
@@ -345,7 +339,11 @@
             @for (row of visibleRows(); track row.symbol) {
               <tr
                 [class.clickable-row]="row.assetClass !== 'Cash'"
-                (click)="row.assetClass !== 'Cash' && !$any($event.target).closest('button') && openChart(row.symbol)"
+                (click)="
+                  row.assetClass !== 'Cash' &&
+                    !$any($event.target).closest('button') &&
+                    openChart(row.symbol)
+                "
               >
                 <td>
                   @if (row.assetClass === 'Cash') {
@@ -427,52 +425,7 @@
     aria-labelledby="chart-title"
     (close)="selected.set('')"
   >
-    @if (chartMode() === 'bond') {
-      @if (selectedBond(); as bond) {
-        <section class="detail" aria-label="Bond details">
-          <div class="panel-heading">
-            <h2 id="chart-title">{{ bond.isin }} · Bond details</h2>
-            <button type="button" (click)="closeChart()">Close</button>
-          </div>
-          <h3>{{ bond.name }}</h3>
-          <dl class="bond-details">
-            <dt>Issuer</dt>
-            <dd>{{ bond.issuer }}</dd>
-            <dt>Type</dt>
-            <dd>{{ bond.type }}</dd>
-            <dt>CUSIP</dt>
-            <dd>{{ bond.cusip || 'Unavailable' }}</dd>
-            <dt>Maturity date</dt>
-            <dd>{{ bond.maturityDate || 'Unavailable' }}</dd>
-            <dt>Coupon</dt>
-            <dd>
-              {{ bond.coupon === null ? 'Unavailable' : (bond.coupon | number: '1.2-3') + '%' }}
-            </dd>
-            <dt>Closing price · % of par</dt>
-            <dd>
-              {{
-                bond.closePrice === null ? 'Unavailable' : (bond.closePrice | number: '1.2-4') + '%'
-              }}
-            </dd>
-            <dt>Price date</dt>
-            <dd>{{ bond.priceDate || 'Unavailable' }}</dd>
-            <dt>Yield to maturity</dt>
-            <dd>
-              {{
-                bond.yieldToMaturity === null
-                  ? 'Unavailable'
-                  : (bond.yieldToMaturity | number: '1.2-4') + '%'
-              }}
-            </dd>
-            <dt>Broker tradability</dt>
-            <dd>{{ bond.tradable ? 'Tradable at Alpaca' : 'Not currently tradable at Alpaca' }}</dd>
-          </dl>
-          <p class="muted">
-            Catalogue closing data · {{ bondOverview()?.environment }} · read-only view.
-          </p>
-        </section>
-      }
-    } @else if (chartMode() === 'forex') {
+    @if (chartMode() === 'forex') {
       <section class="detail" aria-label="Forex analytics">
         <div class="panel-heading">
           <h2 id="chart-title">{{ selectedFx() }} · Forex analytics</h2>
