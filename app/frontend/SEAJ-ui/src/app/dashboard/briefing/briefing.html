@@ -1,0 +1,23 @@
+<section hlmCard class="briefing" aria-labelledby="briefing-title">
+  <div hlmCardHeader>
+    <h2 hlmCardTitle id="briefing-title">Insights</h2>
+  </div>
+  <div hlmCardContent>
+    <ul class="items" aria-labelledby="briefing-title">
+      @for (item of items(); track item.kind) {
+        <li hlmItem variant="muted" size="sm" class="item" [attr.data-tone]="item.tone">
+          <div hlmItemMedia variant="icon" class="icon">
+            <ng-icon [name]="item.icon" aria-hidden="true" />
+          </div>
+          <div hlmItemContent>
+            <p hlmItemTitle class="title">{{ item.title }}</p>
+            @if (item.detail) {
+              <p hlmItemDescription class="detail">{{ item.detail }}</p>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+    <p class="note">Educational information, not investment advice.</p>
+  </div>
+</section>

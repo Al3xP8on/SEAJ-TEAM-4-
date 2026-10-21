@@ -223,6 +223,57 @@ fieldset > label:first-of-type {
   border-radius: 9px;
   font-size: 0.875rem;
 }
+/* Pre-trade compliance result. Text stays in the body colour; the accent marks the kind. */
+.compliance {
+  --caution: #8a5a00;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--caution);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: var(--muted);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+:host-context(:root.dark) .compliance {
+  --caution: #f2c46d;
+}
+.compliance.blocked {
+  border-left-color: var(--destructive);
+}
+.compliance strong {
+  display: block;
+  color: var(--caution);
+}
+.compliance.blocked strong {
+  color: var(--destructive);
+}
+.compliance ul {
+  margin: 6px 0 8px;
+  padding-left: 18px;
+}
+.compliance p {
+  margin: 0;
+}
+.compliance:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.acknowledge {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.acknowledge input {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  accent-color: var(--primary);
+}
 .review {
   margin-bottom: 16px;
   border: 1px solid var(--border);

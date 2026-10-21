@@ -1,0 +1,69 @@
+:host {
+  display: block;
+}
+
+h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.muted {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+.scope {
+  margin-bottom: 10px;
+}
+
+/* Matches the Orders page's period toggle */
+.periods {
+  display: flex;
+  gap: 4px;
+  background: var(--muted);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.periods button {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  min-width: 44px;
+  min-height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.periods button[aria-pressed='true'] {
+  background: var(--card);
+  box-shadow: 0 1px 3px #0000001a;
+}
+
+/* The sign and arrow carry the direction; colour only reinforces it */
+.change {
+  color: var(--positive);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.change.loss {
+  color: var(--destructive);
+}
+
+.empty {
+  text-align: center;
+  padding: 32px;
+  margin: 0;
+}
+
+.note {
+  margin-top: 8px;
+}

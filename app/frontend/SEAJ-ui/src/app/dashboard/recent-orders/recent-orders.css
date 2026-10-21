@@ -1,0 +1,61 @@
+:host {
+  display: block;
+}
+
+.orders-card {
+  height: 100%;
+}
+
+h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.order-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.order {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.order .summary-line {
+  flex: 1;
+  min-width: 0;
+}
+
+.order .side,
+.order .symbol {
+  font-weight: 600;
+}
+
+.order time {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.empty {
+  text-align: center;
+  padding: 32px;
+  margin: 0;
+}
+
+/* About five orders, then the list scrolls */
+.scroll {
+  max-height: 15rem;
+  overflow-y: auto;
+}

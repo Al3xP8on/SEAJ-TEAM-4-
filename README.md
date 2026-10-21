@@ -48,6 +48,7 @@ The SEAJ platform consists of:
 - **Auth Stub** - JWT token generation for API authentication
 - **SonarQube** - Code quality and security analysis
 - **Kafka UI** - Real-time monitoring of Kafka topics
+- **Observability stack** (optional) - OpenTelemetry Collector, Tempo (traces), Prometheus (metrics), Loki (logs) and Grafana (dashboards)
 
 ## Quick Start
 
@@ -97,6 +98,16 @@ docker-compose up -d --build
 docker-compose ps
 ```
 
+This also starts the observability stack (tracing, metrics, logs, Grafana), because `.env` sets:
+
+```bash
+COMPOSE_PROFILES=observability
+```
+
+To run only the application (e.g. if the VM is short on memory), set `COMPOSE_PROFILES=` (empty) in `.env`.
+
+See [infra/observability/README.md](infra/observability/README.md) for how the stack is wired.
+
 **Expected Output:**
 ```
 NAME                    IMAGE                           STATUS
@@ -119,6 +130,12 @@ Once all containers are running, access them at:
 | **Kafka UI** | http://localhost:8090 | N/A |
 | **SonarQube** | http://localhost:8088 | admin/admin |
 | **PostgreSQL** | localhost:5433 | `POSTGRES_USER` / `POSTGRES_PASSWORD` from `.env` |
+| **Grafana** * | http://addr:8084 | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from `.env` |
+| **Prometheus** * | http://addr:8086 | N/A |
+
+\* Only when `COMPOSE_PROFILES=observability` is set in `.env`. Grafana and Prometheus use ports 8084/8086 because the VM's AWS security group only allows the 8083–8100 range from the team network, so they can be opened from other machines.
+
+The OpenTelemetry Collector also listens on `4317` (OTLP gRPC) and `4318` (OTLP HTTP). Services in Docker send to `otel-collector:4317`; these host ports are for services run directly on the VM.
 
 ## Testing the Application
 

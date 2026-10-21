@@ -1,0 +1,90 @@
+<section hlmCard class="watchlist-card" aria-labelledby="watchlist-title">
+  <div hlmCardHeader>
+    <h2 hlmCardTitle id="watchlist-title">Watchlist</h2>
+  </div>
+  <div hlmCardContent>
+    @if (rows().length > 0) {
+      <div class="scroll" role="region" aria-label="Watchlist tickers" tabindex="0">
+        <ul class="rows" aria-labelledby="watchlist-title">
+          @for (row of rows(); track row.symbol) {
+            <li>
+              <span class="who">
+                <button
+                  type="button"
+                  class="symbol-link"
+                  [attr.aria-label]="'View ' + row.symbol + ' chart'"
+                  (click)="chart.emit(row.symbol)"
+                >
+                  <span class="symbol">{{ row.symbol }}</span>
+                </button>
+                @if (row.name) {
+                  {{ ' ' }}<span class="company">{{ row.name }}</span>
+                }
+              </span>
+              {{ ' '
+              }}<span class="price" [appTick]="row.price">
+                @if (row.price !== null) {
+                  {{ row.price | currency: 'USD' }}
+                } @else {
+                  <span aria-hidden="true">—</span><span class="sr-only">No live price</span>
+                }
+              </span>
+              {{ ' '
+              }}<span class="change" [class.loss]="(row.change ?? 0) < 0">
+                @if (row.change !== null) {
+                  <app-trend-icon [value]="row.change" />
+                  {{ row.change > 0 ? '+' : '' }}{{ row.change | percent: '1.2-2' }}
+                }
+              </span>
+              {{ ' '
+              }}<button
+                type="button"
+                hlmBtn
+                variant="ghost"
+                size="icon-sm"
+                (click)="remove(row.symbol)"
+              >
+                <ng-icon name="lucideX" aria-hidden="true" />
+                <span class="sr-only">Remove {{ row.symbol }} from watchlist</span>
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+    } @else {
+      <p class="muted">Add tickers you want to keep an eye on.</p>
+    }
+
+    @if (full()) {
+      <p class="muted note">
+        Your watchlist is full ({{ limit }} tickers). Remove one to add another.
+      </p>
+    } @else {
+      <form class="add" (submit)="add($event, field)">
+        <label for="watchlist-symbol">Add a ticker</label>
+        <div class="field">
+          <input
+            #field
+            id="watchlist-symbol"
+            list="watchlist-symbols"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            (input)="error.set('')"
+            [attr.aria-invalid]="error() ? true : null"
+            [attr.aria-describedby]="error() ? 'watchlist-error' : null"
+          />
+          <button type="submit" hlmBtn class="hover:bg-(--primary-hover)">
+            <ng-icon name="lucidePlus" aria-hidden="true" />Add
+          </button>
+        </div>
+        <datalist id="watchlist-symbols">
+          @for (symbol of available(); track symbol) {
+            <option [value]="symbol">{{ names().get(symbol) ?? symbol }}</option>
+          }
+        </datalist>
+        <p id="watchlist-error" class="error" role="alert">{{ error() }}</p>
+      </form>
+    }
+  </div>
+</section>

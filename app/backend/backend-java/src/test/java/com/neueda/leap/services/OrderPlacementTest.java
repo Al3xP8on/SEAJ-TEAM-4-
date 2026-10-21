@@ -30,6 +30,8 @@ class OrderPlacementTest {
     @Mock MarketPriceService prices;
     @Mock OrderSettlementService settlement;
     @Mock jakarta.persistence.EntityManager entityManager;
+    @Mock RestrictedInstrumentRepository restricted;
+    @Mock com.neueda.leap.compliance.ComplianceAuditRecorder complianceAudit;
     @InjectMocks OrderService service;
     Account account;
     Instrument instrument;
@@ -45,6 +47,8 @@ class OrderPlacementTest {
         lenient().when(accounts.findByIdForUpdate(1L)).thenReturn(Optional.of(account));
         lenient().when(instruments.findBySymbol("AAPL")).thenReturn(Optional.of(instrument));
         lenient().when(orders.save(any())).thenAnswer(call -> call.getArgument(0));
+        // The real pre-trade rules, so cash and holdings are still checked exactly as before
+        ReflectionTestUtils.setField(service, "complianceService", com.neueda.leap.compliance.ComplianceTestSupport.service(restricted, complianceAudit));
     }
     @Test void limitOrderRestsPendingWithoutAQuote() throws Exception {
         Order order = service.placeOrder(request);

@@ -4,6 +4,7 @@ import com.neueda.leap.models.Account;
 import com.neueda.leap.models.Instrument;
 import com.neueda.leap.models.Order;
 import com.neueda.leap.models.OrderHistory;
+import com.neueda.leap.observability.OrderTelemetry;
 import com.neueda.leap.enums.OrderSide;
 import com.neueda.leap.enums.OrderStatus;
 import com.neueda.leap.enums.OrderErrorCode;
@@ -13,6 +14,9 @@ import com.neueda.leap.repositories.OrderRepository;
 import com.neueda.leap.repositories.OrderHistoryRepository;
 import com.neueda.leap.validators.OrderValidator;
 import com.neueda.leap.validators.AccountValidator;
+import com.neueda.leap.compliance.ComplianceReport;
+import com.neueda.leap.compliance.ComplianceService;
+import com.neueda.leap.compliance.OrderContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +61,7 @@ public class OrderService {
     @Autowired private MarketPriceService prices;
     @Autowired private OrderSettlementService settlement;
     @Autowired private com.neueda.leap.messaging.OrderEventOutbox outbox;
+    @Autowired private ComplianceService complianceService;
     @PersistenceContext private EntityManager entityManager;
 
     public Order placeOrder(PlaceOrderRequest request) throws DuplicateOrderException {
@@ -96,24 +101,22 @@ public class OrderService {
         OrderValidator.validateQuantity(request.getQuantity());
         List<Order> pending = getOrdersByAccount(account.getAccountId()).stream()
             .filter(o -> o.getStatus().canBeCancelled()).toList();
+        long held = positions.findByAccountIdAndSymbol(account.getId(), instrument.getSymbol()).map(p -> (long) p.getQuantity()).orElse(0L);
         if (request.getSide() == OrderSide.BUY) {
-            long held = positions.findByAccountIdAndSymbol(account.getId(), instrument.getSymbol()).map(p -> (long) p.getQuantity()).orElse(0L);
             long queued = pending.stream().filter(o -> o.getSide() == OrderSide.BUY && o.getInstrument().getSymbol().equals(instrument.getSymbol())).mapToLong(Order::getQuantity).sum();
             if (held + queued + request.getQuantity() > Integer.MAX_VALUE) throw invalid("Resulting position quantity is too large");
-            BigDecimal reserved = pending.stream().filter(o -> o.getSide() == OrderSide.BUY)
-                .map(Order::calculateTotalValue).reduce(BigDecimal.ZERO, BigDecimal::add);
-            if (account.getCashBalance().subtract(reserved).compareTo(price.multiply(BigDecimal.valueOf(request.getQuantity()))) < 0)
-                throw invalid("Insufficient available cash after pending buy orders");
-        } else {
-            int held = positions.findByAccountIdAndSymbol(account.getId(), instrument.getSymbol()).map(p -> p.getQuantity()).orElse(0);
-            long reserved = pending.stream().filter(o -> o.getSide() == OrderSide.SELL && o.getInstrument().getSymbol().equals(instrument.getSymbol()))
-                .mapToLong(Order::getQuantity).sum();
-            if (held - reserved < request.getQuantity()) throw invalid("Insufficient holdings after pending sell orders");
         }
+        // Pre-trade compliance: cash, holdings, restricted list, single-stock limit and risk profile.
+        // Every check is audited, including blocked attempts; throws when the order may not go ahead.
+        OrderContext context = new OrderContext(account, instrument, request.getSide(), request.getQuantity(), price,
+            held, pending, positions.findByAccountId(account.getId()), prices::getMidPrice);
+        ComplianceReport compliance = complianceService.enforce(context, request.getAcknowledgedWarnings());
         Order order = persistOrder(account, instrument, request.getQuantity(), price, request.getSide(), key, request.getOrderType());
         order.setStatus(OrderStatus.PENDING);
         orderRepository.save(order);
+        complianceService.linkOrder(compliance, order.getId());
         recordOrderHistory(order.getId(), OrderStatus.PENDING);
+        OrderTelemetry.placed(order);
         outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_ACCEPTED, null);
         outbox.command(order, "SUBMIT");
         return order;
@@ -182,6 +185,7 @@ public class OrderService {
 
         Order cancelledOrder = orderRepository.save(order);
         recordOrderHistory(orderId, OrderStatus.CANCELLED);
+        OrderTelemetry.cancelled(cancelledOrder);
         outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_CANCELLED, "Cancelled by account user or administrator.");
         outbox.command(order, "CANCEL");
 
@@ -200,6 +204,7 @@ public class OrderService {
         OrderHistory entry = new OrderHistory(orderId, OrderStatus.REJECTED);
         entry.setReason(reason);
         orderHistoryRepository.save(entry);
+        OrderTelemetry.rejected(rejectedOrder, OrderTelemetry.RejectStage.ADMIN);
         outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_REJECTED, reason);
         outbox.command(order, "REJECT");
 

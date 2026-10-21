@@ -20,6 +20,20 @@ import org.slf4j.LoggerFactory;
 public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    // Declared before OrderException: the more specific handler wins for this subclass
+    @ExceptionHandler(ComplianceException.class)
+    ResponseEntity<com.neueda.leap.dtos.ComplianceErrorResponse> handleCompliance(ComplianceException exception, HttpServletRequest request) {
+        com.neueda.leap.dtos.ComplianceErrorResponse body = new com.neueda.leap.dtos.ComplianceErrorResponse(
+                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                exception.getErrorCode().name(),
+                exception.getMessage(),
+                exception.getReasons().stream().map(com.neueda.leap.dtos.ComplianceErrorResponse.Reason::from).toList(),
+                LocalDateTime.now(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
+    }
+
     @ExceptionHandler(OrderException.class)
     ResponseEntity<ErrorResponse> handleOrderException(OrderException exception, HttpServletRequest request){
         logger.error("OrderException occurred at {}: {}", request.getRequestURI(), exception.getMessage(), exception);

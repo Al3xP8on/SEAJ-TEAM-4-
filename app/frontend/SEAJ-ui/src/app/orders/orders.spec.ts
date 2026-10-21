@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NgForm } from '@angular/forms';
-import { provideRouter } from '@angular/router';
-import { Subject, of, throwError } from 'rxjs';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { OrdersService } from './orders.service';
 import { OrdersComponent } from './orders';
@@ -98,6 +98,48 @@ describe('OrdersComponent', () => {
         { provide: AuthService, useValue: auth },
       ],
     }).compileComponents();
+  });
+  it('prefills the requested instrument after catalogue loading and fetches its fresh quote', async () => {
+    const params = new BehaviorSubject(convertToParamMap({ symbol: 'MSFT' }));
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { queryParamMap: params.asObservable() },
+    });
+    const setup = new Subject<any>();
+    service.setup.mockReturnValue(setup);
+    const fixture = TestBed.createComponent(OrdersComponent);
+    fixture.detectChanges();
+    expect(service.quote).not.toHaveBeenCalled();
+    setup.next({
+      accounts: [{ ...account, name: 'Jay' }],
+      instruments: [
+        { symbol: 'AAPL', name: 'Apple', assetClass: 'Equity', currency: 'USD', tradable: true },
+        {
+          symbol: 'MSFT',
+          name: 'Microsoft',
+          assetClass: 'Equity',
+          currency: 'USD',
+          tradable: true,
+        },
+      ],
+    });
+    setup.complete();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await fixture.whenStable();
+    expect(fixture.componentInstance.symbol).toBe('MSFT');
+    expect(fixture.componentInstance.marketSymbol()).toBe('MSFT');
+    expect(service.quote).toHaveBeenCalledWith('MSFT');
+    expect(service.place).not.toHaveBeenCalled();
+    params.next(convertToParamMap({ symbol: 'AAPL' }));
+    expect(fixture.componentInstance.symbol).toBe('AAPL');
+    expect(service.quote).toHaveBeenLastCalledWith('AAPL');
+  });
+  it('ignores unknown instrument query parameters', async () => {
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { queryParamMap: of(convertToParamMap({ symbol: 'UNKNOWN' })) },
+    });
+    const { component } = await render();
+    expect(component.symbol).toBe('AAPL');
+    expect(service.quote).not.toHaveBeenCalledWith('UNKNOWN');
   });
   async function render() {
     const fixture = TestBed.createComponent(OrdersComponent);

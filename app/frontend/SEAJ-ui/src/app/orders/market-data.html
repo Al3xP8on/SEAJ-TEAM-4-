@@ -53,7 +53,15 @@
           </button>
         </div>
         <span class="period-label muted">
-          {{ chartPeriod() === '1D' ? 'Intraday' : chartPeriod() === '1W' ? '1 week' : '1 month' }}
+          {{
+            chartPeriod() === '1D'
+              ? 'Intraday'
+              : chartPeriod() === '1W'
+                ? displayedTimeframe() === '1Day'
+                  ? '1 week · daily'
+                  : '1 week · 6h'
+                : '1 month'
+          }}
         </span>
       </div>
       @if (chart(); as plot) {
@@ -66,7 +74,7 @@
             </span>
           </div>
           <svg
-            [attr.viewBox]="timeframe() === '1Min' ? '0 0 500 200' : '0 0 500 180'"
+            [attr.viewBox]="intraday() ? '0 0 500 200' : '0 0 500 180'"
             role="img"
             tabindex="0"
             [attr.aria-label]="
@@ -92,17 +100,31 @@
             <rect width="500" height="200" fill="transparent" />
             <path class="grid" d="M12 12H488 M12 90H488 M12 168H488" />
             @if (plot.points.length > 1) {
-              <polygon
-                class="price-area"
-                [attr.points]="
-                  plot.line +
-                  ' ' +
-                  plot.points[plot.points.length - 1].x +
-                  ',168 ' +
-                  plot.points[0].x +
-                  ',168'
-                "
-              />
+              @if (plot.curve) {
+                <path
+                  class="price-area"
+                  [attr.d]="
+                    plot.curve +
+                    ' L' +
+                    plot.points[plot.points.length - 1].x +
+                    ',168 L' +
+                    plot.points[0].x +
+                    ',168 Z'
+                  "
+                />
+              } @else {
+                <polygon
+                  class="price-area"
+                  [attr.points]="
+                    plot.line +
+                    ' ' +
+                    plot.points[plot.points.length - 1].x +
+                    ',168 ' +
+                    plot.points[0].x +
+                    ',168'
+                  "
+                />
+              }
             }
             @for (boundary of plot.boundaries; track boundary.next) {
               <line
@@ -128,7 +150,11 @@
               />
             }
             @if (plot.points.length > 1) {
-              <polyline class="price-line" [attr.points]="plot.line" />
+              @if (plot.curve) {
+                <path class="price-line" [attr.d]="plot.curve" />
+              } @else {
+                <polyline class="price-line" [attr.points]="plot.line" />
+              }
             }
             @if (inspectedPoint(); as point) {
               <circle class="price-point" [attr.cx]="point.x" [attr.cy]="point.y" r="4">
@@ -145,8 +171,8 @@
             }
           </svg>
           <div class="chart-axis muted">
-            <span>{{ plot.first | date: (timeframe() === '1Min' ? 'HH:mm' : 'd MMM') }}</span
-            ><span>{{ plot.last | date: (timeframe() === '1Min' ? 'HH:mm' : 'd MMM') }}</span>
+            <span>{{ plot.first | date: (intraday() ? 'HH:mm' : 'd MMM') }}</span
+            ><span>{{ plot.last | date: (intraday() ? 'HH:mm' : 'd MMM') }}</span>
           </div>
           <div class="chart-reading">
             @if (inspectedPoint(); as point) {
@@ -167,7 +193,9 @@
               timeframe() === '1Min'
                 ? 'Current and previous session where available · New York dates.'
                 : chartPeriod() === '1W'
-                  ? 'Last 5 available trading days.'
+                  ? displayedTimeframe() === '1Day'
+                    ? 'Last 5 available trading sessions · daily closing prices.'
+                    : 'Last 5 available trading sessions · 6-hour prices · New York dates.'
                   : 'Last 30 available daily bars.'
             }}
           </figcaption>

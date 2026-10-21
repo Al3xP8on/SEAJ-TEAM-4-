@@ -31,6 +31,11 @@ export class AuthService {
     private readonly challenges: EmailChallengeService,
   ) {}
   async register(dto: RegisterDto) {
+    dto.role = undefined;
+    const payload = await this.users.prepareRegistration(dto);
+    return this.challenges.issue('REGISTER', payload.email, payload);
+  }
+  async registerAdmin(dto: RegisterDto) {
     const payload = await this.users.prepareRegistration(dto);
     return this.challenges.issue('REGISTER', payload.email, payload);
   }

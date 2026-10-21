@@ -3,6 +3,7 @@ package com.neueda.leap.services;
 import com.neueda.leap.enums.*;
 import com.neueda.leap.messaging.ExecutionEvent;
 import com.neueda.leap.messaging.PoisonMessageException;
+import com.neueda.leap.observability.OrderTelemetry;
 import com.neueda.leap.models.*;
 import com.neueda.leap.repositories.*;
 import org.springframework.stereotype.Service;
@@ -88,6 +89,7 @@ public class OrderSettlementService {
         order.setStatus(OrderStatus.FILLED);
         orders.save(order);
         history.save(new OrderHistory(order.getId(), OrderStatus.FILLED));
+        OrderTelemetry.filled(order);
         var details = new java.util.LinkedHashMap<String, Object>();
         details.put("executionId", event.executionId());
         details.put("executionPrice", event.price());
@@ -110,6 +112,7 @@ public class OrderSettlementService {
         OrderHistory entry = new OrderHistory(order.getId(), OrderStatus.REJECTED);
         entry.setReason(reason);
         history.save(entry);
+        OrderTelemetry.rejected(order, OrderTelemetry.RejectStage.EXECUTION);
         outbox.lifecycle(order, com.neueda.leap.messaging.EventType.ORDER_REJECTED, reason);
         outbox.command(order, "REJECT");
         return false;

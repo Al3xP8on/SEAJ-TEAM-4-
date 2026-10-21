@@ -6,6 +6,7 @@ import {
   MarketChart,
   MarketOverview,
   MarketSnapshot,
+  MarketTimeframe,
 } from './orders.models';
 import { MarketDataComponent } from './market-data';
 import { OrdersService } from './orders.service';
@@ -54,7 +55,7 @@ describe('MarketDataComponent with Alpaca', () => {
     service.marketOverview.mockReset().mockReturnValue(of(overview));
     service.marketBars
       .mockReset()
-      .mockImplementation((symbol: string, timeframe: '1Min' | '1Day') =>
+      .mockImplementation((symbol: string, timeframe: MarketTimeframe) =>
         of({
           symbol,
           timeframe,
@@ -89,6 +90,33 @@ describe('MarketDataComponent with Alpaca', () => {
       page: fixture.nativeElement as HTMLElement,
     };
   }
+
+  it('falls back to daily weekly history when an older server rejects 6Hour', async () => {
+    const { fixture, component, page } = await render('AAPL');
+    service.marketBars.mockImplementation((symbol: string, timeframe: MarketTimeframe) =>
+      timeframe === '6Hour'
+        ? throwError(() => ({ status: 400, error: { message: 'Timeframe must be 1Min or 1Day' } }))
+        : of({
+            symbol,
+            timeframe,
+            feed: 'iex',
+            message: '',
+            bars: Array.from({ length: 8 }, (_, i) =>
+              bar(`2026-10-${String(6 + i).padStart(2, '0')}T04:00:00Z`, 100 + i),
+            ),
+          }),
+    );
+    component.chartPeriod.set('1W');
+    fixture.detectChanges();
+    await settle(fixture);
+    fixture.detectChanges();
+    expect(service.marketBars).toHaveBeenLastCalledWith('AAPL', '1Day');
+    expect(component.chartError()).toBe('');
+    expect(component.chart()?.points).toHaveLength(5);
+    expect(component.intraday()).toBe(false);
+    expect(page.textContent).toContain('daily closing prices');
+    expect(page.textContent).not.toContain('Timeframe must');
+  });
 
   it('ranks real snapshot changes against previous close and labels the feed', async () => {
     const { component, page } = await render();
@@ -242,40 +270,102 @@ describe('MarketDataComponent with Alpaca', () => {
       plot.previousClose!.y,
     );
   });
-  it('shows five trading days for 1W and reuses the same daily request for 1M', async () => {
+  it('shows six-hour prices across five trading sessions and keeps monthly daily history separate', async () => {
     const dailyBars = Array.from({ length: 49 }, (_, index) =>
       bar(new Date(Date.UTC(2026, 8, 1 + index, 4)).toISOString(), 100 + index),
     ).filter((entry) => ![0, 6].includes(new Date(entry.timestamp).getUTCDay()));
-    service.marketBars.mockImplementation((symbol: string, timeframe: '1Min' | '1Day') =>
+    const sixHourBars = [6, 7, 8, 9, 12, 13, 14].flatMap((day, index) =>
+      [10, 16].map((hour, half) =>
+        bar(
+          new Date(Date.UTC(2026, 9, day, hour)).toISOString(),
+          [100, 99, 103, 105, 109, 104, 104, 101, 108, 109, 106, 111, 107, 110][index * 2 + half],
+        ),
+      ),
+    );
+    const latestTrade = { ...snapshot('AAPL', 110, 10), timestamp: '2026-10-14T18:30:00Z' };
+    service.marketOverview.mockReturnValue(of({ ...overview, snapshots: [latestTrade] }));
+    service.marketBars.mockImplementation((symbol: string, timeframe: MarketTimeframe) =>
       of({
         symbol,
         timeframe,
         feed: 'iex',
         message: '',
-        bars: timeframe === '1Day' ? dailyBars : [],
+        bars: timeframe === '6Hour' ? sixHourBars : timeframe === '1Day' ? dailyBars : [],
       }),
     );
     const { fixture, component, page } = await render('AAPL');
     page.querySelectorAll<HTMLButtonElement>('.chart-periods button')[1].click();
     await settle(fixture);
-    expect(service.marketBars).toHaveBeenLastCalledWith('AAPL', '1Day');
-    expect(component.chart()?.points.map((point) => point.timestamp)).toEqual(
-      dailyBars.slice(-5).map((entry) => entry.timestamp),
-    );
+    expect(service.marketBars).toHaveBeenLastCalledWith('AAPL', '6Hour');
+    expect(component.chart()?.points.map((point) => point.timestamp)).toEqual([
+      ...sixHourBars.slice(-10).map((entry) => entry.timestamp),
+      latestTrade.timestamp,
+    ]);
+    expect(component.chart()?.points.map((point) => point.value)).toEqual([
+      ...sixHourBars.slice(-10).map((entry) => entry.close),
+      latestTrade.price,
+    ]);
+    const plot = component.chart()!;
+    expect(page.querySelector('.price-line')?.tagName.toLowerCase()).toBe('path');
+    const segments = plot.curve!.split(' C').slice(1);
+    expect(segments).toHaveLength(plot.points.length - 1);
+    segments.forEach((segment, index) => {
+      const [, y1, , y2, x3, y3] = segment.split(/[ ,]+/).map(Number);
+      const start = plot.points[index],
+        end = plot.points[index + 1];
+      expect([x3, y3]).toEqual([end.x, end.y]);
+      // Intermediate curve values must not invent a higher high or lower low.
+      for (let step = 0; step <= 20; step++) {
+        const t = step / 20,
+          u = 1 - t;
+        const y = u ** 3 * start.y + 3 * u ** 2 * t * y1 + 3 * u * t ** 2 * y2 + t ** 3 * y3;
+        expect(y).toBeGreaterThanOrEqual(Math.min(start.y, end.y) - 1e-8);
+        expect(y).toBeLessThanOrEqual(Math.max(start.y, end.y) + 1e-8);
+      }
+    });
+    page
+      .querySelector('svg')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    await fixture.whenStable();
+    expect(component.inspectedPoint()?.value).toBe(sixHourBars.at(-10)!.close);
     expect(page.querySelector('[aria-pressed="true"]')?.textContent?.trim()).toBe('1W');
-    expect(page.querySelector('figcaption')?.textContent).toContain(
-      'Last 5 available trading days.',
-    );
-    expect(page.querySelector('.session-divider')).toBeNull();
+    expect(page.querySelector('figcaption')?.textContent).toContain('6-hour prices');
+    expect(component.chart()?.sessions.map((session) => session.date)).toEqual([
+      '2026-10-08',
+      '2026-10-09',
+      '2026-10-12',
+      '2026-10-13',
+      '2026-10-14',
+    ]);
+    expect(page.querySelectorAll('.session-divider')).toHaveLength(4);
     expect(page.querySelector('.previous-close')).toBeNull();
-    const calls = service.marketBars.mock.calls.length;
     page.querySelectorAll<HTMLButtonElement>('.chart-periods button')[2].click();
     await settle(fixture);
     expect(component.chart()?.points).toHaveLength(30);
-    expect(service.marketBars).toHaveBeenCalledTimes(calls);
+    expect(service.marketBars).toHaveBeenLastCalledWith('AAPL', '1Day');
+    expect(component.chart()?.curve).toBeNull();
+    expect(page.querySelector('.session-divider')).toBeNull();
     page.querySelectorAll<HTMLButtonElement>('.chart-periods button')[1].click();
     await settle(fixture);
-    expect(component.chart()?.points).toHaveLength(5);
+    expect(component.chart()?.points).toHaveLength(11);
+    expect(service.marketBars).toHaveBeenLastCalledWith('AAPL', '6Hour');
+  });
+  it('updates the weekly endpoint from live snapshots without reloading six-hour history', async () => {
+    const updates = new Subject<MarketOverview>();
+    service.marketOverview.mockReturnValue(updates);
+    const { fixture, component, page } = await render('AAPL');
+    updates.next(overview);
+    await settle(fixture);
+    page.querySelectorAll<HTMLButtonElement>('.chart-periods button')[1].click();
+    await settle(fixture);
+    expect(service.marketBars).toHaveBeenLastCalledWith('AAPL', '6Hour');
+    const calls = service.marketBars.mock.calls.length;
+    updates.next({
+      ...overview,
+      snapshots: [{ ...snapshot('AAPL', 112, 12), timestamp: '2026-10-14T15:02:10Z' }],
+    });
+    await settle(fixture);
+    expect(component.chart()?.points.at(-1)?.value).toBe(112);
     expect(service.marketBars).toHaveBeenCalledTimes(calls);
   });
   it('keeps the previous session when the first trade of a new day arrives before minute history', async () => {

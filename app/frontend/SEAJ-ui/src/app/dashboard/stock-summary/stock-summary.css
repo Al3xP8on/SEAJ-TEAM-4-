@@ -1,0 +1,50 @@
+:host {
+  display: block;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.stats > div {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--muted);
+}
+
+dt {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin-bottom: 4px;
+}
+
+dd {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The sign and arrow carry the direction; colour only reinforces it */
+.change {
+  color: var(--positive);
+}
+
+.change.loss {
+  color: var(--destructive);
+}
+
+.section {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 20px 0 10px;
+}
+
+.muted {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  margin: 0;
+}

@@ -1,0 +1,614 @@
+<main class="admin-page">
+  <app-admin-tabs />
+  <header class="page-heading admin-hero">
+    <div>
+      <p class="eyebrow">SEAJ CAPITAL · ADMINISTRATION</p>
+      <h1>Admin dashboard</h1>
+      <p class="muted">The people, activity and systems behind your trading platform.</p>
+      <div class="hero-meta">
+        <span>Administrator workspace</span>
+        @if (lastLoaded()) {
+          <span>Accounts updated {{ lastLoaded() | date: 'HH:mm' }}</span>
+        }
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" (click)="load()" [disabled]="loading()">
+        {{ loading() ? 'Refreshing…' : 'Refresh accounts' }}
+      </button>
+      <button type="button" class="primary" (click)="startCreate()" [disabled]="showCreate()">
+        Create account
+      </button>
+    </div>
+  </header>
+
+  <nav class="admin-sections" aria-label="Administration sections">
+    <button
+      type="button"
+      [attr.aria-pressed]="activeSection() === 'overview'"
+      (click)="activeSection.set('overview')"
+    >
+      Overview
+    </button>
+    <button
+      type="button"
+      [attr.aria-pressed]="activeSection() === 'accounts'"
+      (click)="activeSection.set('accounts')"
+    >
+      Accounts <span>{{ accounts().length }}</span>
+    </button>
+    <button
+      type="button"
+      [attr.aria-pressed]="activeSection() === 'observability'"
+      (click)="activeSection.set('observability')"
+    >
+      Observability <span class="section-dot" aria-hidden="true"></span>
+    </button>
+  </nav>
+
+  @if (notice()) {
+    <p class="notice" role="status">{{ notice() }}</p>
+  }
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  @if (activeSection() !== 'observability') {
+    <section class="stats" aria-label="Account summary">
+      <div class="panel">
+        <span class="eyebrow">Total accounts</span><strong>{{ accounts().length | number }}</strong
+        ><span class="muted">Across the platform</span>
+      </div>
+      <div class="panel">
+        <span class="eyebrow">Active</span><strong>{{ activeCount() | number }}</strong
+        ><span class="muted">Accounts enabled for trading</span>
+      </div>
+      <div class="panel">
+        <span class="eyebrow">Suspended</span><strong>{{ suspendedCount() | number }}</strong
+        ><span class="muted">Access currently restricted</span>
+      </div>
+      <div class="panel">
+        <span class="eyebrow">Cash held</span><strong>{{ totalCash() | currency }}</strong
+        ><span class="muted">Total account cash · USD</span>
+      </div>
+    </section>
+  }
+  @if (activeSection() === 'overview') {
+    <div class="overview-grid">
+      <section class="panel account-distribution" aria-labelledby="distribution-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">ACCOUNT LANDSCAPE</p>
+            <h2 id="distribution-title">Access across the platform</h2>
+          </div>
+          <button type="button" (click)="showAccounts()">Manage accounts →</button>
+        </div>
+        @if (accounts().length) {
+          <div
+            class="distribution-bar"
+            role="img"
+            [attr.aria-label]="
+              activeCount() +
+              ' active, ' +
+              suspendedCount() +
+              ' suspended, ' +
+              closedCount() +
+              ' closed accounts'
+            "
+          >
+            <span class="active-part" [style.width.%]="activePercent()"></span
+            ><span class="suspended-part" [style.width.%]="suspendedPercent()"></span>
+          </div>
+        }
+        <div class="distribution-legend">
+          <button type="button" (click)="showAccounts('ACTIVE')">
+            <i class="active-key"></i><span>Active</span
+            ><strong>{{ activeCount() }}</strong></button
+          ><button type="button" (click)="showAccounts('SUSPENDED')">
+            <i class="suspended-key"></i><span>Suspended</span
+            ><strong>{{ suspendedCount() }}</strong></button
+          ><button type="button" (click)="showAccounts('CLOSED')">
+            <i class="closed-key"></i><span>Closed</span><strong>{{ closedCount() }}</strong>
+          </button>
+        </div>
+        <p class="muted">Account access and balances stay separate from platform monitoring.</p>
+      </section>
+      <section class="panel review-accounts" aria-labelledby="review-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">ACCOUNT FOLLOW-UP</p>
+            <h2 id="review-title">Suspended accounts</h2>
+          </div>
+          <span class="count">{{ suspendedCount() }}</span>
+        </div>
+        @for (account of suspendedAccounts(); track account.id) {
+          <button class="review-account" type="button" (click)="openAccount(account)">
+            <span class="account-avatar" aria-hidden="true">{{
+              account.holderName.slice(0, 1)
+            }}</span
+            ><span
+              ><strong>{{ account.holderName }}</strong
+              ><small>{{ account.accountId }}</small></span
+            ><span class="review-link">Review →</span>
+          </button>
+        } @empty {
+          <div class="overview-empty">
+            <strong>No suspended accounts</strong>
+            <p class="muted">Accounts that need an access review will appear here.</p>
+          </div>
+        }
+      </section>
+    </div>
+    <app-admin-observability [compact]="true" />
+    <section class="panel recent-account-panel" aria-labelledby="recent-account-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">RECENT ACCOUNT ACTIVITY</p>
+          <h2 id="recent-account-title">Recently updated accounts</h2>
+        </div>
+        <button type="button" (click)="showAccounts()">View all accounts →</button>
+      </div>
+      <p class="muted">Latest account record updates, including balance and access changes.</p>
+      @for (account of recentAccounts(); track account.id) {
+        <button class="recent-account" type="button" (click)="openAccount(account)">
+          <span class="account-avatar" aria-hidden="true">{{ account.holderName.slice(0, 1) }}</span
+          ><span class="recent-name"
+            ><strong>{{ account.holderName }}</strong
+            ><small>{{ account.accountId }}</small></span
+          ><span
+            class="badge"
+            [class.suspended]="account.status === 'SUSPENDED'"
+            [class.closed]="account.status === 'CLOSED'"
+            >{{ account.status.toLowerCase() }}</span
+          ><time [attr.datetime]="account.lastUpdated">{{
+            account.lastUpdated | date: 'd MMM, HH:mm'
+          }}</time
+          ><span aria-hidden="true">↗</span>
+        </button>
+      } @empty {
+        <p class="muted">
+          {{ loading() ? 'Loading account activity…' : 'No account records to display.' }}
+        </p>
+      }
+    </section>
+  }
+  @if (activeSection() === 'observability') {
+    <app-admin-observability />
+  }
+  @if (activeSection() === 'accounts') {
+    @if (showCreate()) {
+      <section class="panel create-panel" aria-labelledby="create-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">New customer</p>
+            <h2 id="create-title">Create an account</h2>
+          </div>
+          <button type="button" (click)="resetCreate()" [disabled]="creating()">Cancel</button>
+        </div>
+        @if (createError()) {
+          <p class="error" role="alert">{{ createError() }}</p>
+        }
+        @if (!challengeId()) {
+          <p class="muted">
+            The account holder must verify their email. New accounts start with $0.00.
+          </p>
+          <form #registration="ngForm" (ngSubmit)="createAccount(registration)">
+            <div class="form-grid">
+              <label
+                >Full name<input
+                  name="name"
+                  [(ngModel)]="credentials.name"
+                  required
+                  maxlength="255"
+                  autocomplete="off"
+              /></label>
+              <label
+                >Username<input
+                  name="username"
+                  [(ngModel)]="credentials.username"
+                  required
+                  minlength="3"
+                  maxlength="100"
+                  autocomplete="off"
+              /></label>
+              <label
+                >Email address<input
+                  name="email"
+                  type="email"
+                  email
+                  [(ngModel)]="credentials.email"
+                  required
+                  maxlength="255"
+                  autocomplete="off"
+              /></label>
+              <label
+                >Initial password<input
+                  name="password"
+                  type="password"
+                  [(ngModel)]="credentials.password"
+                  required
+                  minlength="8"
+                  maxlength="72"
+                  autocomplete="new-password"
+              /></label>
+              <label
+                >Account role<select name="role" [(ngModel)]="role" required>
+                  <option value="USER">Normal user</option>
+                  <option value="ADMIN">Administrator</option>
+                </select></label
+              >
+            </div>
+            <button class="primary" type="submit" [disabled]="registration.invalid || creating()">
+              {{ creating() ? 'Sending code…' : 'Send verification code' }}
+            </button>
+          </form>
+        } @else {
+          <p class="muted">
+            A code was sent to <strong>{{ credentials.email }}</strong
+            >. Confirm it with the account holder to finish creating their account.
+          </p>
+          <form
+            #verification="ngForm"
+            class="verification"
+            (ngSubmit)="verifyAccount(verification)"
+          >
+            <label
+              >Verification code<input
+                name="code"
+                [(ngModel)]="code"
+                required
+                pattern="[0-9]{6}"
+                maxlength="6"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+            /></label>
+            <button type="submit" class="primary" [disabled]="verification.invalid || creating()">
+              {{ creating() ? 'Creating…' : 'Verify and create account' }}
+            </button>
+            <button
+              type="button"
+              (click)="challengeId.set(''); code = ''; createError.set('')"
+              [disabled]="creating()"
+            >
+              Start again
+            </button>
+          </form>
+        }
+      </section>
+    }
+
+    <div class="workspace" [class.with-details]="selected()">
+      <section class="panel accounts-panel" aria-labelledby="accounts-title">
+        <div class="section-heading">
+          <h2 id="accounts-title">
+            Accounts <span class="count">{{ visibleAccounts().length }}</span>
+          </h2>
+        </div>
+        <div class="filters">
+          <label class="search"
+            >Search accounts<input
+              type="search"
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event)"
+              placeholder="Name, email or account ID"
+          /></label>
+          <label
+            >Status<select [ngModel]="status()" (ngModelChange)="status.set($event)">
+              <option value="ALL">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="SUSPENDED">Suspended</option>
+              <option value="CLOSED">Closed</option>
+            </select></label
+          >
+        </div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Accounts table">
+          <table aria-label="Accounts, roles, cash balances and statuses">
+            <thead>
+              <tr>
+                <th scope="col">Account holder</th>
+                <th scope="col">Role</th>
+                <th scope="col" class="numeric">Cash balance</th>
+                <th scope="col">Status</th>
+                <th scope="col"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (account of visibleAccounts(); track account.id) {
+                <tr [class.selected]="selectedId() === account.id">
+                  <td>
+                    <strong>{{ account.holderName }}</strong>
+                    @if ('' + account.id === ownId) {
+                      <span class="you">You</span>
+                    }
+                    <span class="muted subline"
+                      >{{ account.accountId }} · {{ account.username }}</span
+                    ><span class="muted subline">{{ account.email || 'No email address' }}</span>
+                  </td>
+                  <td>{{ account.roles.split(',').includes('ADMIN') ? 'Admin' : 'User' }}</td>
+                  <td class="numeric">{{ account.cashBalance | currency }}</td>
+                  <td>
+                    <span
+                      class="badge"
+                      [class.suspended]="account.status === 'SUSPENDED'"
+                      [class.closed]="account.status === 'CLOSED'"
+                      >{{ account.status.toLowerCase() }}</span
+                    >
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      (click)="select(account)"
+                      [attr.aria-label]="'View account for ' + account.holderName"
+                      [attr.aria-pressed]="selectedId() === account.id"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="empty">
+                    {{ loading() ? 'Loading accounts…' : 'No accounts match your search.' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      @if (selected(); as account) {
+        <aside class="panel detail-panel" aria-labelledby="detail-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Account details</p>
+              <h2 id="detail-title">{{ account.holderName }}</h2>
+              <p class="muted">{{ account.accountId }}</p>
+            </div>
+            <button type="button" (click)="selectedId.set(null)">Close details</button>
+          </div>
+          <dl class="account-info">
+            <div>
+              <dt>Username</dt>
+              <dd>{{ account.username }}</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd>{{ account.email || 'Not provided' }}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>{{ account.status.toLowerCase() }}</dd>
+            </div>
+            <div>
+              <dt>Last updated</dt>
+              <dd>{{ account.lastUpdated | date: 'medium' }}</dd>
+            </div>
+          </dl>
+          <div class="balance-row">
+            <span class="muted">Cash balance</span
+            ><strong>{{ account.cashBalance | currency }}</strong>
+          </div>
+          <div class="account-controls">
+            @if ('' + account.id === ownId) {
+              <p class="muted">You cannot suspend or close your own admin account.</p>
+            } @else if (account.status === 'CLOSED') {
+              <p class="muted">This account is closed. Its trading history remains available.</p>
+            } @else {
+              @if (account.status === 'ACTIVE') {
+                <button type="button" (click)="askStatus(account, 'SUSPENDED')">
+                  Suspend account
+                </button>
+              } @else {
+                <button type="button" class="primary" (click)="askStatus(account, 'ACTIVE')">
+                  Reactivate account
+                </button>
+              }
+              <button type="button" class="danger" (click)="askStatus(account, 'CLOSED')">
+                Close account
+              </button>
+            }
+          </div>
+          @if (detailsLoading()) {
+            <p class="muted" role="status">Loading holdings and orders…</p>
+          }
+          @if (detailsError()) {
+            <p class="error" role="alert">{{ detailsError() }}</p>
+            <button type="button" (click)="select(account)">Retry details</button>
+          }
+          @if (details()) {
+            <div class="detail-summary">
+              <div>
+                <span class="muted">Holdings at cost</span
+                ><strong>{{ holdingsValue() | currency }}</strong>
+              </div>
+              <div>
+                <span class="muted">Pending orders</span
+                ><strong>{{ pendingCount() | number }}</strong>
+              </div>
+            </div>
+            <h3>
+              Holdings <span class="count">{{ holdings().length }}</span>
+            </h3>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Account holdings">
+              <table aria-label="Selected account holdings, units and average costs">
+                <thead>
+                  <tr>
+                    <th scope="col">Instrument</th>
+                    <th scope="col" class="numeric">Units</th>
+                    <th scope="col" class="numeric">Avg cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (position of holdings(); track position.positionId) {
+                    <tr>
+                      <td>
+                        <strong>{{ position.symbol }}</strong>
+                      </td>
+                      <td class="numeric">{{ position.quantity | number }}</td>
+                      <td class="numeric">{{ position.averageCost | currency }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="3" class="empty">No current holdings.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <h3>
+              Order history <span class="count">{{ accountOrders().length }}</span>
+            </h3>
+            <div
+              class="table-scroll order-history"
+              tabindex="0"
+              role="region"
+              aria-label="Account order history"
+            >
+              <table aria-label="Selected account order history, values and statuses">
+                <thead>
+                  <tr>
+                    <th scope="col">Order</th>
+                    <th scope="col" class="numeric">Value</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (order of accountOrders(); track order.orderId) {
+                    <tr>
+                      <td>
+                        <strong
+                          >{{ order.side === 'BUY' ? 'Buy' : 'Sell' }} {{ order.quantity | number }}
+                          {{ order.ticker }}</strong
+                        ><span class="subline muted"
+                          >{{ order.orderType.toLowerCase() }} ·
+                          {{ order.createdAt | date: 'd MMM, HH:mm' }}</span
+                        ><span class="subline muted order-id">{{ order.orderId }}</span>
+                      </td>
+                      <td class="numeric">
+                        {{ order.quantity * (order.executionPrice ?? order.price) | currency }}
+                      </td>
+                      <td>
+                        <span
+                          class="badge"
+                          [class.suspended]="order.status === 'REJECTED'"
+                          [class.closed]="order.status === 'CANCELLED'"
+                          >{{ order.status.toLowerCase() }}</span
+                        >
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="3" class="empty">No orders for this account.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <a class="text-link" routerLink="/order" fragment="order-history">Open order history →</a>
+          }
+          <h3>
+            Account history <span class="count">{{ statusHistory().length }}</span>
+          </h3>
+          @if (historyLoading()) {
+            <p class="muted">Loading account history…</p>
+          } @else if (historyError()) {
+            <p class="error" role="alert">{{ historyError() }}</p>
+            <button type="button" (click)="loadHistory(account.id)">Retry history</button>
+          } @else {
+            <div class="history-list">
+              @for (entry of statusHistory(); track entry.id) {
+                <div class="history-entry">
+                  <strong>{{ entry.newStatus.toLowerCase() }}</strong>
+                  <span class="subline muted"
+                    >{{ entry.changedOn | date: 'd MMM, yyyy HH:mm' }} ·
+                    {{ entry.administrator }}</span
+                  >
+                  <span class="subline">{{ entry.reason }}</span>
+                </div>
+              } @empty {
+                <p class="muted">No admin status changes recorded.</p>
+              }
+            </div>
+          }
+        </aside>
+      }
+    </div>
+  }
+</main>
+
+<dialog
+  #confirmation
+  aria-labelledby="confirmation-title"
+  aria-describedby="confirmation-description"
+  (cancel)="closeConfirmation($event)"
+>
+  @if (pendingAction(); as action) {
+    <p class="eyebrow">Account access</p>
+    <h2 id="confirmation-title">
+      {{
+        action.status === 'SUSPENDED'
+          ? 'Suspend account?'
+          : action.status === 'CLOSED'
+            ? 'Close account?'
+            : 'Reactivate account?'
+      }}
+    </h2>
+    <p>
+      <strong>{{ action.account.holderName }}</strong> · {{ action.account.accountId }}
+    </p>
+    <p id="confirmation-description" class="muted">
+      @switch (action.status) {
+        @case ('SUSPENDED') {
+          This blocks login and trading. Existing balances and holdings are kept. You can reactivate
+          the account later.
+        }
+        @case ('ACTIVE') {
+          This restores login and trading access for the account holder.
+        }
+        @case ('CLOSED') {
+          This permanently closes the account and preserves its history. Cash must be zero, with no
+          remaining holdings or pending orders.
+        }
+      }
+    </p>
+    @if (action.status === 'SUSPENDED' || action.status === 'CLOSED') {
+      <label for="status-reason"
+        >Reason
+        <textarea
+          id="status-reason"
+          name="status-reason"
+          [(ngModel)]="reason"
+          maxlength="500"
+          rows="3"
+          required
+          placeholder="Why is this account being changed?"
+        ></textarea>
+      </label>
+    }
+    @if (actionError()) {
+      <p class="error" role="alert">{{ actionError() }}</p>
+    }
+    <div class="actions">
+      <button type="button" autofocus (click)="closeConfirmation()" [disabled]="saving()">
+        Cancel</button
+      ><button
+        type="button"
+        [class.primary]="action.status === 'ACTIVE'"
+        [class.danger]="action.status !== 'ACTIVE'"
+        (click)="saveStatus()"
+        [disabled]="saving()"
+      >
+        {{
+          saving()
+            ? 'Saving…'
+            : action.status === 'SUSPENDED'
+              ? 'Suspend account'
+              : action.status === 'CLOSED'
+                ? 'Close account'
+                : 'Reactivate account'
+        }}
+      </button>
+    </div>
+  }
+</dialog>

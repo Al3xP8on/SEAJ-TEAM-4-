@@ -3,6 +3,7 @@ package com.neueda.leap.controllers;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import com.neueda.leap.services.PositionsService;
+import com.neueda.leap.security.SecurityUtilsService;
 import com.neueda.leap.dtos.*;
 import com.neueda.leap.enums.PositionStatus;
 import com.neueda.leap.exceptions.*;
@@ -21,6 +22,7 @@ class PositionsControllerTest {
     private PositionsController controller() {
         PositionsController controller = new PositionsController();
         ReflectionTestUtils.setField(controller, "positionsService", service);
+        ReflectionTestUtils.setField(controller, "securityUtilsService", mock(SecurityUtilsService.class));
         return controller;
     }
     @Test void rootDescribesAccountPositionsRoute() {

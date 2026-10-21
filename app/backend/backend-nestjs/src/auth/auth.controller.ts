@@ -7,6 +7,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { DeleteAccountDto, RemoveCardDto } from './dto/delete-account.dto';
 import { ProfileDto, BankDto, TransferDto, EmailChangeDto } from './dto/account-settings.dto';
 import { AuthService } from './auth.service';
@@ -22,6 +23,11 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
   @Post('register') @HttpCode(202) register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
+  }
+  @Post('admin/register') @HttpCode(202) @UseGuards(JwtAuthGuard)
+  registerAdmin(@Req() request: AuthenticatedRequest, @Body() dto: RegisterDto) {
+    if (request.user.role !== 'ADMIN') throw new UnauthorizedException('Admin access required');
+    return this.auth.registerAdmin(dto);
   }
   @Post('login') @HttpCode(202) login(@Body() dto: LoginDto) {
     return this.auth.login(dto);

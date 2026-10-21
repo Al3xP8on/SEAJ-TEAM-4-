@@ -5,6 +5,7 @@ export interface RegistrationPayload {
   name: string;
   passwordHash: string;
   phone?: string | null;
+  role: 'USER' | 'ADMIN';
 }
 export interface LoginPayload {
   userId: string;

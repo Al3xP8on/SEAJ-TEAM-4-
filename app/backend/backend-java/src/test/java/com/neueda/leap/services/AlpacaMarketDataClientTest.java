@@ -110,11 +110,18 @@ class AlpacaMarketDataClientTest {
     @Test void capsDailyHistoryToTheThirtyBarsDisplayed() {
         assertHistoryLimit("1Day", 30, 86400);
     }
+    @Test void requestsSixHourHistoryAndStopsAtItsBoundedLimit() {
+        assertHistoryLimit("6Hour", 60, 6 * 3600);
+    }
     private void assertHistoryLimit(String timeframe, int limit, long seconds) {
         String rows = java.util.stream.IntStream.range(0, limit).mapToObj(index ->
                 "{\"t\":\"" + now.minusSeconds(index * seconds) + "\",\"o\":100,\"h\":110,\"l\":90,\"c\":100,\"v\":10}")
                 .collect(java.util.stream.Collectors.joining(","));
         server.expect(request -> {
+            assertTrue(request.getURI().toString().contains("timeframe=" + timeframe));
+            if (timeframe.equals("6Hour")) {
+                assertTrue(request.getURI().toString().contains("start=2026-09-23T15:00:00Z"));
+            }
             assertTrue(request.getURI().toString().contains("sort=desc"));
             assertTrue(request.getURI().toString().contains("limit=" + limit));
         }).andRespond(withSuccess("{\"bars\":{\"AAPL\":[" + rows + "]},\"next_page_token\":\"do-not-fetch-more\"}", MediaType.APPLICATION_JSON));

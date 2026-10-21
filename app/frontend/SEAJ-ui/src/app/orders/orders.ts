@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe, DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   EMPTY,
@@ -26,6 +27,7 @@ import { AuthService } from '../auth/auth.service';
 import { Account, Position } from '../dashboard/dashboard.models';
 import { accountIdFromToken } from '../dashboard/dashboard.service';
 import {
+  ComplianceStop,
   Instrument,
   Order,
   OrderHistory,
@@ -33,25 +35,34 @@ import {
   OrderStatus,
   Quote,
   TradingAccount,
+  MarketOverview,
 } from './orders.models';
 import { OrdersService } from './orders.service';
 import { MarketDataComponent } from './market-data';
+import { MarketTickerComponent } from '../landing/market-ticker/market-ticker';
+import { MarketClockComponent } from '../dashboard/market-clock/market-clock';
 
 @Component({
   selector: 'app-orders',
   imports: [
     FormsModule,
+    RouterLink,
     CurrencyPipe,
     DecimalPipe,
     DatePipe,
     MarketDataComponent,
+    MarketTickerComponent,
+    MarketClockComponent,
     NgTemplateOutlet,
   ],
   templateUrl: './orders.html',
-  styleUrls: ['./orders.css', './order-ticket.css'],
+  styleUrls: ['./orders.css', './order-ticket.css', './order-management.css'],
 })
 export class OrdersComponent {
+  private readonly route = inject(ActivatedRoute);
+  readonly management = this.route.snapshot.data['management'] === true;
   private readonly document = inject(DOCUMENT);
+  private requestedSymbol = '';
   private readonly service = inject(OrdersService);
   private readonly auth = inject(AuthService);
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
@@ -64,11 +75,16 @@ export class OrdersComponent {
   readonly positions = signal<Position[]>([]);
   readonly orders = signal<Order[]>([]);
   readonly quote = signal<Quote | null>(null);
+  readonly market = signal<MarketOverview | null>(null);
   readonly loading = signal(true);
   readonly error = signal('');
   readonly refreshError = signal('');
   readonly notice = signal('');
   readonly submitting = signal(false);
+  /** Set when pre-trade compliance stopped the last submission */
+  readonly compliance = signal<ComplianceStop | null>(null);
+  /** The customer ticked "I understand" for the current warnings */
+  acknowledged = false;
   readonly actionId = signal('');
   readonly confirming = signal<Order | null>(null);
   readonly historyOrder = signal<Order | null>(null);
@@ -77,6 +93,39 @@ export class OrdersComponent {
   readonly historyError = signal('');
   readonly accountFilter = signal('');
   readonly statusFilter = signal('ALL');
+  readonly dateFilter = signal('ALL');
+  readonly orderView = signal(this.management ? 'ACTIVE' : 'ALL');
+  readonly sideFilter = signal('ALL');
+  readonly sortOrder = signal('NEWEST');
+  readonly pricesAsOf = computed(() => this.market()?.updatedAt ?? null);
+  readonly latestTrade = computed(() => {
+    const trades = (this.market()?.snapshots ?? []).map((snapshot) => snapshot.timestamp);
+    return trades.length > 0
+      ? trades.reduce((latest, timestamp) => (latest > timestamp ? latest : timestamp))
+      : null;
+  });
+  readonly scopedOrders = computed(() =>
+    this.orders().filter(
+      (order) => !this.accountFilter() || order.accountId === this.accountFilter(),
+    ),
+  );
+  readonly activeOrders = computed(() =>
+    this.scopedOrders().filter((order) => this.isPending(order)),
+  );
+  readonly rejectedOrders = computed(() =>
+    this.scopedOrders().filter((order) => order.status === 'REJECTED'),
+  );
+  readonly completedOrders = computed(() =>
+    this.scopedOrders().filter((order) => ['FILLED', 'CANCELLED'].includes(order.status)),
+  );
+  readonly committedCash = computed(() =>
+    this.activeOrders()
+      .filter((order) => order.side === 'BUY')
+      .reduce((sum, order) => sum + order.quantity * order.price, 0),
+  );
+  readonly filledOrders = computed(() =>
+    this.scopedOrders().filter((order) => order.status === 'FILLED'),
+  );
   readonly search = signal('');
   readonly instrumentSearch = signal('');
   readonly pickerOpen = signal(false);
@@ -102,8 +151,18 @@ export class OrdersComponent {
   private historyRequestVersion = 0;
 
   readonly visibleOrders = computed(() =>
-    this.orders()
-      .filter((o) => !this.accountFilter() || o.accountId === this.accountFilter())
+    this.scopedOrders()
+      .filter(
+        (o) =>
+          this.orderView() === 'ALL' ||
+          (this.orderView() === 'ACTIVE'
+            ? this.isPending(o)
+            : this.orderView() === 'REJECTED'
+              ? o.status === 'REJECTED'
+              : ['FILLED', 'CANCELLED'].includes(o.status)),
+      )
+      .filter((o) => this.sideFilter() === 'ALL' || o.side === this.sideFilter())
+      .filter((o) => this.matchesDate(o.createdAt))
       .filter(
         (o) =>
           this.statusFilter() === 'ALL' ||
@@ -116,7 +175,13 @@ export class OrdersComponent {
           .toLowerCase()
           .includes(this.search().toLowerCase()),
       )
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      .sort((a, b) =>
+        this.sortOrder() === 'VALUE'
+          ? this.orderValue(b) - this.orderValue(a)
+          : this.sortOrder() === 'OLDEST'
+            ? Date.parse(a.createdAt) - Date.parse(b.createdAt)
+            : Date.parse(b.createdAt) - Date.parse(a.createdAt),
+      ),
   );
   readonly historyRejectionReason = computed(() => {
     if (this.historyOrder()?.status !== 'REJECTED' || this.historyLoading() || this.historyError())
@@ -141,6 +206,49 @@ export class OrdersComponent {
     ),
   );
   readonly pendingCount = computed(() => this.orders().filter((o) => this.isPending(o)).length);
+  readonly ordersToday = computed(() => {
+    if (!this.isAdmin) return 0;
+    return this.orders().filter((order) => this.isToday(order.createdAt)).length;
+  });
+
+  selectView(view: string): void {
+    this.orderView.set(view);
+    this.statusFilter.set('ALL');
+  }
+
+  clearFilters(): void {
+    this.orderView.set('ALL');
+    this.accountFilter.set('');
+    this.statusFilter.set('ALL');
+    this.dateFilter.set('ALL');
+    this.sideFilter.set('ALL');
+    this.sortOrder.set('NEWEST');
+    this.search.set('');
+  }
+
+  orderValue(order: Order): number {
+    return order.quantity * (order.executionPrice ?? order.price);
+  }
+
+  private matchesDate(value: string): boolean {
+    if (this.dateFilter() === 'ALL') return true;
+    if (this.dateFilter() === 'TODAY') return this.isToday(value);
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (this.dateFilter() === 'WEEK' ? 6 : 29));
+    const time = Date.parse(value);
+    return time >= start.getTime() && time <= Date.now();
+  }
+
+  private isToday(value: string): boolean {
+    const today = new Date();
+    const created = new Date(value);
+    return (
+      created.getFullYear() === today.getFullYear() &&
+      created.getMonth() === today.getMonth() &&
+      created.getDate() === today.getDate()
+    );
+  }
 
   constructor() {
     effect(() => {
@@ -155,6 +263,12 @@ export class OrdersComponent {
             ?.focus();
         } else if (!open && wasOpen) this.previousFocus?.focus();
       });
+    });
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroy)).subscribe((params) => {
+      this.requestedSymbol = (params.get('symbol') ?? '').trim().toUpperCase();
+      if (this.initialized && this.requestedSymbol && this.requestedSymbol !== this.symbol) {
+        this.selectInstrument(this.requestedSymbol);
+      }
     });
     this.load();
   }
@@ -187,8 +301,7 @@ export class OrdersComponent {
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.service
-      .setup()
+    (this.management ? this.service.managementSetup() : this.service.setup())
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (data) => {
@@ -203,7 +316,25 @@ export class OrdersComponent {
             data.accounts.find((a) => String(a.id) === ownId)?.accountId ??
             (this.isAdmin ? data.accounts[0]?.accountId : '') ??
             '';
-          this.symbol = this.instruments()[0]?.symbol ?? '';
+          const params = this.route.snapshot.queryParamMap;
+          const requested = this.instruments().find(
+            (instrument) => instrument.symbol === this.requestedSymbol,
+          );
+          this.symbol = requested?.symbol ?? this.instruments()[0]?.symbol ?? '';
+          this.marketSymbol.set(requested?.symbol ?? '');
+          if (!this.management && this.requestedSymbol && !requested) {
+            this.symbol = '';
+            this.error.set(
+              'This instrument is no longer available for trading. Choose another instrument.',
+            );
+          }
+          if (requested) {
+            this.side = params.get('side') === 'SELL' ? 'SELL' : 'BUY';
+            const requestedAccount = data.accounts.find(
+              (account) => account.accountId === params.get('account'),
+            );
+            if (this.isAdmin && requestedAccount) this.accountId = requestedAccount.accountId;
+          }
           if (!this.accountId) {
             this.error.set('No trading account is available.');
             this.loading.set(false);
@@ -234,22 +365,35 @@ export class OrdersComponent {
   private fetch() {
     const accountId = this.accountId;
     const symbol = this.symbol;
+    if (this.management) {
+      return forkJoin({ orders: this.service.orders(), market: this.service.marketOverview() }).pipe(
+        exhaustMap((data) => {
+          this.updateOrders(data.orders);
+          this.market.set(data.market);
+          this.loading.set(false);
+          this.refreshError.set('');
+          return EMPTY;
+        }),
+        catchError(() => {
+          this.loading.set(false);
+          this.refreshError.set('Order updates are unavailable. Retrying automatically…');
+          return EMPTY;
+        }),
+      );
+    }
     return forkJoin({
       orders: this.service.orders(),
       portfolio: this.service.portfolio(accountId),
       quote: this.service.quote(symbol),
+      market: this.service.marketOverview(),
     }).pipe(
       exhaustMap((data) => {
         if (accountId !== this.accountId || symbol !== this.symbol) return EMPTY;
-        this.orders.set(data.orders);
-        const viewedOrder = this.historyOrder();
-        const updatedOrder = data.orders.find((order) => order.orderId === viewedOrder?.orderId);
-        if (viewedOrder && updatedOrder && viewedOrder.status !== updatedOrder.status) {
-          this.showHistory(updatedOrder);
-        }
+        this.updateOrders(data.orders);
         this.account.set(data.portfolio.account);
         this.positions.set(data.portfolio.positions);
         this.quote.set(data.quote);
+        this.market.set(data.market);
         this.loading.set(false);
         this.refreshError.set('');
         return EMPTY;
@@ -260,6 +404,16 @@ export class OrdersComponent {
         return EMPTY;
       }),
     );
+  }
+
+  private updateOrders(orders: Order[]): void {
+    this.orders.set(orders);
+    const viewed = this.historyOrder();
+    const updated = orders.find((order) => order.orderId === viewed?.orderId);
+    if (viewed && updated && viewed.status !== updated.status) this.showHistory(updated);
+    const cancelling = this.confirming();
+    const latest = orders.find((order) => order.orderId === cancelling?.orderId);
+    if (latest) this.confirming.set(latest);
   }
 
   refresh(): void {
@@ -339,6 +493,15 @@ export class OrdersComponent {
   edited(): void {
     this.review = false;
     this.error.set('');
+    this.clearCompliance();
+  }
+  backToEditing(): void {
+    this.review = false;
+    this.clearCompliance();
+  }
+  private clearCompliance(): void {
+    this.compliance.set(null);
+    this.acknowledged = false;
   }
   selectedInstrument() {
     return this.instruments().find((i) => i.symbol === this.symbol);
@@ -414,6 +577,13 @@ export class OrdersComponent {
       this.error.set('');
       return;
     }
+    // A blocked order must be changed first; a warned one needs "I understand" ticked
+    const stop = this.compliance();
+    if (stop?.code === 'COMPLIANCE_BLOCKED') return;
+    if (stop?.code === 'COMPLIANCE_WARNING' && !this.acknowledged) {
+      this.focusCompliance();
+      return;
+    }
     const draft = {
       accountId: this.accountId,
       symbol: this.symbol,
@@ -432,7 +602,14 @@ export class OrdersComponent {
         return;
       }
     }
-    const request: OrderRequest = { ...draft, idempotencyKey: this.submission.key };
+    // Same key as the stopped attempt: no order was created, so this is the same order resent
+    const request: OrderRequest = {
+      ...draft,
+      idempotencyKey: this.submission.key,
+      ...(stop?.code === 'COMPLIANCE_WARNING'
+        ? { acknowledgedWarnings: stop.reasons.map((reason) => reason.rule) }
+        : {}),
+    };
     this.submitting.set(true);
     this.error.set('');
     this.notice.set('');
@@ -453,16 +630,36 @@ export class OrdersComponent {
           );
           this.review = false;
           this.submission = null;
+          this.clearCompliance();
           this.refresh();
         },
-        error: (error) =>
+        error: (error) => {
+          const stopped = complianceStop(error);
+          if (stopped) {
+            this.compliance.set(stopped);
+            this.acknowledged = false;
+            this.focusCompliance();
+            return;
+          }
           this.error.set(
             this.message(
               error,
               'Order submission failed. Check your available cash or holdings and retry.',
             ),
-          ),
+          );
+        },
       });
+  }
+
+  /**
+   * The Confirm button is disabled when an order is stopped, which would drop keyboard focus,
+   * so focus moves into the result: the checkbox for warnings, the box itself for a block.
+   */
+  private focusCompliance(): void {
+    setTimeout(() => {
+      const box = this.host.nativeElement.querySelector<HTMLElement>('#compliance-result');
+      (box?.querySelector<HTMLInputElement>('input[type="checkbox"]') ?? box)?.focus();
+    });
   }
 
   private priceAndBalanceError(price: number): string {
@@ -494,8 +691,15 @@ export class OrdersComponent {
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   }
 
+  beginCancel(order: Order): void {
+    if (!this.isPending(order)) return;
+    this.historyOrder.set(null);
+    this.confirming.set(order);
+    this.rejectionReason = '';
+  }
+
   cancel(order: Order): void {
-    if (this.actionId()) return;
+    if (this.actionId() || !this.isPending(order)) return;
     this.actionId.set(order.orderId);
     this.error.set('');
     this.service
@@ -522,7 +726,8 @@ export class OrdersComponent {
       });
   }
   reject(order: Order): void {
-    if (!this.isAdmin || this.actionId() || !this.rejectionReason.trim()) return;
+    if (!this.isAdmin || this.actionId() || !this.isPending(order) || !this.rejectionReason.trim())
+      return;
     this.actionId.set(order.orderId);
     this.error.set('');
     this.service
@@ -591,4 +796,19 @@ export class OrdersComponent {
       return false;
     }
   }
+}
+
+/** The compliance details from a 422, or null for any other error */
+export function complianceStop(error: unknown): ComplianceStop | null {
+  const response = error as { status?: number; error?: Partial<ComplianceStop> } | null;
+  const body = response?.error;
+  if (
+    response?.status !== 422 ||
+    (body?.code !== 'COMPLIANCE_BLOCKED' && body?.code !== 'COMPLIANCE_WARNING') ||
+    !Array.isArray(body.reasons) ||
+    body.reasons.length === 0
+  ) {
+    return null;
+  }
+  return { code: body.code, reasons: body.reasons };
 }

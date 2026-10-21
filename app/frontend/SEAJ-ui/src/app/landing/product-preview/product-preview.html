@@ -1,0 +1,36 @@
+<!-- Decorative sample: hidden from screen readers, which hear the host's description instead -->
+<div class="window" aria-hidden="true">
+  <div class="bar">
+    <span class="light"></span><span class="light"></span><span class="light"></span>
+    <span class="address">SEAJ Capital · Portfolio</span>
+  </div>
+  <div class="body">
+    <div class="summary">
+      <div>
+        <p class="label">Total portfolio</p>
+        <p class="total">$28,354.23</p>
+        <p class="change"><ng-icon name="lucideArrowUpRight" />+$503.98 (+1.81%) today</p>
+      </div>
+      <div class="periods"><span>1D</span><span class="on">1M</span><span>1Y</span></div>
+    </div>
+
+    <svg class="chart" viewBox="0 0 300 90" preserveAspectRatio="none">
+      <path class="area" [attr.d]="area" />
+      <polyline class="line" [attr.points]="line" />
+    </svg>
+
+    <ul class="holdings">
+      @for (h of holdings; track h.symbol) {
+        <li>
+          <span
+            ><strong>{{ h.symbol }}</strong> {{ h.name }}</span
+          >
+          <span>{{ h.value }}</span>
+          <span class="move" [class.down]="!h.up">
+            <ng-icon [name]="h.up ? 'lucideArrowUpRight' : 'lucideArrowDownRight'" />{{ h.change }}
+          </span>
+        </li>
+      }
+    </ul>
+  </div>
+</div>

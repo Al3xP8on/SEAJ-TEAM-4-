@@ -1,24 +1,50 @@
 <a class="skip-link" href="#main-content">Skip to main content</a>
 <header class="topbar">
-  <a class="brand" routerLink="/"
-    ><img class="brand-logo logo-light" src="seaj-capital-logo.png" alt="SEAJ Capital" /><img class="brand-logo logo-dark" src="seaj-capital-logo-white.png" alt="SEAJ Capital" /></a
-  >
-  <nav aria-label="Main navigation">
-    <a
-      routerLink="/dashboard"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: true }"
-      ariaCurrentWhenActive="page"
-      >Portfolio</a
-    >
-    <a
-      routerLink="/order"
-      [class.active]="ordersActive()"
-      [attr.aria-current]="ordersActive() ? 'page' : null"
-      >Orders</a
-    >
-  </nav>
-  <nav class="account-nav" aria-label="Account navigation"><a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">Settings</a></nav>
-  <button class="logout" type="button" (click)="logout()">Logout</button>
+  <div class="topbar-inner">
+    <a class="brand" routerLink="/dashboard" aria-label="SEAJ Capital, portfolio">
+      <img class="brand-logo logo-light" src="seaj-capital-logo.png" alt="" />
+      <img class="brand-logo logo-dark" src="seaj-capital-logo-white.png" alt="" />
+      <span class="brand-name" aria-hidden="true">SEAJ Capital</span>
+    </a>
+    <nav class="main-nav" aria-label="Main navigation">
+      @if (isAdmin) {
+        <a routerLink="/admin" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <ng-icon name="lucideLayoutDashboard" aria-hidden="true" />Admin dashboard
+        </a>
+        <a routerLink="/portfolio" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <ng-icon name="lucideLayoutDashboard" aria-hidden="true" />My portfolio
+        </a>
+      } @else {
+        <a
+          routerLink="/dashboard"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          ariaCurrentWhenActive="page"
+        >
+          <ng-icon name="lucideLayoutDashboard" aria-hidden="true" />Portfolio
+        </a>
+      }
+      <a routerLink="/market" routerLinkActive="active" ariaCurrentWhenActive="page">
+        <ng-icon name="lucideChartNoAxesCombined" aria-hidden="true" />Market
+      </a>
+      <a
+        routerLink="/order"
+        [class.active]="ordersActive()"
+        [attr.aria-current]="ordersActive() ? 'page' : null"
+      >
+        <ng-icon name="lucideArrowLeftRight" aria-hidden="true" />Orders
+      </a>
+    </nav>
+    <div class="account-nav">
+      <nav aria-label="Account navigation">
+        <a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <ng-icon name="lucideSettings" aria-hidden="true" />Settings
+        </a>
+      </nav>
+      <button type="button" hlmBtn variant="outline" class="logout" (click)="logout()">
+        <ng-icon name="lucideLogOut" aria-hidden="true" />Log out
+      </button>
+    </div>
+  </div>
 </header>
 <div id="main-content" tabindex="-1"><router-outlet /></div>

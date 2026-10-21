@@ -26,6 +26,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findByAccountId(@Param("accountId") String accountId);
     
     List<Order> findByStatus(OrderStatus status);
+
+    boolean existsByAccount_IdAndStatusIn(Long accountId, List<OrderStatus> statuses);
     
     @Query("SELECT o FROM Order o WHERE o.account.accountId = :accountId AND o.status = :status")
     List<Order> findByAccountIdAndStatus(@Param("accountId") String accountId, @Param("status") OrderStatus status);

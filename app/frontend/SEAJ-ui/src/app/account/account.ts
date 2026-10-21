@@ -1,25 +1,39 @@
+import { NotificationsService } from '../notifications/notifications.service';
 import { HlmSwitch } from '@spartan-ng/helm/switch';
 import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmField, HlmFieldDescription } from '@spartan-ng/helm/field';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideArrowDownLeft, lucideArrowUpRight, lucideCreditCard, lucidePalette, lucidePencil, lucideRotateCw, lucideTrash2, lucideUser, lucideWallet } from '@ng-icons/lucide';
 import { Component, DestroyRef, ElementRef, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AccountService, Profile, Settings, BankInput, Bank } from './account.service';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { AppearanceService } from '../appearance/appearance.service';
 import { Account } from '../dashboard/dashboard.models';
-@Component({ selector: 'app-account', imports: [FormsModule, CurrencyPipe, DatePipe, HlmSwitch, HlmCardImports], templateUrl: './account.html', styleUrl: './account.css' })
+@Component({
+  selector: 'app-account',
+  imports: [FormsModule, CurrencyPipe, DatePipe, NgIcon, HlmSwitch, HlmCardImports, HlmButton, HlmInput, HlmLabel, HlmField, HlmFieldDescription],
+  providers: [provideIcons({ lucideArrowDownLeft, lucideArrowUpRight, lucideCreditCard, lucidePalette, lucidePencil, lucideRotateCw, lucideTrash2, lucideUser, lucideWallet })],
+  templateUrl: './account.html', styleUrl: './account.css',
+})
 export class AccountComponent {
   private readonly element: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly service = inject(AccountService);
+  readonly notifications = inject(NotificationsService);
   private readonly destroyRef = inject(DestroyRef);
   readonly account = signal<Account | null>(null);
   readonly profile = signal<Profile | null>(null);
   readonly appearance = inject(AppearanceService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute, { optional: true });
   readonly deletionBusy = signal(false);
   readonly withdrawalRequired = signal(false);
   readonly deletionError = signal('');
@@ -67,7 +81,13 @@ export class AccountComponent {
   currentPassword = '';
   newPassword = '';
   confirmPassword = '';
-  constructor() { this.load(); }
+  constructor() {
+    // Deep links such as /account?section=cash&action=withdraw, used by the dashboard's cash card
+    const params = this.route?.snapshot.queryParamMap;
+    if (params?.get('section') === 'cash') this.section.set('cash');
+    if (params?.get('action') === 'withdraw') this.action = 'withdraw';
+    this.load();
+  }
   load() {
     this.loading.set(true); this.loadError.set('');
     this.service.load().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -95,7 +115,7 @@ export class AccountComponent {
       next: settings => {
         this.applySettings(settings);
         if (this.email === this.profile()?.email) {
-          this.settingsBusy.set(false); this.editing.set(false); this.focus('#edit-account-button'); this.settingsMessage.set('Account information saved.'); return;
+          this.settingsBusy.set(false); this.editing.set(false); this.focus('#edit-account-button'); this.settingsMessage.set('Account information saved.'); this.notifications.show('Account information saved.'); return;
         }
         this.service.changeEmail(this.email).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: challenge => { this.settingsBusy.set(false); this.emailChallenge.set(challenge.challenge_id); this.focus('#email-code'); this.settingsMessage.set('Phone number saved. Enter the code sent to your new email. Your current email stays active until verified.'); },
@@ -114,7 +134,7 @@ export class AccountComponent {
         if (profile) {
           this.profile.set({ ...profile, email: result.email });
         }
-        this.settingsBusy.set(false); this.emailChallenge.set(null); this.editing.set(false); this.focus('#edit-account-button'); this.emailCode = ''; this.settingsMessage.set('Account information saved.');
+        this.settingsBusy.set(false); this.emailChallenge.set(null); this.editing.set(false); this.focus('#edit-account-button'); this.emailCode = ''; this.settingsMessage.set('Account information saved.'); this.notifications.show('Account information saved.');
       },
       error: error => { this.settingsBusy.set(false); this.settingsError.set(this.errorMessage(error, 'Unable to verify your new email.')); },
     });
@@ -131,7 +151,7 @@ export class AccountComponent {
     }
     this.settingsBusy.set(true); this.review.set(null);
     this.service.saveBank({ ...this.bankInput, holder_name: this.bankInput.holder_name.trim() }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: settings => { this.applySettings(settings); this.bankInput.card_number = ''; this.addingCard.set(false); this.focus('#edit-card-button'); this.paymentChoice = settings.bank?.id ?? 'legacy'; this.settingsBusy.set(false); this.cardMessage.set('Card details saved.'); },
+      next: settings => { this.applySettings(settings); this.bankInput.card_number = ''; this.addingCard.set(false); this.focus('#edit-card-button'); this.paymentChoice = settings.bank?.id ?? 'legacy'; this.settingsBusy.set(false); this.cardMessage.set('Card details saved.'); this.notifications.show('Card details saved.'); },
       error: error => { this.settingsBusy.set(false); this.cardError.set(this.errorMessage(error, 'Unable to save card details.')); },
     });
   }
@@ -144,7 +164,7 @@ export class AccountComponent {
         if (!this.selectedCard()) {
           this.paymentChoice = settings.cards?.[0]?.id ?? 'new';
         }
-        this.settingsBusy.set(false); this.cardMessage.set('Card removed.'); this.focus('#edit-card-button');
+        this.settingsBusy.set(false); this.cardMessage.set('Card removed.'); this.notifications.show('Card removed.'); this.focus('#edit-card-button');
       },
       error: error => { this.settingsBusy.set(false); this.cardError.set(this.errorMessage(error, 'Unable to remove card.')); },
     });
@@ -232,7 +252,7 @@ export class AccountComponent {
     if (this.newPassword !== this.confirmPassword) { this.passwordError.set('The new passwords do not match.'); return; }
     this.passwordBusy.set(true);
     this.service.password(this.currentPassword, this.newPassword).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => { this.currentPassword = ''; this.newPassword = ''; this.confirmPassword = ''; this.passwordBusy.set(false); this.passwordMessage.set('Password changed successfully.'); },
+      next: () => { this.currentPassword = ''; this.newPassword = ''; this.confirmPassword = ''; this.passwordBusy.set(false); this.passwordMessage.set('Password changed successfully.'); this.notifications.show('Password changed successfully.'); },
       error: error => { this.passwordBusy.set(false); this.passwordError.set(this.errorMessage(error, 'Unable to change your password. Please try again.')); },
     });
   }
