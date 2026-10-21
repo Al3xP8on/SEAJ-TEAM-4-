@@ -26,6 +26,12 @@ export class OrdersService {
       instruments: this.http.get<Instrument[]>('/api/v1/instruments?tradable=true'),
     });
   }
+  managementSetup() {
+    return forkJoin({
+      accounts: this.http.get<TradingAccount[]>('/api/v1/accounts'),
+      instruments: of([] as Instrument[]),
+    });
+  }
   orders() {
     return this.http.get<Order[]>('/api/v1/orders');
   }
@@ -42,7 +48,9 @@ export class OrdersService {
       .pipe(catchError(() => of(null)));
   }
   marketOverview() {
-    return this.http.get<MarketOverview>('/api/v1/market-data/overview');
+    return this.http
+      .get<MarketOverview>('/api/v1/market-data/overview')
+      .pipe(catchError(() => of(null)));
   }
   priceHistory(symbol: string) {
     return this.http.get<DailyPrice[]>(`/api/v1/price-history/${encodeURIComponent(symbol)}`);
@@ -53,7 +61,9 @@ export class OrdersService {
     });
   }
   place(request: OrderRequest) {
-    return this.http.post<Order>('/api/v1/orders', request).pipe(tap(order => this.notifications.placed(order)));
+    return this.http
+      .post<Order>('/api/v1/orders', request)
+      .pipe(tap((order) => this.notifications.placed(order)));
   }
   cancel(id: string) {
     return this.http.put<Order>(`/api/v1/orders/${encodeURIComponent(id)}/cancel`, {});

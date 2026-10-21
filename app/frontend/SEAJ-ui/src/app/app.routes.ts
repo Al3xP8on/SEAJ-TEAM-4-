@@ -35,8 +35,17 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         title: 'Compliance | SEAJ Capital',
       },
+      {
+        path: 'market',
+        loadComponent: () => import('./market/market').then((m) => m.MarketComponent),
+        title: 'Market | SEAJ Capital',
+      },
       { path: 'order', component: OrdersComponent },
-      { path: 'blotter', component: OrdersComponent },
+      {
+        path: 'blotter',
+        redirectTo: '/order#order-history',
+        pathMatch: 'full',
+      },
     ],
   },
 ];

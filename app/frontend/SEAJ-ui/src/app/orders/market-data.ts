@@ -20,7 +20,13 @@ import {
   switchMap,
   timer,
 } from 'rxjs';
-import { Instrument, MarketBar, MarketOverview, MarketSnapshot } from './orders.models';
+import {
+  Instrument,
+  MarketBar,
+  MarketOverview,
+  MarketSnapshot,
+  MarketTimeframe,
+} from './orders.models';
 import { OrdersService } from './orders.service';
 
 interface HistoryPoint {
@@ -61,7 +67,9 @@ export class MarketDataComponent {
   readonly timeframe = computed(() =>
     this.chartPeriod() === '1D' ? '1Min' : this.chartPeriod() === '1W' ? '6Hour' : '1Day',
   );
-  readonly intraday = computed(() => this.timeframe() !== '1Day');
+  readonly resolvedTimeframe = signal<MarketTimeframe | null>(null);
+  readonly displayedTimeframe = computed(() => this.resolvedTimeframe() ?? this.timeframe());
+  readonly intraday = computed(() => this.displayedTimeframe() !== '1Day');
   readonly bars = signal<MarketBar[]>([]);
   readonly chartLoading = signal(false);
   readonly chartError = signal('');
@@ -147,7 +155,7 @@ export class MarketDataComponent {
   });
   private chartPrices(snapshot: MarketSnapshot | undefined): HistoryPoint[] {
     let prices = this.historyPoints();
-    if (!this.intraday()) return prices.slice(-30);
+    if (!this.intraday()) return prices.slice(this.chartPeriod() === '1W' ? -5 : -30);
     if (snapshot) {
       const session = this.sessionDate(snapshot.timestamp);
       const time = Date.parse(snapshot.timestamp);
@@ -165,7 +173,8 @@ export class MarketDataComponent {
   }
 
   private chartPreviousClose(snapshot: MarketSnapshot | undefined, prices: HistoryPoint[]) {
-    if (this.timeframe() !== '1Min' || !snapshot || snapshot.previousClose === null) return null;
+    if (this.displayedTimeframe() !== '1Min' || !snapshot || snapshot.previousClose === null)
+      return null;
     if (this.sessionDate(snapshot.timestamp) !== prices.at(-1)!.session) return null;
     return Number.isFinite(snapshot.previousClose) && snapshot.previousClose > 0
       ? snapshot.previousClose
@@ -249,6 +258,7 @@ export class MarketDataComponent {
       this.retry();
       this.inspectIndex.set(null);
       this.bars.set([]);
+      this.resolvedTimeframe.set(null);
       this.chartError.set('');
       this.chartMessage.set('');
       this.chartLoading.set(false);
@@ -257,12 +267,24 @@ export class MarketDataComponent {
       const subscription = this.pollWhileVisible(timeframe === '1Day' ? 300_000 : 60_000, () =>
         this.service.marketBars(symbol, timeframe).pipe(
           catchError((error) => {
+            // Older API deployments only support minute and daily bars.
+            if (
+              timeframe === '6Hour' &&
+              error.status === 400 &&
+              /timeframe/i.test(this.message(error, ''))
+            ) {
+              return this.service.marketBars(symbol, '1Day');
+            }
+            throw error;
+          }),
+          catchError((error) => {
             this.chartError.set(this.message(error, 'This price chart could not be loaded.'));
             this.chartLoading.set(false);
             return EMPTY;
           }),
         ),
       ).subscribe((data) => {
+        this.resolvedTimeframe.set(data.timeframe);
         this.bars.set(
           data.bars
             .filter((bar) => Number.isFinite(bar.close) && bar.close > 0)

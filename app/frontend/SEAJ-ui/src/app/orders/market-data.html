@@ -54,7 +54,13 @@
         </div>
         <span class="period-label muted">
           {{
-            chartPeriod() === '1D' ? 'Intraday' : chartPeriod() === '1W' ? '1 week · 6h' : '1 month'
+            chartPeriod() === '1D'
+              ? 'Intraday'
+              : chartPeriod() === '1W'
+                ? displayedTimeframe() === '1Day'
+                  ? '1 week · daily'
+                  : '1 week · 6h'
+                : '1 month'
           }}
         </span>
       </div>
@@ -187,7 +193,9 @@
               timeframe() === '1Min'
                 ? 'Current and previous session where available · New York dates.'
                 : chartPeriod() === '1W'
-                  ? 'Last 5 available trading sessions · 6-hour prices · New York dates.'
+                  ? displayedTimeframe() === '1Day'
+                    ? 'Last 5 available trading sessions · daily closing prices.'
+                    : 'Last 5 available trading sessions · 6-hour prices · New York dates.'
                   : 'Last 30 available daily bars.'
             }}
           </figcaption>
