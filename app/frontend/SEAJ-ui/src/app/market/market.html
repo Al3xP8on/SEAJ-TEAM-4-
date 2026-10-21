@@ -73,7 +73,7 @@
         <p class="notice" role="status">{{ fxError() }}</p>
       }
       <div class="table-wrap">
-        <table>
+        <table aria-label="Forex currency pairs, reference rates and daily changes">
           <thead>
             <tr>
               <th scope="col">Currency pair</th>
@@ -130,6 +130,115 @@
         Prices show units of the second currency per one unit of the first. Daily change compares
         the last two available reference dates. These are indicative daily rates, not live bid/ask
         quotes
+      </p>
+    </section>
+  } @else if (assetClass() === 'Bond') {
+    <section class="panel" aria-labelledby="bond-title">
+      <div class="panel-heading">
+        <div>
+          <h2 id="bond-title">Individual bonds</h2>
+          <p class="muted">
+            Alpaca Broker · {{ bondOverview()?.environment || 'Connection pending' }} ·
+            {{ visibleBonds().length }} bonds
+          </p>
+          @if (bondOverview()?.checkedAt) {
+            <p class="muted">Catalogue checked {{ bondOverview()!.checkedAt | date: 'medium' }}</p>
+          }
+        </div>
+        <button type="button" (click)="refreshBonds()">Refresh bonds</button>
+      </div>
+      @if (bondLoading()) {
+        <p class="definition muted" role="status">Loading individual bonds…</p>
+      }
+      @if (bondError() || bondOverview()?.message) {
+        <p class="notice" role="status">{{ bondError() || bondOverview()?.message }}</p>
+      }
+      <div class="panel-heading">
+        <div class="filters" role="group" aria-label="Bond type">
+          @for (type of ['', 'Treasury', 'Corporate bond']; track type) {
+            <button
+              type="button"
+              [class.active]="bondType() === type"
+              [attr.aria-pressed]="bondType() === type"
+              (click)="bondType.set(type)"
+            >
+              {{ type || 'All bonds' }}
+            </button>
+          }
+        </div>
+        <label class="search"
+          >Search bonds<input
+            type="search"
+            placeholder="Issuer, ISIN or CUSIP"
+            [value]="bondSearch()"
+            (input)="bondSearch.set($any($event.target).value)"
+        /></label>
+      </div>
+      <div class="table-wrap">
+        <table aria-label="Individual bonds, coupons, maturities, closing prices and yields">
+          <thead>
+            <tr>
+              <th scope="col">Bond / ISIN</th>
+              <th scope="col">Type</th>
+              <th scope="col">Coupon</th>
+              <th scope="col">Maturity</th>
+              <th scope="col">Close price (% of par)</th>
+              <th scope="col">Yield to maturity</th>
+              <th scope="col">Price date</th>
+              <th scope="col">Explore</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (bond of visibleBonds(); track bond.isin) {
+              <tr
+                class="clickable-row"
+                (click)="!$any($event.target).closest('button') && viewBond(bond)"
+              >
+                <td>
+                  <button class="symbol" type="button" (click)="viewBond(bond)">
+                    {{ bond.isin }}</button
+                  ><small>{{ bond.name }}</small>
+                </td>
+                <td>{{ bond.type }}</td>
+                <td>{{ bond.coupon === null ? '—' : (bond.coupon | number: '1.2-3') + '%' }}</td>
+                <td>{{ bond.maturityDate || '—' }}</td>
+                <td>
+                  {{ bond.closePrice === null ? '—' : (bond.closePrice | number: '1.2-4') + '%' }}
+                </td>
+                <td>
+                  {{
+                    bond.yieldToMaturity === null
+                      ? '—'
+                      : (bond.yieldToMaturity | number: '1.2-4') + '%'
+                  }}
+                </td>
+                <td>{{ bond.priceDate || 'Unavailable' }}</td>
+                <td>
+                  <button type="button" class="text-button" (click)="viewBond(bond)">
+                    View details →
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="empty">
+                  {{
+                    bondLoading()
+                      ? 'Loading bond catalogue…'
+                      : bondOverview()?.message || bondError()
+                        ? 'Bond data is unavailable. See the connection message above.'
+                        : 'No individual bonds match your selection.'
+                  }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="definition muted">
+        Dated catalogue closing prices are percentages of face value and exclude accrued interest.
+        These are individual securities, not bond ETFs. Broker tradability is informational; this
+        view does not submit bond orders.
       </p>
     </section>
   } @else {
@@ -214,7 +323,7 @@
         /></label>
       </div>
       <div class="table-wrap">
-        <table>
+        <table aria-label="Market instruments, latest prices, daily changes and session volumes">
           <thead>
             <tr>
               <th scope="col">Instrument</th>
