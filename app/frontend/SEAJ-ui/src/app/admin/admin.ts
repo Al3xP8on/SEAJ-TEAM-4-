@@ -16,7 +16,6 @@ import { RouterLink } from '@angular/router';
 import { Subscription, finalize } from 'rxjs';
 import { AccountRole, AuthService } from '../auth/auth.service';
 import { AdminTabsComponent } from './admin-tabs/admin-tabs';
-import { AdminObservabilityComponent } from './observability';
 import { accountIdFromToken } from '../dashboard/dashboard.service';
 import {
   AccountDetails,
@@ -28,14 +27,7 @@ import {
 
 @Component({
   selector: 'app-admin',
-  imports: [AdminTabsComponent, 
-    CurrencyPipe,
-    DatePipe,
-    DecimalPipe,
-    FormsModule,
-    RouterLink,
-    AdminObservabilityComponent,
-  ],
+  imports: [AdminTabsComponent, CurrencyPipe, DatePipe, DecimalPipe, FormsModule, RouterLink],
   templateUrl: './admin.html',
   styleUrls: ['./admin.css', './admin-overview.css'],
 })
@@ -47,7 +39,7 @@ export class AdminComponent {
   @ViewChild('confirmation') private confirmation!: ElementRef<HTMLDialogElement>;
   private detailRequest?: Subscription;
   private historyRequest?: Subscription;
-  readonly activeSection = signal<'overview' | 'accounts' | 'observability'>('overview');
+  readonly activeSection = signal<'overview' | 'accounts'>('overview');
   readonly lastLoaded = signal<string | null>(null);
   readonly historyError = signal('');
   readonly closedCount = computed(
